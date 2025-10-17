@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 
 export default function MyBots() {
@@ -64,20 +65,26 @@ export default function MyBots() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Bots</h1>
-            <p className="mt-2 text-gray-800">Manage your chatbots and their settings</p>
+            <h1 className="text-2xl font-bold text-white">My Bots</h1>
+            <p className="mt-2 text-gray-300">Manage your chatbots and their settings</p>
           </div>
           <Link
             href="/dashboard/create-bot"
             className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2"
           >
-            <PlusIcon className="w-5 h-5" />
+            <Image
+              src="/icons/plus.png"
+              alt="Plus icon"
+              width={20}
+              height={20}
+              className="brightness-0 invert"
+            />
             <span>Create New Bot</span>
           </Link>
         </div>
 
         {/* Filters and Search */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -115,7 +122,7 @@ export default function MyBots() {
         </div>
 
         {filteredBots.length === 0 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <BotsIcon className="w-8 h-8 text-gray-400" />
             </div>
@@ -143,18 +150,18 @@ export default function MyBots() {
 
 const BotCard = ({ bot, onToggleStatus }) => {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-medium text-gray-900 mb-1">{bot.name}</h3>
-          <p className="text-sm text-gray-700 line-clamp-2">{bot.description}</p>
+          <h3 className="text-lg font-medium text-white mb-1">{bot.name}</h3>
+          <p className="text-sm text-gray-300 line-clamp-2">{bot.description}</p>
         </div>
         <div className="ml-4">
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
             bot.status === 'active' 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-gray-100 text-gray-800'
+              ? 'bg-green-400/20 text-green-400 border border-green-400/30' 
+              : 'bg-gray-600 text-gray-300'
           }`}>
             {bot.status}
           </span>
@@ -164,12 +171,12 @@ const BotCard = ({ bot, onToggleStatus }) => {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="text-center">
-          <p className="text-2xl font-bold text-gray-900">{bot.conversations}</p>
-          <p className="text-xs text-gray-600">Conversations</p>
+          <p className="text-2xl font-bold text-white">{bot.conversations}</p>
+          <p className="text-xs text-gray-400">Conversations</p>
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-gray-900">{bot.files}</p>
-          <p className="text-xs text-gray-600">Files</p>
+          <p className="text-2xl font-bold text-white">{bot.files}</p>
+          <p className="text-xs text-gray-400">Files</p>
         </div>
       </div>
 

@@ -26,24 +26,24 @@ export default function Home() {
   }
 
   return (
-    <SignedOut>
-        <div className="min-h-screen bg-white">
+      <SignedOut>
+        <div className="min-h-screen bg-gray-900">
           {/* Navigation */}
-          <nav className="bg-white border-b border-gray-200">
+          <nav className="bg-gray-900 border-b border-gray-700">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-16">
                 <div className="flex items-center space-x-2">
                   <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
                     <span className="text-white font-bold text-lg">P</span>
                   </div>
-                  <span className="text-2xl font-bold text-gray-900">PlugRAG</span>
+                  <span className="text-2xl font-bold text-white">PlugRAG</span>
                 </div>
                 <div className="hidden md:flex items-center space-x-8">
-                  <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">Features</a>
-                  <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 transition-colors">How it Works</a>
-                  <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">Pricing</a>
+                  <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
+                  <a href="#how-it-works" className="text-gray-300 hover:text-white transition-colors">How it Works</a>
+                  <a href="#pricing" className="text-gray-300 hover:text-white transition-colors">Pricing</a>
                   <SignInButton mode="modal">
-                    <button className="text-gray-600 hover:text-gray-900 transition-colors">Sign In</button>
+                    <button className="text-gray-300 hover:text-white transition-colors">Sign In</button>
                   </SignInButton>
                   <SignUpButton mode="modal">
                     <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
@@ -53,21 +53,19 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          </nav>
-
-          {/* Hero Section */}
-          <section className="py-20 bg-gradient-to-br from-orange-50 via-white to-gray-50">
+          </nav>          {/* Hero Section */}
+          <section className="py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center">
                 <div className="mb-8">
-                  <span className="inline-block px-4 py-2 bg-orange-100 text-orange-800 rounded-full text-sm font-medium mb-6">
+                  <span className="inline-block px-4 py-2 bg-orange-500/20 text-orange-400 rounded-full text-sm font-medium mb-6 border border-orange-500/30">
                     🚀 Powered by OpenAI & Advanced RAG Technology
                   </span>
-                  <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
+                  <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
                     Plug-and-Play
                     <span className="text-orange-500 block">RAG Chatbots</span>
                   </h1>
-                  <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed">
+                  <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-10 leading-relaxed">
                     Transform your documents into intelligent chatbots in minutes. Upload your content, 
                     customize the experience, and embed anywhere with a single line of code.
                   </p>
@@ -79,25 +77,25 @@ export default function Home() {
                       Start Building Free
                     </button>
                   </SignUpButton>
-                  <button className="border-2 border-gray-300 hover:border-orange-500 text-gray-700 hover:text-orange-600 font-semibold px-8 py-4 rounded-lg text-lg transition-all">
+                  <button className="border-2 border-gray-600 hover:border-orange-500 text-gray-300 hover:text-orange-500 font-semibold px-8 py-4 rounded-lg text-lg transition-all bg-gray-800 hover:bg-gray-700">
                     Watch Demo
                   </button>
                 </div>
 
                 {/* Demo Preview */}
                 <div className="relative max-w-4xl mx-auto">
-                  <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
-                    <div className="bg-gray-800 px-6 py-4 flex items-center space-x-2">
+                  <div className="bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden">
+                    <div className="bg-gray-900 px-6 py-4 flex items-center space-x-2">
                       <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                       <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <div className="ml-4 text-gray-400 text-sm">your-website.com</div>
                     </div>
-                    <div className="h-80 bg-gradient-to-br from-gray-50 to-gray-100 relative">
+                    <div className="h-80 bg-gradient-to-br from-gray-700 to-gray-800 relative">
                       <div className="p-6">
-                        <div className="w-3/4 h-4 bg-gray-300 rounded mb-4"></div>
-                        <div className="w-1/2 h-4 bg-gray-200 rounded mb-8"></div>
-                        <div className="w-2/3 h-20 bg-gray-300 rounded"></div>
+                        <div className="w-3/4 h-4 bg-gray-600 rounded mb-4"></div>
+                        <div className="w-1/2 h-4 bg-gray-500 rounded mb-8"></div>
+                        <div className="w-2/3 h-20 bg-gray-600 rounded"></div>
                       </div>
                       <div className="absolute bottom-6 right-6">
                         <div className="w-14 h-14 bg-orange-500 rounded-full shadow-lg flex items-center justify-center cursor-pointer transform hover:scale-110 transition-transform">
@@ -112,13 +110,13 @@ export default function Home() {
           </section>
 
           {/* Features Section */}
-          <section id="features" className="py-20 bg-white">
+          <section id="features" className="py-20 bg-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                <h2 className="text-4xl font-bold text-white mb-4">
                   Everything you need to build intelligent chatbots
                 </h2>
-                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                <p className="text-xl text-gray-300 max-w-3xl mx-auto">
                   From document upload to deployment, PlugRAG handles the complexity so you can focus on what matters.
                 </p>
               </div>
@@ -159,13 +157,13 @@ export default function Home() {
           </section>
 
           {/* How it Works */}
-          <section id="how-it-works" className="py-20 bg-gray-50">
+          <section id="how-it-works" className="py-20 bg-gray-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                <h2 className="text-4xl font-bold text-white mb-4">
                   Get your chatbot live in 3 simple steps
                 </h2>
-                <p className="text-xl text-gray-600">
+                <p className="text-xl text-gray-300">
                   No coding required. No complex setup. Just upload, customize, and deploy.
                 </p>
               </div>
@@ -194,13 +192,13 @@ export default function Home() {
           </section>
 
           {/* Pricing */}
-          <section id="pricing" className="py-20 bg-white">
+          <section id="pricing" className="py-20 bg-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                <h2 className="text-4xl font-bold text-white mb-4">
                   Simple, transparent pricing
                 </h2>
-                <p className="text-xl text-gray-600">
+                <p className="text-xl text-gray-300">
                   Start free and scale as you grow. No hidden fees.
                 </p>
               </div>
@@ -324,12 +322,12 @@ export default function Home() {
 
 // Components
 const FeatureCard = ({ icon, title, description }) => (
-  <div className="p-8 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
-    <div className="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center mb-6 text-orange-600">
+  <div className="p-8 bg-gray-900 rounded-2xl border border-gray-700 shadow-sm hover:shadow-lg hover:border-gray-600 transition-all">
+    <div className="w-14 h-14 bg-orange-500/20 rounded-xl flex items-center justify-center mb-6 text-orange-400 border border-orange-500/30">
       {icon}
     </div>
-    <h3 className="text-xl font-semibold text-gray-900 mb-3">{title}</h3>
-    <p className="text-gray-600 leading-relaxed">{description}</p>
+    <h3 className="text-xl font-semibold text-white mb-3">{title}</h3>
+    <p className="text-gray-300 leading-relaxed">{description}</p>
   </div>
 );
 
@@ -343,14 +341,14 @@ const StepCard = ({ number, title, description, icon }) => (
         {number}
       </div>
     </div>
-    <h3 className="text-2xl font-semibold text-gray-900 mb-4">{title}</h3>
-    <p className="text-gray-600 leading-relaxed">{description}</p>
+    <h3 className="text-2xl font-semibold text-white mb-4">{title}</h3>
+    <p className="text-gray-300 leading-relaxed">{description}</p>
   </div>
 );
 
 const PricingCard = ({ name, price, description, features, buttonText, buttonStyle, popular }) => (
   <div className={`relative p-8 rounded-2xl border-2 transition-all hover:shadow-lg ${
-    popular ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white'
+    popular ? 'border-orange-500 bg-orange-500/10' : 'border-gray-700 bg-gray-900'
   }`}>
     {popular && (
       <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -360,18 +358,18 @@ const PricingCard = ({ name, price, description, features, buttonText, buttonSty
       </div>
     )}
     <div className="text-center mb-8">
-      <h3 className="text-2xl font-semibold text-gray-900 mb-2">{name}</h3>
+      <h3 className="text-2xl font-semibold text-white mb-2">{name}</h3>
       <div className="mb-2">
-        <span className="text-4xl font-bold text-gray-900">{price}</span>
-        {price !== 'Free' && price !== 'Custom' && <span className="text-gray-600">/month</span>}
+        <span className="text-4xl font-bold text-white">{price}</span>
+        {price !== 'Free' && price !== 'Custom' && <span className="text-gray-300">/month</span>}
       </div>
-      <p className="text-gray-600">{description}</p>
+      <p className="text-gray-300">{description}</p>
     </div>
     <ul className="space-y-3 mb-8">
       {features.map((feature, index) => (
         <li key={index} className="flex items-center">
-          <CheckIcon className="w-5 h-5 text-green-500 mr-3" />
-          <span className="text-gray-600">{feature}</span>
+          <CheckIcon className="w-5 h-5 text-green-400 mr-3" />
+          <span className="text-gray-300">{feature}</span>
         </li>
       ))}
     </ul>
@@ -379,7 +377,7 @@ const PricingCard = ({ name, price, description, features, buttonText, buttonSty
       <button className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
         buttonStyle === 'primary' 
           ? 'bg-orange-500 hover:bg-orange-600 text-white' 
-          : 'border-2 border-gray-300 hover:border-orange-500 text-gray-700 hover:text-orange-600'
+          : 'border-2 border-gray-600 hover:border-orange-500 text-gray-300 hover:text-orange-500 bg-gray-800 hover:bg-gray-700'
       }`}>
         {buttonText}
       </button>
