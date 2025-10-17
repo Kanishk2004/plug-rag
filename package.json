@@ -1,5 +1,5 @@
 {
-  "name": "chat-bot",
+  "name": "plugrag",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.33.6",
+    "mongoose": "^8.19.1",
     "next": "15.5.5",
     "react": "19.1.0",
     "react-dom": "19.1.0"
