@@ -1,8 +1,22 @@
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
+import { checkUserExists, asyncSyncUser } from '@/lib/user';
+import { currentUser } from '@clerk/nextjs/server';
 import Image from 'next/image';
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  // Performance optimized user sync
+  const user = await currentUser();
+  
+  if (user) {
+    // Quick check if user exists (fast query)
+    const userExists = await checkUserExists(user.id);
+    
+    if (!userExists) {
+      // Create user in background without blocking UI
+      asyncSyncUser(user.id);
+    }
+  }
   return (
     <SignedIn>
       <DashboardLayout>

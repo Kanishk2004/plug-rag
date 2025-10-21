@@ -12,6 +12,10 @@ export default clerkMiddleware(async (auth, req) => {
   // Protect dashboard routes
   if (isProtectedRoute(req)) {
     await auth.protect();
+    
+    // Add user sync header for client-side handling (optional)
+    const response = new Response();
+    response.headers.set('x-sync-user', 'true');
   }
 });
 
