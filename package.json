@@ -10,8 +10,13 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.33.6",
+    "cheerio": "^1.1.2",
+    "jsdom": "^27.0.1",
+    "mammoth": "^1.11.0",
     "mongoose": "^8.19.1",
     "next": "15.5.5",
+    "papaparse": "^5.5.3",
+    "pdf-parse": "^2.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "svix": "^1.77.0"
