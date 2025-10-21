@@ -6,17 +6,17 @@ export default function Settings() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="mt-2 text-gray-600">Manage your account and application preferences</p>
+          <h1 className="text-2xl font-bold text-white">Settings</h1>
+          <p className="mt-2 text-gray-200">Manage your account and application preferences</p>
         </div>
 
         {/* Coming Soon */}
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+        <div className="bg-gray-900 rounded-lg border border-gray-800 p-12 text-center">
           <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <SettingsIcon className="w-8 h-8 text-orange-600" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Settings Coming Soon</h3>
-          <p className="text-gray-700 max-w-md mx-auto">
+          <h3 className="text-lg font-medium text-white mb-2">Settings Coming Soon</h3>
+          <p className="text-gray-200 max-w-md mx-auto">
             Account settings, API management, and other preferences will be available soon.
           </p>
         </div>

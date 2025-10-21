@@ -144,14 +144,14 @@ const FileUpload = ({ onFilesUploaded, maxFiles = 10 }) => {
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
           isDragging
             ? 'border-orange-400 bg-orange-50'
-            : 'border-gray-300 hover:border-gray-400'
+            : 'border-gray-700 hover:border-gray-600'
         }`}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <div className="w-12 h-12 mx-auto mb-4 text-gray-400">
+        <div className="w-12 h-12 mx-auto mb-4 text-gray-300">
           <UploadIcon />
         </div>
         <div className="mb-2">
@@ -159,7 +159,7 @@ const FileUpload = ({ onFilesUploaded, maxFiles = 10 }) => {
             <span className="text-orange-600 hover:text-orange-700 font-medium">
               Click to upload
             </span>
-            <span className="text-gray-700"> or drag and drop</span>
+            <span className="text-gray-200"> or drag and drop</span>
           </label>
           <input
             id="file-upload"
@@ -170,7 +170,7 @@ const FileUpload = ({ onFilesUploaded, maxFiles = 10 }) => {
             className="hidden"
           />
         </div>
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-gray-200">
           PDF, DOCX, TXT, CSV, HTML up to 30MB each
         </p>
       </div>
@@ -178,7 +178,7 @@ const FileUpload = ({ onFilesUploaded, maxFiles = 10 }) => {
       {/* File List */}
       {files.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-gray-700">Uploaded Files ({files.length})</h3>
+          <h3 className="text-sm font-medium text-gray-200">Uploaded Files ({files.length})</h3>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {files.map((fileObj) => (
               <FileItem
@@ -200,24 +200,24 @@ const FileItem = ({ fileObj, onRemove, formatFileSize, getFileIcon }) => {
   const { name, size, progress, status, error } = fileObj;
 
   return (
-    <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-      <div className="flex-shrink-0 mr-3 text-gray-400">
+    <div className="flex items-center p-3 bg-gray-800 rounded-lg">
+      <div className="flex-shrink-0 mr-3 text-gray-300">
         {getFileIcon(fileObj.type)}
       </div>
       
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
+          <p className="text-sm font-medium text-white truncate">{name}</p>
           <button
             onClick={onRemove}
-            className="text-gray-400 hover:text-gray-600 flex-shrink-0 ml-2"
+            className="text-gray-300 hover:text-gray-400 flex-shrink-0 ml-2"
           >
             <XIcon className="w-4 h-4" />
           </button>
         </div>
         
         <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-600">{formatFileSize(size)}</p>
+          <p className="text-xs text-gray-400">{formatFileSize(size)}</p>
           {status === 'error' && (
             <span className="text-xs text-red-600 font-medium">Error</span>
           )}
@@ -234,7 +234,7 @@ const FileItem = ({ fileObj, onRemove, formatFileSize, getFileIcon }) => {
         )}
         
         {status === 'uploading' && (
-          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+          <div className="w-full bg-gray-700 rounded-full h-1.5 mt-2">
             <div 
               className="bg-orange-500 h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}

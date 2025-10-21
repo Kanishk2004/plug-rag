@@ -55,17 +55,17 @@ export default function CreateBot() {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Create New Bot</h1>
-          <p className="mt-2 text-gray-800">Set up a new chatbot with your custom content</p>
+          <h1 className="text-2xl font-bold text-white">Create New Bot</h1>
+          <p className="mt-2 text-gray-200">Set up a new chatbot with your custom content</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Information */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
+          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+            <h2 className="text-lg font-medium text-white mb-4">Basic Information</h2>
             <div className="space-y-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-200 mb-1">
                   Bot Name *
                 </label>
                 <input
@@ -75,12 +75,12 @@ export default function CreateBot() {
                   value={formData.name}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   placeholder="e.g., Customer Support Bot"
                 />
               </div>
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="description" className="block text-sm font-medium text-gray-200 mb-1">
                   Description *
                 </label>
                 <textarea
@@ -90,7 +90,7 @@ export default function CreateBot() {
                   onChange={handleInputChange}
                   required
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   placeholder="Describe what this bot will help with..."
                 />
               </div>
@@ -98,11 +98,11 @@ export default function CreateBot() {
           </div>
 
           {/* Embed Customization */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Embed Customization</h2>
+          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+            <h2 className="text-lg font-medium text-white mb-4">Embed Customization</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="embedColor" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="embedColor" className="block text-sm font-medium text-gray-200 mb-1">
                   Theme Color
                 </label>
                 <div className="flex items-center space-x-3">
@@ -112,19 +112,19 @@ export default function CreateBot() {
                     name="embedColor"
                     value={formData.embedColor}
                     onChange={handleInputChange}
-                    className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
+                    className="w-12 h-10 border border-gray-700 rounded-lg cursor-pointer"
                   />
                   <input
                     type="text"
                     value={formData.embedColor}
                     onChange={handleInputChange}
                     name="embedColor"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
                 </div>
               </div>
               <div>
-                <label htmlFor="embedPosition" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="embedPosition" className="block text-sm font-medium text-gray-200 mb-1">
                   Position
                 </label>
                 <select
@@ -132,7 +132,7 @@ export default function CreateBot() {
                   name="embedPosition"
                   value={formData.embedPosition}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 >
                   <option value="bottom-right">Bottom Right</option>
                   <option value="bottom-left">Bottom Left</option>
@@ -142,9 +142,9 @@ export default function CreateBot() {
 
             {/* Preview */}
             <div className="mt-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Preview</h3>
-              <div className="relative bg-gray-100 rounded-lg p-4 h-32 overflow-hidden">
-                <div className="text-xs text-gray-600 mb-2">Your website content here...</div>
+              <h3 className="text-sm font-medium text-gray-200 mb-3">Preview</h3>
+              <div className="relative bg-gray-800 rounded-lg p-4 h-32 overflow-hidden">
+                <div className="text-xs text-gray-300 mb-2">Your website content here...</div>
                 <div 
                   className={`absolute ${
                     formData.embedPosition === 'bottom-right' ? 'bottom-4 right-4' : 'bottom-4 left-4'
@@ -158,9 +158,9 @@ export default function CreateBot() {
           </div>
 
           {/* File Upload */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Upload Content</h2>
-            <p className="text-sm text-gray-700 mb-4">
+          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+            <h2 className="text-lg font-medium text-white mb-4">Upload Content</h2>
+            <p className="text-sm text-gray-200 mb-4">
               Upload files that your chatbot will use to answer questions. Supported formats: PDF, DOCX, TXT, CSV, HTML
             </p>
             <FileUpload onFilesUploaded={handleFilesUploaded} />
@@ -171,14 +171,14 @@ export default function CreateBot() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+              className="px-6 py-2 border border-gray-700 text-gray-200 rounded-lg hover:bg-gray-700 font-medium transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !formData.name || !formData.description}
-              className="px-6 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
+              className="px-6 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors flex items-center space-x-2"
             >
               {isSubmitting && <LoadingIcon className="w-4 h-4 animate-spin" />}
               <span>{isSubmitting ? 'Creating...' : 'Create Bot'}</span>

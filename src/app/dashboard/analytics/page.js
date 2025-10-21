@@ -6,17 +6,17 @@ export default function Analytics() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-          <p className="mt-2 text-gray-600">Track your chatbot performance and user interactions</p>
+          <h1 className="text-2xl font-bold text-white">Analytics</h1>
+          <p className="mt-2 text-gray-200">Track your chatbot performance and user interactions</p>
         </div>
 
         {/* Coming Soon */}
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+        <div className="bg-gray-900 rounded-lg border border-gray-800 p-12 text-center">
           <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AnalyticsIcon className="w-8 h-8 text-orange-600" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Analytics Coming Soon</h3>
-          <p className="text-gray-700 max-w-md mx-auto">
+          <h3 className="text-lg font-medium text-white mb-2">Analytics Coming Soon</h3>
+          <p className="text-gray-200 max-w-md mx-auto">
             Detailed analytics and insights about your chatbot performance will be available soon. 
             Track conversations, user satisfaction, and more.
           </p>

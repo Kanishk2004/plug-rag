@@ -59,8 +59,8 @@ export default function BotEmbedPage({ params }) {
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Embed Code Generator</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-2xl font-bold text-white">Embed Code Generator</h1>
+          <p className="mt-2 text-gray-200">
             Customize and generate embed code for <span className="font-medium">{bot.name}</span>
           </p>
         </div>

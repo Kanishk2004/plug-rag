@@ -84,7 +84,7 @@ export default function BotDetail({ params }) {
             <div className="flex items-center space-x-2 mb-2">
               <Link 
                 href="/dashboard/bots"
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-300 hover:text-gray-200"
               >
                 ← Back to Bots
               </Link>
@@ -95,19 +95,19 @@ export default function BotDetail({ params }) {
                   type="text"
                   value={editForm.name}
                   onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-orange-500 focus:outline-none"
+                  className="text-2xl font-bold text-white bg-transparent border-b-2 border-orange-500 focus:outline-none"
                 />
                 <textarea
                   value={editForm.description}
                   onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
-                  className="text-gray-600 bg-transparent border border-gray-300 rounded px-2 py-1 w-full focus:outline-none focus:border-orange-500"
+                  className="text-gray-200 bg-transparent border border-gray-700 rounded px-2 py-1 w-full focus:outline-none focus:border-orange-500"
                   rows="2"
                 />
               </div>
             ) : (
               <>
-                <h1 className="text-2xl font-bold text-gray-900">{bot.name}</h1>
-                <p className="mt-2 text-gray-600">{bot.description}</p>
+                <h1 className="text-2xl font-bold text-white">{bot.name}</h1>
+                <p className="mt-2 text-gray-200">{bot.description}</p>
               </>
             )}
           </div>
@@ -116,7 +116,7 @@ export default function BotDetail({ params }) {
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
               bot.status === 'active' 
                 ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-100 text-gray-800'
+                : 'bg-gray-800 text-gray-200'
             }`}>
               {bot.status}
             </span>
@@ -131,7 +131,7 @@ export default function BotDetail({ params }) {
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                  className="px-4 py-2 border border-gray-700 text-gray-200 rounded-lg hover:bg-gray-700 font-medium transition-colors"
                 >
                   Cancel
                 </button>
@@ -139,7 +139,7 @@ export default function BotDetail({ params }) {
             ) : (
               <button
                 onClick={handleEdit}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                className="px-4 py-2 border border-gray-700 text-gray-200 rounded-lg hover:bg-gray-700 font-medium transition-colors"
               >
                 Edit
               </button>
@@ -151,24 +151,24 @@ export default function BotDetail({ params }) {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Stats */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Overview</h2>
+            <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+              <h2 className="text-lg font-medium text-white mb-4">Overview</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">{bot.conversations}</p>
-                  <p className="text-sm text-gray-600">Conversations</p>
+                  <p className="text-2xl font-bold text-white">{bot.conversations}</p>
+                  <p className="text-sm text-gray-200">Conversations</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">{bot.files.length}</p>
-                  <p className="text-sm text-gray-600">Files</p>
+                  <p className="text-2xl font-bold text-white">{bot.files.length}</p>
+                  <p className="text-sm text-gray-200">Files</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">98%</p>
-                  <p className="text-sm text-gray-600">Uptime</p>
+                  <p className="text-2xl font-bold text-white">98%</p>
+                  <p className="text-sm text-gray-200">Uptime</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-gray-900">4.8</p>
-                  <p className="text-sm text-gray-600">Rating</p>
+                  <p className="text-2xl font-bold text-white">4.8</p>
+                  <p className="text-sm text-gray-200">Rating</p>
                 </div>
               </div>
             </div>

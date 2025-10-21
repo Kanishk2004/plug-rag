@@ -10,7 +10,7 @@ export default function Dashboard() {
           {/* Header */}
           <div>
             <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            <p className="mt-2 text-gray-300">Welcome back! Here&apos;s what&apos;s happening with your PlugRAG chatbots.</p>
+            <p className="mt-2 text-gray-200">Welcome back! Here&apos;s what&apos;s happening with your PlugRAG chatbots.</p>
           </div>
 
           {/* Stats Grid */}
@@ -41,7 +41,7 @@ export default function Dashboard() {
           {/* Recent Activity & Quick Actions */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Recent Bots */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-medium text-white">Recent Bots</h2>
                 <button className="text-sm text-orange-400 hover:text-orange-300 font-medium">
@@ -71,7 +71,7 @@ export default function Dashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
               <h2 className="text-lg font-medium text-white mb-4">Quick Actions</h2>
               <div className="space-y-3">
                 <QuickAction
@@ -97,7 +97,7 @@ export default function Dashboard() {
           </div>
 
           {/* Recent Activity Feed */}
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+          <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
             <h2 className="text-lg font-medium text-white mb-4">Recent Activity</h2>
             <div className="space-y-4">
               <ActivityItem
@@ -136,14 +136,14 @@ const StatCard = ({ title, value, change, changeType, icon: Icon, iconSrc }) => 
   const changeColors = {
     positive: 'text-green-400',
     negative: 'text-red-400',
-    neutral: 'text-gray-300'
+    neutral: 'text-gray-200'
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+    <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
       <div className="flex items-center">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-300">{title}</p>
+          <p className="text-sm font-medium text-gray-200">{title}</p>
           <p className="text-2xl font-bold text-white">{value}</p>
           <p className={`text-sm ${changeColors[changeType]}`}>{change}</p>
         </div>
@@ -169,16 +169,16 @@ const StatCard = ({ title, value, change, changeType, icon: Icon, iconSrc }) => 
 
 const BotItem = ({ name, status, conversations, lastActive }) => {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-700 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-gray-800 last:border-0">
       <div className="flex-1">
         <h3 className="font-medium text-white">{name}</h3>
-        <p className="text-sm text-gray-300">{conversations} conversations • {lastActive}</p>
+        <p className="text-sm text-gray-200">{conversations} conversations • {lastActive}</p>
       </div>
       <div className="ml-4">
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
           status === 'active' 
             ? 'bg-green-400/20 text-green-400 border border-green-400/30' 
-            : 'bg-gray-600 text-gray-300'
+            : 'bg-gray-700 text-gray-200'
         }`}>
           {status}
         </span>
@@ -191,7 +191,7 @@ const QuickAction = ({ title, description, href, icon: Icon, iconSrc }) => {
   return (
     <a
       href={href}
-      className="flex items-center p-3 rounded-lg border border-gray-600 hover:bg-orange-500/10 hover:border-orange-500/50 transition-colors"
+      className="flex items-center p-3 rounded-lg border border-gray-700 hover:bg-orange-500/10 hover:border-orange-500/50 transition-colors"
     >
       <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center mr-3 border border-orange-500/30">
         {iconSrc ? (
@@ -208,7 +208,7 @@ const QuickAction = ({ title, description, href, icon: Icon, iconSrc }) => {
       </div>
       <div className="flex-1">
         <h4 className="font-medium text-white">{title}</h4>
-        <p className="text-sm text-gray-300">{description}</p>
+        <p className="text-sm text-gray-200">{description}</p>
       </div>
     </a>
   );
@@ -228,15 +228,15 @@ const ActivityItem = ({ action, target, time, type }) => {
   const Icon = getIcon();
 
   return (
-    <div className="flex items-center py-3 border-b border-gray-700 last:border-0">
-      <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center mr-3">
-        <Icon className="w-4 h-4 text-gray-400" />
+    <div className="flex items-center py-3 border-b border-gray-800 last:border-0">
+      <div className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center mr-3">
+        <Icon className="w-4 h-4 text-gray-300" />
       </div>
       <div className="flex-1">
-        <p className="text-sm text-gray-300">
+        <p className="text-sm text-gray-200">
           <span className="font-medium text-white">{action}</span> {target}
         </p>
-        <p className="text-xs text-gray-400">{time}</p>
+        <p className="text-xs text-gray-300">{time}</p>
       </div>
     </div>
   );

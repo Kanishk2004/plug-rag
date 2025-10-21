@@ -66,7 +66,7 @@ export default function MyBots() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-white">My Bots</h1>
-            <p className="mt-2 text-gray-300">Manage your chatbots and their settings</p>
+            <p className="mt-2 text-gray-200">Manage your chatbots and their settings</p>
           </div>
           <Link
             href="/dashboard/create-bot"
@@ -84,24 +84,24 @@ export default function MyBots() {
         </div>
 
         {/* Filters and Search */}
-        <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+        <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <SearchIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <SearchIcon className="w-5 h-5 text-gray-300 absolute left-3 top-1/2 transform -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search bots..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -122,11 +122,11 @@ export default function MyBots() {
         </div>
 
         {filteredBots.length === 0 && (
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BotsIcon className="w-8 h-8 text-gray-400" />
+          <div className="bg-gray-900 rounded-lg border border-gray-800 p-12 text-center">
+            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BotsIcon className="w-8 h-8 text-gray-300" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No bots found</h3>
+            <h3 className="text-lg font-medium text-white mb-2">No bots found</h3>
             <p className="text-gray-700 mb-6">
               {searchTerm || statusFilter !== 'all' 
                 ? 'Try adjusting your search or filters' 
@@ -150,18 +150,18 @@ export default function MyBots() {
 
 const BotCard = ({ bot, onToggleStatus }) => {
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 p-6 hover:shadow-md transition-shadow">
+    <div className="bg-gray-900 rounded-lg border border-gray-800 p-6 hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <h3 className="text-lg font-medium text-white mb-1">{bot.name}</h3>
-          <p className="text-sm text-gray-300 line-clamp-2">{bot.description}</p>
+          <p className="text-sm text-gray-200 line-clamp-2">{bot.description}</p>
         </div>
         <div className="ml-4">
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
             bot.status === 'active' 
               ? 'bg-green-400/20 text-green-400 border border-green-400/30' 
-              : 'bg-gray-600 text-gray-300'
+              : 'bg-gray-600 text-gray-200'
           }`}>
             {bot.status}
           </span>
@@ -172,11 +172,11 @@ const BotCard = ({ bot, onToggleStatus }) => {
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="text-center">
           <p className="text-2xl font-bold text-white">{bot.conversations}</p>
-          <p className="text-xs text-gray-400">Conversations</p>
+          <p className="text-xs text-gray-300">Conversations</p>
         </div>
         <div className="text-center">
           <p className="text-2xl font-bold text-white">{bot.files}</p>
-          <p className="text-xs text-gray-400">Files</p>
+          <p className="text-xs text-gray-300">Files</p>
         </div>
       </div>
 
@@ -189,7 +189,7 @@ const BotCard = ({ bot, onToggleStatus }) => {
       <div className="flex space-x-2">
         <Link
           href={`/dashboard/bots/${bot.id}`}
-          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded-lg text-sm font-medium text-center transition-colors"
+          className="flex-1 bg-gray-800 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded-lg text-sm font-medium text-center transition-colors"
         >
           Manage
         </Link>

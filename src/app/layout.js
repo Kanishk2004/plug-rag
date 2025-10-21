@@ -28,7 +28,7 @@ export default function RootLayout({ children }) {
 	return (
 		<ClerkProvider>
 			<html lang="en" className="dark">
-				<body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-900 text-white`}>
+				<body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-gray-100`}>
 					{children}
 				</body>
 			</html>
