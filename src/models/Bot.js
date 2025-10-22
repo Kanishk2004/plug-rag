@@ -69,6 +69,36 @@ const botSchema = new mongoose.Schema(
 				maxlength: 50,
 			},
 		},
+		// Vector storage configuration
+		vectorStorage: {
+			enabled: {
+				type: Boolean,
+				default: false,
+			},
+			provider: {
+				type: String,
+				enum: ['qdrant'],
+				default: 'qdrant',
+			},
+			collectionName: {
+				type: String,
+				default: '',
+			},
+			dimensions: {
+				type: Number,
+				default: 1536, // OpenAI text-embedding-3-small
+			},
+			model: {
+				type: String,
+				default: 'text-embedding-3-small',
+			},
+			createdAt: {
+				type: Date,
+			},
+			deletedAt: {
+				type: Date,
+			},
+		},
 		// Analytics and limits
 		analytics: {
 			totalMessages: {
@@ -76,6 +106,14 @@ const botSchema = new mongoose.Schema(
 				default: 0,
 			},
 			totalSessions: {
+				type: Number,
+				default: 0,
+			},
+			totalEmbeddings: {
+				type: Number,
+				default: 0,
+			},
+			totalTokensUsed: {
 				type: Number,
 				default: 0,
 			},

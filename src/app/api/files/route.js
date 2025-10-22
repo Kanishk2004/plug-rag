@@ -6,6 +6,7 @@ import Bot from '@/models/Bot';
 import { processFile, validateFile, getSupportedFileTypes } from '@/lib/extractors';
 import { PerformanceMonitor } from '@/lib/performance';
 import { getCurrentDBUser, updateUserUsage, checkUserLimits } from '@/lib/user';
+import vectorStorageAPI from '@/lib/vectorStorage.js';
 
 // Configuration
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -195,6 +196,44 @@ export async function POST(request) {
       },
       processing: extractedData.processing,
     };
+
+    // Optional: Generate embeddings immediately if requested
+    if (options.generateEmbeddings === true) {
+      try {
+        console.log('Generating embeddings for file:', fileRecord.originalName);
+        
+        // Initialize vector storage for bot if needed
+        await vectorStorageAPI.initializeBotVectorStorage(userId, botId);
+        
+        // Process file to vectors
+        const vectorResult = await vectorStorageAPI.processFileToVectors(
+          userId,
+          botId,
+          fileRecord._id.toString()
+        );
+        
+        responseData.vectorProcessing = {
+          success: true,
+          vectorsStored: vectorResult.vectorsStored,
+          tokensUsed: vectorResult.tokensUsed,
+          collectionName: vectorResult.collectionName,
+        };
+        
+        // Update response with new embedding status
+        responseData.file.embeddingStatus = 'completed';
+        responseData.file.vectorCount = vectorResult.vectorsStored;
+        
+      } catch (embedError) {
+        console.error('Error generating embeddings:', embedError);
+        
+        // Don't fail the entire request if embedding fails
+        responseData.vectorProcessing = {
+          success: false,
+          error: embedError.message,
+          message: 'File processed successfully, but embedding generation failed',
+        };
+      }
+    }
 
     PerformanceMonitor.endTimer('file-upload-api');
     

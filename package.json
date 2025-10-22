@@ -2,19 +2,24 @@
   "name": "plugrag",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:vectors": "node test/simple-vector-test.js"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.33.6",
+    "@qdrant/js-client-rest": "^1.15.1",
     "cheerio": "^1.1.2",
+    "dotenv": "^17.2.3",
     "jsdom": "^27.0.1",
     "mammoth": "^1.11.0",
     "mongoose": "^8.19.1",
     "next": "15.5.5",
+    "openai": "^6.6.0",
     "papaparse": "^5.5.3",
     "pdf-parse": "^2.4.5",
     "react": "19.1.0",

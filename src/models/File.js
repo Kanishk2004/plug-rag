@@ -68,16 +68,25 @@ const fileSchema = new mongoose.Schema(
 		// Vector embeddings info
 		embeddingStatus: {
 			type: String,
-			enum: ['pending', 'processing', 'completed', 'failed'],
+			enum: ['pending', 'processing', 'completed', 'failed', 'deleted'],
 			default: 'pending',
 		},
 		vectorCount: {
 			type: Number,
 			default: 0,
 		},
-		qdrantCollection: {
-			type: String,
-			default: 'documents',
+		embeddedAt: {
+			type: Date,
+		},
+		// Processing details
+		processing: {
+			embeddingTokens: {
+				type: Number,
+				default: 0,
+			},
+			error: {
+				type: String,
+			},
 		},
 		// Metadata
 		metadata: {

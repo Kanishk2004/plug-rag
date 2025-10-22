@@ -45,8 +45,17 @@ const chunkSchema = new mongoose.Schema(
 		},
 		embeddingStatus: {
 			type: String,
-			enum: ['pending', 'completed', 'failed'],
+			enum: ['pending', 'processing', 'completed', 'failed', 'deleted'],
 			default: 'pending',
+		},
+		embeddedAt: {
+			type: Date,
+		},
+		// Chunk type for better categorization
+		type: {
+			type: String,
+			enum: ['paragraph_boundary', 'sentence_boundary', 'document_structure', 'manual'],
+			default: 'paragraph_boundary',
 		},
 		// Metadata for better retrieval
 		metadata: {
