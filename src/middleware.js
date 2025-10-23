@@ -1,7 +1,19 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-const isProtectedRoute = createRouteMatcher(['/dashboard(.*)']);
-const isPublicRoute = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)']);
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/api/bots(.*)',
+  '/api/files(.*)',
+  '/api/vectors(.*)'
+]);
+
+const isPublicRoute = createRouteMatcher([
+  '/', 
+  '/sign-in(.*)', 
+  '/sign-up(.*)',
+  '/api/test-auth(.*)',
+  '/api/webhooks(.*)'
+]);
 
 export default clerkMiddleware(async (auth, req) => {
   // Allow public routes without authentication
@@ -9,13 +21,9 @@ export default clerkMiddleware(async (auth, req) => {
     return;
   }
   
-  // Protect dashboard routes
+  // Protect specific routes
   if (isProtectedRoute(req)) {
     await auth.protect();
-    
-    // Add user sync header for client-side handling (optional)
-    const response = new Response();
-    response.headers.set('x-sync-user', 'true');
   }
 });
 

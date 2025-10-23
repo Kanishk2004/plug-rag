@@ -7,30 +7,49 @@ import { PerformanceMonitor } from '@/lib/performance';
  * Sync current Clerk user with MongoDB (Optimized)
  * Only creates user if doesn't exist, with caching
  */
-export async function syncUserWithDB() {
+export async function syncUserWithDB(clerkId = null) {
   try {
-    const user = await currentUser();
+    let user;
+    let userId = clerkId;
     
-    if (!user) {
-      return null;
+    // If no clerkId provided, get current user
+    if (!userId) {
+      user = await currentUser();
+      if (!user) {
+        return null;
+      }
+      userId = user.id;
+    } else {
+      // If clerkId provided, we need to get user data from Clerk
+      // For now, we'll create a basic user record and update it later
+      user = { id: userId };
     }
 
     await connectDB();
 
     // Check if user exists in MongoDB (lightweight query)
-    let dbUser = await User.findOne({ clerkId: user.id }).lean();
+    let dbUser = await User.findOne({ clerkId: userId }).lean();
 
     if (!dbUser) {
       // Create user if doesn't exist
-      const primaryEmail = user.emailAddresses.find(
-        email => email.id === user.primaryEmailAddressId
-      );
+      let primaryEmail = null;
+      let firstName = '';
+      let lastName = '';
+      
+      // If we have full user data from currentUser()
+      if (user.emailAddresses) {
+        primaryEmail = user.emailAddresses.find(
+          email => email.id === user.primaryEmailAddressId
+        );
+        firstName = user.firstName || '';
+        lastName = user.lastName || '';
+      }
 
       const newUserData = {
-        clerkId: user.id,
+        clerkId: userId,
         email: primaryEmail?.emailAddress || '',
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
+        firstName,
+        lastName,
         plan: 'free',
         subscription: {
           status: 'inactive',
@@ -104,17 +123,22 @@ export async function asyncSyncUser(clerkId) {
  * Get current user from MongoDB
  * Returns the MongoDB user document
  */
-export async function getCurrentDBUser() {
+export async function getCurrentDBUser(clerkId = null) {
   try {
-    const user = await currentUser();
+    let userId = clerkId;
     
-    if (!user) {
-      return null;
+    // If no clerkId provided, get from current user
+    if (!userId) {
+      const user = await currentUser();
+      if (!user) {
+        return null;
+      }
+      userId = user.id;
     }
 
     await connectDB();
     
-    const dbUser = await User.findOne({ clerkId: user.id });
+    const dbUser = await User.findOne({ clerkId: userId });
     return dbUser;
   } catch (error) {
     console.error('Error getting current DB user:', error);

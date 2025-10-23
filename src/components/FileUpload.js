@@ -1,7 +1,8 @@
 'use client';
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { fileAPI, apiUtils } from '@/lib/api';
 
-const FileUpload = ({ onFilesUploaded, maxFiles = 10 }) => {
+const FileUpload = forwardRef(({ onFilesUploaded, maxFiles = 10, botId = null }, ref) => {
   const [files, setFiles] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -16,14 +17,64 @@ const FileUpload = ({ onFilesUploaded, maxFiles = 10 }) => {
   const maxFileSize = useMemo(() => 30 * 1024 * 1024, []); // 30MB
 
   const validateFile = useCallback((file) => {
-    if (!Object.keys(acceptedTypes).includes(file.type)) {
-      return `File type ${file.type} is not supported. Please upload PDF, DOCX, TXT, CSV, or HTML files.`;
-    }
-    if (file.size > maxFileSize) {
-      return `File size must be less than 30MB. Current size: ${(file.size / 1024 / 1024).toFixed(1)}MB`;
-    }
-    return null;
+    const validation = apiUtils.validateFile(file, {
+      maxSize: maxFileSize,
+      allowedTypes: Object.keys(acceptedTypes),
+    });
+    return validation.isValid ? null : validation.error;
   }, [acceptedTypes, maxFileSize]);
+
+  const uploadFile = useCallback(async (fileObj) => {
+    try {
+      setFiles(prev => prev.map(f => 
+        f.id === fileObj.id 
+          ? { ...f, status: 'uploading', progress: 0 }
+          : f
+      ));
+
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setFiles(prev => prev.map(f => 
+          f.id === fileObj.id && f.status === 'uploading'
+            ? { ...f, progress: Math.min(f.progress + Math.random() * 20, 90) }
+            : f
+        ));
+      }, 200);
+
+      // Actual API call
+      const result = await fileAPI.upload(fileObj.file, botId, {
+        generateEmbeddings: true,
+        maxChunkSize: 700,
+        overlap: 100,
+      });
+
+      clearInterval(progressInterval);
+
+      setFiles(prev => prev.map(f => 
+        f.id === fileObj.id 
+          ? { 
+              ...f, 
+              progress: 100, 
+              status: 'completed',
+              result: result,
+              apiId: result.file?.id 
+            }
+          : f
+      ));
+
+    } catch (error) {
+      setFiles(prev => prev.map(f => 
+        f.id === fileObj.id 
+          ? { 
+              ...f, 
+              status: 'error', 
+              progress: 0,
+              error: apiUtils.formatError(error)
+            }
+          : f
+      ));
+    }
+  }, [botId]);
 
   const processFiles = useCallback((fileList) => {
     const newFiles = Array.from(fileList).map(file => {
@@ -48,10 +99,14 @@ const FileUpload = ({ onFilesUploaded, maxFiles = 10 }) => {
       return combined;
     });
 
-    // Simulate upload progress for valid files
+    // Upload files if botId is provided, otherwise just simulate for preview
     newFiles.forEach(fileObj => {
       if (fileObj.status === 'pending') {
-        simulateUpload(fileObj.id);
+        if (botId) {
+          uploadFile(fileObj);
+        } else {
+          simulateUpload(fileObj.id);
+        }
       }
     });
 
@@ -60,7 +115,9 @@ const FileUpload = ({ onFilesUploaded, maxFiles = 10 }) => {
     if (validFiles.length > 0) {
       onFilesUploaded?.(validFiles);
     }
-  }, [maxFiles, onFilesUploaded, validateFile]);
+  }, [maxFiles, onFilesUploaded, validateFile, botId, uploadFile]);
+
+
 
   const simulateUpload = (fileId) => {
     let progress = 0;
@@ -87,6 +144,15 @@ const FileUpload = ({ onFilesUploaded, maxFiles = 10 }) => {
   const removeFile = (fileId) => {
     setFiles(prev => prev.filter(f => f.id !== fileId));
   };
+
+  const clearFiles = () => {
+    setFiles([]);
+  };
+
+  // Expose clearFiles to parent component
+  useImperativeHandle(ref, () => ({
+    clearFiles,
+  }));
 
   const handleDragEnter = (e) => {
     e.preventDefault();
@@ -194,7 +260,7 @@ const FileUpload = ({ onFilesUploaded, maxFiles = 10 }) => {
       )}
     </div>
   );
-};
+});
 
 const FileItem = ({ fileObj, onRemove, formatFileSize, getFileIcon }) => {
   const { name, size, progress, status, error } = fileObj;
@@ -295,5 +361,7 @@ const FileIcon = () => (
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM16 18H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V4l5 5h-5z"/>
   </svg>
 );
+
+FileUpload.displayName = 'FileUpload';
 
 export default FileUpload;
