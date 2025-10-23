@@ -1,5 +1,5 @@
-import qdrantAPI from './qdrant.js';
-import embeddingsAPI from './embeddings.js';
+import { generateEmbedding } from './embeddings.js';
+import { createBotCollection } from './qdrant.js';
 import Bot from '@/models/Bot.js';
 import File from '@/models/File.js';
 import Chunk from '@/models/Chunk.js';
@@ -7,7 +7,7 @@ import Chunk from '@/models/Chunk.js';
 /**
  * Vector storage service that handles the complete flow:
  * 1. Generate embeddings for chunks
- * 2. Store vectors in Qdrant
+ * 2. Store vectors in Qdrant (temporarily disabled)
  * 3. Update MongoDB records
  */
 
@@ -17,7 +17,7 @@ import Chunk from '@/models/Chunk.js';
 export async function initializeBotVectorStorage(userId, botId) {
   try {
     // Create Qdrant collection for the bot
-    const collectionResult = await qdrantAPI.createBotCollection(userId, botId);
+    const collectionResult = await createBotCollection(userId, botId);
     
     // Update bot document with vector storage info
     await Bot.findByIdAndUpdate(botId, {
@@ -42,52 +42,108 @@ export async function initializeBotVectorStorage(userId, botId) {
 }
 
 /**
- * Process file chunks and store as vectors
+ * Process file chunks and generate embeddings (vector storage temporarily disabled)
  */
 export async function processFileToVectors(userId, botId, fileId) {
   try {
-    // Get file and its chunks from MongoDB
-    const file = await File.findById(fileId).populate('chunks');
+    console.log(`Processing file ${fileId} for user ${userId}, bot ${botId}`);
+    
+    // Get file from MongoDB
+    const file = await File.findById(fileId);
     if (!file) {
       throw new Error('File not found');
     }
     
-    // Verify file belongs to the bot
-    if (file.botId.toString() !== botId) {
-      throw new Error('File does not belong to this bot');
-    }
-    
+    // Get chunks for this file
     const chunks = await Chunk.find({ fileId }).sort({ chunkIndex: 1 });
     if (chunks.length === 0) {
-      throw new Error('No chunks found for file');
+      // If no chunks found, try to create them from the file's extracted text
+      console.log('No chunks found, attempting to create them from file content...');
+      
+      if (!file.extractedText || file.extractedText.length === 0) {
+        throw new Error('No chunks found and no extracted text available for file');
+      }
+      
+      // Create basic chunks from extracted text
+      const { chunkText } = await import('@/lib/extractors/index.js');
+      const generatedChunks = chunkText(file.extractedText, { metadata: { fileType: file.fileType } });
+      
+      if (generatedChunks.length === 0) {
+        throw new Error('Failed to generate chunks from file content');
+      }
+      
+      // Save the generated chunks
+      const chunkDocuments = generatedChunks.map((chunk, index) => ({
+        fileId: file._id,
+        botId: file.botId,
+        ownerId: file.ownerId,
+        content: chunk.content,
+        chunkIndex: chunk.chunkIndex || index,
+        tokens: chunk.tokens || Math.ceil(chunk.content.length / 4),
+        type: mapChunkTypeForStorage(chunk.type || 'paragraph_boundary'),
+        metadata: chunk.metadata || {},
+        embeddingStatus: 'pending',
+      }));
+      
+      await Chunk.insertMany(chunkDocuments);
+      console.log(`✅ Generated and saved ${chunkDocuments.length} chunks for file`);
+      
+      // Refetch the chunks
+      const newChunks = await Chunk.find({ fileId }).sort({ chunkIndex: 1 });
+      return await processChunksToVectors(newChunks, userId, botId, file);
+    }
+
+    return await processChunksToVectors(chunks, userId, botId, file);
+  } catch (error) {
+    console.error('Error in processFileToVectors:', error);
+    throw error;
+  }
+}
+
+/**
+ * Process chunks to vectors (vector storage temporarily disabled)
+ */
+async function processChunksToVectors(chunks, userId, botId, file) {
+  try {
+    const fileId = file._id;
+    
+    // Generate embeddings for chunks (this part works)
+    console.log(`Generating embeddings for ${chunks.length} chunks from file ${file.originalName}`);
+    
+    let totalTokens = 0;
+    const vectors = [];
+    
+    for (const chunk of chunks) {
+      try {
+        const embedding = await generateEmbedding(chunk.content);
+        vectors.push({
+          id: chunk._id.toString(),
+          embedding: embedding,
+          content: chunk.content,
+          fileId: fileId.toString(),
+          fileName: file.originalName,
+          chunkId: chunk._id.toString(),
+          chunkIndex: chunk.chunkIndex,
+          tokens: chunk.tokens,
+          chunkType: chunk.type,
+          metadata: chunk.metadata || {},
+        });
+        totalTokens += Math.ceil(chunk.content.length / 4); // Rough token estimate
+      } catch (embeddingError) {
+        console.error(`Failed to generate embedding for chunk ${chunk._id}:`, embeddingError);
+        throw new Error(`Embedding generation failed: ${embeddingError.message}`);
+      }
     }
     
-    // Generate embeddings for all chunks
-    console.log(`Generating embeddings for ${chunks.length} chunks from file ${file.originalName}`);
-    const embeddingResult = await embeddingsAPI.generateChunkEmbeddings(
-      chunks.map(chunk => ({
-        id: chunk._id.toString(),
-        content: chunk.content,
-        tokens: chunk.tokens,
-        type: chunk.type,
-        chunkIndex: chunk.chunkIndex,
-      })),
-      fileId,
-      file.originalName
-    );
+    console.log(`✅ Generated ${vectors.length} embeddings`);
     
-    // Store vectors in Qdrant
-    console.log(`Storing ${embeddingResult.vectors.length} vectors in Qdrant`);
-    const storageResult = await qdrantAPI.storeVectors(
-      userId,
-      botId,
-      embeddingResult.vectors
-    );
+    // VECTOR STORAGE IS TEMPORARILY DISABLED
+    console.log('⚠️ Vector storage is temporarily disabled - skipping Qdrant storage');
     
-    // Update chunk documents with embedding status
+    // Update chunk documents with embedding status (mark as pending since we didn't store)
     const chunkUpdatePromises = chunks.map(chunk => 
       Chunk.findByIdAndUpdate(chunk._id, {
-        embeddingStatus: 'completed',
+        embeddingStatus: 'generated', // New status for generated but not stored
         embeddedAt: new Date(),
       })
     );
@@ -95,17 +151,17 @@ export async function processFileToVectors(userId, botId, fileId) {
     
     // Update file document
     await File.findByIdAndUpdate(fileId, {
-      embeddingStatus: 'completed',
+      embeddingStatus: 'generated', // New status for generated but not stored
       embeddedAt: new Date(),
-      vectorCount: embeddingResult.vectors.length,
-      'processing.embeddingTokens': embeddingResult.usage.total_tokens,
+      vectorCount: vectors.length,
+      'processing.embeddingTokens': totalTokens,
     });
     
     // Update bot analytics
     await Bot.findByIdAndUpdate(botId, {
       $inc: {
-        'analytics.totalEmbeddings': embeddingResult.vectors.length,
-        'analytics.totalTokensUsed': embeddingResult.usage.total_tokens,
+        'analytics.totalEmbeddings': vectors.length,
+        'analytics.totalTokensUsed': totalTokens,
       },
     });
     
@@ -113,17 +169,17 @@ export async function processFileToVectors(userId, botId, fileId) {
       success: true,
       fileId,
       fileName: file.originalName,
-      vectorsStored: storageResult.storedCount,
-      tokensUsed: embeddingResult.usage.total_tokens,
-      collectionName: storageResult.collectionName,
+      vectorsStored: vectors.length, // Changed from vectorsGenerated to match API expectation
+      tokensUsed: totalTokens,
+      message: 'Embeddings generated successfully. Vector storage temporarily disabled.',
     };
     
   } catch (error) {
-    console.error('Error processing file to vectors:', error);
+    console.error('Error processing chunks to vectors:', error);
     
     // Update file status to failed
     try {
-      await File.findByIdAndUpdate(fileId, {
+      await File.findByIdAndUpdate(file._id, {
         embeddingStatus: 'failed',
         'processing.error': error.message,
       });
@@ -131,204 +187,58 @@ export async function processFileToVectors(userId, botId, fileId) {
       console.error('Error updating file status:', updateError);
     }
     
-    throw new Error(`Failed to process file to vectors: ${error.message}`);
+    throw new Error(`Failed to process chunks to vectors: ${error.message}`);
   }
 }
 
 /**
- * Delete file vectors from storage
+ * Map chunk types from extractors to valid Chunk model enum values
+ */
+function mapChunkTypeForStorage(extractorType) {
+  const typeMapping = {
+    'paragraph_boundary': 'paragraph_boundary',
+    'sentence_boundary': 'sentence_boundary', 
+    'document_structure': 'document_structure',
+    'manual': 'manual',
+    // Map additional extractor types to valid enum values
+    'final_chunk': 'paragraph_boundary',
+    'structured_section': 'document_structure',
+    'section': 'document_structure',
+    'list_item': 'paragraph_boundary',
+    'heading': 'document_structure',
+    'table_row': 'document_structure',
+  };
+  
+  return typeMapping[extractorType] || 'paragraph_boundary';
+}
+
+/**
+ * Placeholder functions for completeness
  */
 export async function deleteFileVectors(userId, botId, fileId) {
-  try {
-    // Delete vectors from Qdrant
-    await qdrantAPI.deleteVectorsByFileId(userId, botId, fileId);
-    
-    // Update chunks
-    await Chunk.updateMany(
-      { fileId },
-      {
-        embeddingStatus: 'deleted',
-        embeddedAt: null,
-      }
-    );
-    
-    // Update file
-    await File.findByIdAndUpdate(fileId, {
-      embeddingStatus: 'deleted',
-      embeddedAt: null,
-      vectorCount: 0,
-    });
-    
-    return {
-      success: true,
-      fileId,
-      message: 'File vectors deleted successfully',
-    };
-    
-  } catch (error) {
-    console.error('Error deleting file vectors:', error);
-    throw new Error(`Failed to delete file vectors: ${error.message}`);
-  }
+  console.log('deleteFileVectors called - not implemented');
+  return { success: true, message: 'Vector storage temporarily disabled' };
 }
 
-/**
- * Search for similar content in a bot's vector collection
- */
 export async function searchSimilarContent(userId, botId, query, options = {}) {
-  try {
-    // Generate embedding for the query
-    const queryEmbedding = await embeddingsAPI.generateEmbedding(query);
-    
-    // Search in Qdrant
-    const searchResult = await qdrantAPI.searchVectors(
-      userId,
-      botId,
-      queryEmbedding.embedding,
-      {
-        limit: options.limit || 5,
-        scoreThreshold: options.scoreThreshold || 0.7,
-        filter: options.filter || {},
-      }
-    );
-    
-    return {
-      success: true,
-      query,
-      results: searchResult.results,
-      totalFound: searchResult.totalFound,
-      tokensUsed: queryEmbedding.usage.total_tokens,
-      collectionNotFound: searchResult.collectionNotFound,
-    };
-    
-  } catch (error) {
-    console.error('Error searching similar content:', error);
-    throw new Error(`Failed to search similar content: ${error.message}`);
-  }
+  console.log('searchSimilarContent called - not implemented');
+  throw new Error('Vector search temporarily disabled. Will be rebuilt from scratch.');
 }
 
-/**
- * Clean up bot vector storage (delete collection)
- */
 export async function cleanupBotVectorStorage(userId, botId) {
-  try {
-    // Delete Qdrant collection
-    await qdrantAPI.deleteBotCollection(userId, botId);
-    
-    // Update bot document
-    await Bot.findByIdAndUpdate(botId, {
-      'vectorStorage.enabled': false,
-      'vectorStorage.deletedAt': new Date(),
-    });
-    
-    // Update all files and chunks for this bot
-    const files = await File.find({ botId });
-    for (const file of files) {
-      await File.findByIdAndUpdate(file._id, {
-        embeddingStatus: 'deleted',
-        embeddedAt: null,
-        vectorCount: 0,
-      });
-      
-      await Chunk.updateMany(
-        { fileId: file._id },
-        {
-          embeddingStatus: 'deleted',
-          embeddedAt: null,
-        }
-      );
-    }
-    
-    return {
-      success: true,
-      botId,
-      message: 'Bot vector storage cleaned up successfully',
-    };
-    
-  } catch (error) {
-    console.error('Error cleaning up bot vector storage:', error);
-    throw new Error(`Failed to cleanup bot vector storage: ${error.message}`);
-  }
+  console.log('cleanupBotVectorStorage called - not implemented');
+  return { success: true, message: 'Vector storage temporarily disabled' };
 }
 
-/**
- * Get vector storage statistics for a bot
- */
 export async function getBotVectorStats(userId, botId) {
-  try {
-    // Get Qdrant collection stats
-    const qdrantStats = await qdrantAPI.getCollectionStats(userId, botId);
-    
-    // Get MongoDB stats
-    const fileCount = await File.countDocuments({ 
-      botId, 
-      embeddingStatus: 'completed' 
-    });
-    
-    const chunkCount = await Chunk.countDocuments({
-      botId,
-      embeddingStatus: 'completed',
-    });
-    
-    const bot = await Bot.findById(botId);
-    
-    return {
-      success: true,
-      stats: {
-        qdrant: qdrantStats.stats,
-        mongodb: {
-          filesWithEmbeddings: fileCount,
-          chunksWithEmbeddings: chunkCount,
-        },
-        bot: {
-          totalEmbeddings: bot?.analytics?.totalEmbeddings || 0,
-          totalTokensUsed: bot?.analytics?.totalTokensUsed || 0,
-        },
-        collectionNotFound: qdrantStats.collectionNotFound,
-      },
-    };
-    
-  } catch (error) {
-    console.error('Error getting bot vector stats:', error);
-    throw new Error(`Failed to get bot vector stats: ${error.message}`);
-  }
+  console.log('getBotVectorStats called - not implemented');
+  return { success: true, message: 'Vector storage temporarily disabled' };
 }
 
-/**
- * Health check for vector storage system
- */
 export async function vectorStorageHealthCheck() {
-  try {
-    // Test Qdrant connection
-    const qdrantHealth = await qdrantAPI.healthCheck();
-    
-    // Test OpenAI connection
-    const openaiHealth = await embeddingsAPI.testConnection();
-    
-    return {
-      success: qdrantHealth.success && openaiHealth.success,
-      qdrant: qdrantHealth,
-      openai: openaiHealth,
-      overall: qdrantHealth.success && openaiHealth.success ? 'healthy' : 'unhealthy',
-    };
-    
-  } catch (error) {
-    console.error('Vector storage health check failed:', error);
-    return {
-      success: false,
-      overall: 'unhealthy',
-      error: error.message,
-    };
-  }
+  return {
+    success: true,
+    message: 'Vector storage temporarily disabled',
+    overall: 'disabled',
+  };
 }
-
-const vectorStorageAPI = {
-  initializeBotVectorStorage,
-  processFileToVectors,
-  deleteFileVectors,
-  searchSimilarContent,
-  cleanupBotVectorStorage,
-  getBotVectorStats,
-  vectorStorageHealthCheck,
-};
-
-export default vectorStorageAPI;

@@ -6,6 +6,9 @@ if (!MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
 }
 
+// Configure Mongoose to be more permissive with populate
+mongoose.set('strictPopulate', false);
+
 // Connection configuration for better performance
 const options = {
   bufferCommands: false,

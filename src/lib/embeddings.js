@@ -155,13 +155,25 @@ export async function generateChunkEmbeddings(chunks, fileId, fileName) {
   try {
     // Extract text content from chunks
     const texts = chunks.map(chunk => chunk.content);
+    console.log(`Generating embeddings for ${texts.length} chunks`);
     
     // Generate embeddings
     const embeddingResult = await generateEmbeddings(texts);
+    console.log(`Generated embeddings with dimensions: ${embeddingResult.dimensions}`);
+    
+    // Validate embeddings
+    if (!embeddingResult.embeddings || embeddingResult.embeddings.length === 0) {
+      throw new Error('No embeddings generated');
+    }
     
     // Combine embeddings with chunk metadata
     const vectorData = embeddingResult.embeddings.map((embeddingItem, index) => {
       const chunk = chunks[index];
+      
+      if (!embeddingItem.embedding || !Array.isArray(embeddingItem.embedding)) {
+        throw new Error(`Invalid embedding for chunk ${index}`);
+      }
+      
       return {
         id: chunk.id,
         embedding: embeddingItem.embedding,
@@ -179,6 +191,8 @@ export async function generateChunkEmbeddings(chunks, fileId, fileName) {
         },
       };
     });
+    
+    console.log(`Created ${vectorData.length} vector objects for storage`);
     
     return {
       success: true,

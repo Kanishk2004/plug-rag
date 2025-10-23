@@ -1,5 +1,4 @@
-import * as cheerio from 'cheerio';
-import { JSDOM } from 'jsdom';
+import cheerio from 'cheerio';
 import { PerformanceMonitor } from '../performance.js';
 
 /**

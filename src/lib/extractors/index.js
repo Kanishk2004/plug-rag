@@ -8,6 +8,7 @@ import { extractFromDOCX, chunkDOCXText } from './docx.js';
 import { extractFromTXT, chunkTXTText } from './txt.js';
 import { extractFromCSV, chunkCSVText } from './csv.js';
 import { extractFromHTML, chunkHTMLText } from './html.js';
+import { extractFallback } from './fallback.js';
 import { PerformanceMonitor } from '../performance.js';
 
 /**
@@ -31,29 +32,35 @@ export async function extractText(buffer, filename, options = {}) {
 
     let result;
     
-    switch (fileType) {
-      case 'pdf':
-        result = await extractFromPDF(buffer, extractOptions);
-        break;
-        
-      case 'docx':
-        result = await extractFromDOCX(buffer, extractOptions);
-        break;
-        
-      case 'txt':
-        result = await extractFromTXT(buffer, extractOptions);
-        break;
-        
-      case 'csv':
-        result = await extractFromCSV(buffer, extractOptions);
-        break;
-        
-      case 'html':
-        result = await extractFromHTML(buffer, extractOptions);
-        break;
-        
-      default:
-        throw new Error(`Unsupported file type: ${fileType}`);
+    try {
+      switch (fileType) {
+        case 'pdf':
+          result = await extractFromPDF(buffer, extractOptions);
+          break;
+          
+        case 'docx':
+          result = await extractFromDOCX(buffer, extractOptions);
+          break;
+          
+        case 'txt':
+          result = await extractFromTXT(buffer, extractOptions);
+          break;
+          
+        case 'csv':
+          result = await extractFromCSV(buffer, extractOptions);
+          break;
+          
+        case 'html':
+          result = await extractFromHTML(buffer, extractOptions);
+          break;
+          
+        default:
+          console.warn(`Unsupported file type: ${fileType}, using fallback extraction`);
+          result = await extractFallback(buffer, filename, extractOptions);
+      }
+    } catch (extractorError) {
+      console.warn(`Extraction failed for ${fileType}, trying fallback:`, extractorError.message);
+      result = await extractFallback(buffer, filename, extractOptions);
     }
 
     // Add universal metadata

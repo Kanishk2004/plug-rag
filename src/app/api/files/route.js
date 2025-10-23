@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import connectDB from '@/lib/mongo';
 import File from '@/models/File';
 import Bot from '@/models/Bot';
+import Chunk from '@/models/Chunk';
 import { processFile, validateFile, getSupportedFileTypes } from '@/lib/extractors';
 import { PerformanceMonitor } from '@/lib/performance';
 import { getCurrentDBUser, updateUserUsage, checkUserLimits } from '@/lib/user';
@@ -23,26 +24,38 @@ export async function POST(request) {
   try {
     PerformanceMonitor.startTimer('file-upload-api');
     
-    // TEMPORARY: For testing, use a hardcoded userId
-    // TODO: Fix Clerk authentication
-    let userId = 'test-user-123';
+    // Authentication check
+    let userId;
     
-    // Authentication check (commented out for testing)
-    /*
-    const { userId } = auth();
+    try {
+      const authResult = auth();
+      userId = authResult?.userId;
+    } catch (authError) {
+      console.log('Auth function error:', authError);
+    }
+    
+    // Fallback to currentUser if auth() doesn't work
+    if (!userId) {
+      try {
+        const user = await currentUser();
+        userId = user?.id;
+      } catch (userError) {
+        console.log('CurrentUser error:', userError);
+      }
+    }
+    
     if (!userId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Please log in to upload files' },
         { status: 401 }
       );
     }
-    */
 
     // Connect to database
     await connectDB();
 
     // Get current user and check limits
-    const user = await getCurrentDBUser();
+    const user = await getCurrentDBUser(userId);
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -159,6 +172,32 @@ export async function POST(request) {
     });
 
     await fileRecord.save();
+
+    // Save chunks to database
+    if (extractedData.chunks && extractedData.chunks.length > 0) {
+      try {
+        const chunkDocuments = extractedData.chunks.map((chunk, index) => ({
+          fileId: fileRecord._id,
+          botId,
+          ownerId: userId,
+          content: chunk.content,
+          chunkIndex: chunk.chunkIndex !== undefined ? chunk.chunkIndex : index,
+          tokens: chunk.tokens || Math.ceil(chunk.content.length / 4),
+          type: mapChunkType(chunk.type || 'paragraph_boundary'),
+          metadata: chunk.metadata || {},
+          embeddingStatus: 'pending',
+        }));
+
+        await Chunk.insertMany(chunkDocuments);
+        console.log(`✅ Saved ${chunkDocuments.length} chunks for file: ${filename}`);
+      } catch (chunkError) {
+        console.error('Error saving chunks:', chunkError);
+        // Don't fail the entire request if chunk saving fails
+        // Just log the error and continue
+      }
+    } else {
+      console.warn(`⚠️ No chunks generated for file: ${filename}`);
+    }
 
     // Update bot statistics
     await Bot.findByIdAndUpdate(botId, {
@@ -432,4 +471,25 @@ function generateUniqueFilename(originalFilename) {
   const nameWithoutExt = originalFilename.replace(/\.[^/.]+$/, '');
   
   return `${nameWithoutExt}_${timestamp}_${random}.${extension}`;
+}
+
+/**
+ * Map chunk types from extractors to valid Chunk model enum values
+ */
+function mapChunkType(extractorType) {
+  const typeMapping = {
+    'paragraph_boundary': 'paragraph_boundary',
+    'sentence_boundary': 'sentence_boundary', 
+    'document_structure': 'document_structure',
+    'manual': 'manual',
+    // Map additional extractor types to valid enum values
+    'final_chunk': 'paragraph_boundary',
+    'structured_section': 'document_structure',
+    'section': 'document_structure',
+    'list_item': 'paragraph_boundary',
+    'heading': 'document_structure',
+    'table_row': 'document_structure',
+  };
+  
+  return typeMapping[extractorType] || 'paragraph_boundary';
 }
