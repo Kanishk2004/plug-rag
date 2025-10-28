@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
+import mongoose from 'mongoose';
 import connectDB from '@/lib/mongo';
 import File from '@/models/File';
 import Bot from '@/models/Bot';
@@ -66,13 +67,31 @@ export async function POST(request) {
     // Parse form data
     const formData = await request.formData();
     const file = formData.get('file');
-    const botId = formData.get('botId');
+    const botIdString = formData.get('botId');
     const options = JSON.parse(formData.get('options') || '{}');
 
     // Validate required fields
-    if (!file || !botId) {
+    if (!file || !botIdString) {
       return NextResponse.json(
         { error: 'File and botId are required' },
+        { status: 400 }
+      );
+    }
+
+    console.log('[FILE-UPLOAD] Processing request', {
+      fileName: file?.name,
+      botId: botIdString,
+      userId,
+      fileSize: file?.size
+    });
+
+    // Convert botId to ObjectId for proper database operations
+    let botId;
+    try {
+      botId = new mongoose.Types.ObjectId(botIdString);
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid botId format' },
         { status: 400 }
       );
     }
@@ -95,26 +114,98 @@ export async function POST(request) {
       );
     }
 
-    // Validate file
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    // Validate file object
+    if (!file || typeof file === 'string') {
+      return NextResponse.json(
+        { error: 'Invalid file upload. Please select a valid file.' },
+        { status: 400 }
+      );
+    }
+
+    console.log('[FILE-UPLOAD] Processing file upload', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      botId
+    });
+
+    // Convert file to buffer
+    let fileBuffer;
+    try {
+      // Try using arrayBuffer() method
+      if (typeof file.arrayBuffer === 'function') {
+        const arrayBuffer = await file.arrayBuffer();
+        fileBuffer = Buffer.from(arrayBuffer);
+      } else if (typeof file.stream === 'function') {
+        // Alternative method using stream
+        const chunks = [];
+        const reader = file.stream().getReader();
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+        }
+        
+        fileBuffer = Buffer.concat(chunks.map(chunk => Buffer.from(chunk)));
+      } else {
+        throw new Error('Unable to read file data');
+      }
+    } catch (bufferError) {
+      console.error('[FILE-UPLOAD] Error converting file to buffer:', bufferError);
+      return NextResponse.json(
+        { error: 'Failed to process file data', details: bufferError.message },
+        { status: 400 }
+      );
+    }
+
     const filename = file.name;
     const mimeType = file.type;
 
+    console.log('[FILE-UPLOAD] File buffer created successfully', {
+      bufferSize: fileBuffer.length,
+      expectedSize: file.size,
+      fileName: filename,
+      mimeType
+    });
+
+    // Verify buffer size matches file size
+    if (fileBuffer.length !== file.size) {
+      console.warn('[FILE-UPLOAD] Buffer size mismatch', {
+        bufferSize: fileBuffer.length,
+        fileSize: file.size
+      });
+    }
+
     // Basic file validation
+    console.log('[FILE-UPLOAD] Starting file validation');
     const validation = validateFile(fileBuffer, filename, {
       maxFileSize: MAX_FILE_SIZE,
       allowedTypes: Object.keys(getSupportedFileTypes()).map(t => t.toLowerCase()),
     });
 
     if (!validation.isValid) {
+      console.error('[FILE-UPLOAD] File validation failed', {
+        fileName: filename,
+        errors: validation.errors,
+        fileSize: fileBuffer.length,
+        mimeType
+      });
       return NextResponse.json(
         { error: 'File validation failed', details: validation.errors },
         { status: 400 }
       );
     }
 
+    console.log('[FILE-UPLOAD] File validation passed');
+
     // MIME type validation
     if (!ALLOWED_MIME_TYPES.includes(mimeType) && mimeType !== '') {
+      console.error('[FILE-UPLOAD] Unsupported MIME type', {
+        fileName: filename,
+        mimeType,
+        allowedTypes: ALLOWED_MIME_TYPES
+      });
       return NextResponse.json(
         { error: `Unsupported file type: ${mimeType}` },
         { status: 400 }
@@ -253,7 +344,7 @@ export async function POST(request) {
         // Process file to vectors
         const vectorResult = await processFileToVectors(
           userId,
-          botId,
+          botId.toString(), // Convert ObjectId to string for consistency
           fileRecord._id.toString()
         );
         

@@ -39,6 +39,14 @@ export async function generateEmbedding(text) {
       throw new Error('Invalid response from OpenAI embeddings API');
     }
     
+    console.log('🐛 EMBEDDING DEBUG:', {
+      success: true,
+      model: 'text-embedding-3-small',
+      dimensions: response.data[0].embedding.length,
+      isArray: Array.isArray(response.data[0].embedding),
+      firstFewValues: response.data[0].embedding.slice(0, 3)
+    });
+    
     return {
       success: true,
       embedding: response.data[0].embedding,
