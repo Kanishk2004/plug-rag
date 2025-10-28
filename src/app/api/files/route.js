@@ -7,7 +7,7 @@ import Chunk from '@/models/Chunk';
 import { processFile, validateFile, getSupportedFileTypes } from '@/lib/extractors';
 import { PerformanceMonitor } from '@/lib/performance';
 import { getCurrentDBUser, updateUserUsage, checkUserLimits } from '@/lib/user';
-import vectorStorageAPI from '@/lib/vectorStorage.js';
+import { initializeBotVectorStorage, processFileToVectors } from '@/lib/vectorStorage.js';
 
 // Configuration
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -28,7 +28,7 @@ export async function POST(request) {
     let userId;
     
     try {
-      const authResult = auth();
+      const authResult = await auth();
       userId = authResult?.userId;
     } catch (authError) {
       console.log('Auth function error:', authError);
@@ -248,10 +248,10 @@ export async function POST(request) {
         console.log('Generating embeddings for file:', fileRecord.originalName);
         
         // Initialize vector storage for bot if needed
-        await vectorStorageAPI.initializeBotVectorStorage(userId, botId);
-        
+        await initializeBotVectorStorage(userId, botId);
+
         // Process file to vectors
-        const vectorResult = await vectorStorageAPI.processFileToVectors(
+        const vectorResult = await processFileToVectors(
           userId,
           botId,
           fileRecord._id.toString()
@@ -323,7 +323,7 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },

@@ -20,11 +20,13 @@ const botSchema = new mongoose.Schema(
 			type: [String],
 			default: [],
 			validate: {
-				validator: function(domains) {
-					return domains.every(domain => /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain));
+				validator: function (domains) {
+					return domains.every((domain) =>
+						/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain)
+					);
 				},
-				message: 'Invalid domain format'
-			}
+				message: 'Invalid domain format',
+			},
 		},
 		botKey: {
 			type: String,
@@ -42,11 +44,11 @@ const botSchema = new mongoose.Schema(
 				type: String,
 				default: '#3B82F6',
 				validate: {
-					validator: function(color) {
+					validator: function (color) {
 						return /^#[0-9A-F]{6}$/i.test(color);
 					},
-					message: 'Invalid hex color format'
-				}
+					message: 'Invalid hex color format',
+				},
 			},
 			position: {
 				type: String,

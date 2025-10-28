@@ -10,7 +10,7 @@ export async function POST(request, { params }) {
   try {
     PerformanceMonitor.startTimer('file-reprocessing');
     
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -18,7 +18,7 @@ export async function POST(request, { params }) {
       );
     }
 
-    const fileId = params.id;
+    const fileId = (await params).id;
     const body = await request.json();
     const { options = {} } = body;
 

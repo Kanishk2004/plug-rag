@@ -8,7 +8,7 @@ import { botAPI, fileAPI, apiUtils } from '@/lib/api';
 export default function CreateBot() {
 	const router = useRouter();
 	const fileUploadRef = useRef();
-	
+
 	const [formData, setFormData] = useState({
 		name: '',
 		description: '',
@@ -58,8 +58,8 @@ export default function CreateBot() {
 				console.log('Uploading files...');
 				setUploadProgress({ current: 0, total: uploadedFiles.length });
 
-				const fileObjects = uploadedFiles.map(f => f.file);
-				
+				const fileObjects = uploadedFiles.map((f) => f.file);
+
 				await fileAPI.uploadMultiple(
 					fileObjects,
 					botResponse.bot.id,
@@ -70,7 +70,8 @@ export default function CreateBot() {
 					},
 					(progress) => {
 						setUploadProgress({
-							current: progress.fileIndex + (progress.status === 'completed' ? 1 : 0),
+							current:
+								progress.fileIndex + (progress.status === 'completed' ? 1 : 0),
 							total: progress.total,
 							currentFile: progress.fileName,
 							status: progress.status,
@@ -84,7 +85,6 @@ export default function CreateBot() {
 			setTimeout(() => {
 				router.push('/dashboard/bots');
 			}, 1500);
-
 		} catch (error) {
 			console.error('Error creating bot:', error);
 			setError(apiUtils.formatError(error));
@@ -126,11 +126,13 @@ export default function CreateBot() {
 							<div className="w-5 h-5 text-green-500">
 								<CheckIcon />
 							</div>
-							<p className="text-green-200 font-medium">Bot created successfully!</p>
+							<p className="text-green-200 font-medium">
+								Bot created successfully!
+							</p>
 						</div>
 						<p className="text-green-300 text-sm mt-1">
-							{uploadedFiles.length > 0 
-								? 'Processing uploaded files...' 
+							{uploadedFiles.length > 0
+								? 'Processing uploaded files...'
 								: 'Redirecting to your bots...'}
 						</p>
 					</div>
@@ -146,14 +148,21 @@ export default function CreateBot() {
 							</span>
 						</div>
 						<div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-							<div 
+							<div
 								className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-								style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+								style={{
+									width: `${
+										(uploadProgress.current / uploadProgress.total) * 100
+									}%`,
+								}}
 							/>
 						</div>
 						{uploadProgress.currentFile && (
 							<p className="text-blue-300 text-sm">
-								{uploadProgress.status === 'uploading' ? 'Uploading' : 'Processing'}: {uploadProgress.currentFile}
+								{uploadProgress.status === 'uploading'
+									? 'Uploading'
+									: 'Processing'}
+								: {uploadProgress.currentFile}
 							</p>
 						)}
 					</div>
@@ -282,7 +291,7 @@ export default function CreateBot() {
 							Upload files that your chatbot will use to answer questions.
 							Supported formats: PDF, DOCX, TXT, CSV, HTML
 						</p>
-						<FileUpload 
+						<FileUpload
 							ref={fileUploadRef}
 							onFilesUploaded={handleFilesUploaded}
 							maxFiles={10}
@@ -299,17 +308,23 @@ export default function CreateBot() {
 						</button>
 						<button
 							type="submit"
-							disabled={isSubmitting || createdBot || !formData.name || !formData.description}
+							disabled={
+								isSubmitting ||
+								createdBot ||
+								!formData.name ||
+								!formData.description
+							}
 							className="px-6 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors flex items-center space-x-2">
 							{isSubmitting && <LoadingIcon className="w-4 h-4 animate-spin" />}
 							{createdBot && <CheckIcon className="w-4 h-4" />}
 							<span>
-								{createdBot 
-									? 'Bot Created!' 
-									: isSubmitting 
-										? (uploadProgress ? 'Uploading Files...' : 'Creating Bot...') 
-										: 'Create Bot'
-								}
+								{createdBot
+									? 'Bot Created!'
+									: isSubmitting
+									? uploadProgress
+										? 'Uploading Files...'
+										: 'Creating Bot...'
+									: 'Create Bot'}
 							</span>
 						</button>
 					</div>
@@ -353,12 +368,20 @@ const LoadingIcon = ({ className }) => (
 
 const ErrorIcon = () => (
 	<svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-		<path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+		<path
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
+		/>
 	</svg>
 );
 
 const CheckIcon = () => (
 	<svg fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-		<path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+		<path
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+		/>
 	</svg>
 );
