@@ -3,10 +3,15 @@ import { auth } from '@clerk/nextjs/server';
 import connectDB from '@/lib/mongo';
 
 /**
- * POST /api/vectors - Vector operations
+ * POST /api/vectors/[botId] - Bot-specific vector operations
  */
-export async function POST(request) {
+export async function POST(request, { params }) {
   try {
+    const { botId } = params;
+    if (!botId) {
+      return NextResponse.json({ error: 'Bot ID is required' }, { status: 400 });
+    }
+
     // Authentication check
     const { userId } = auth();
     if (!userId) {
@@ -16,13 +21,13 @@ export async function POST(request) {
     // Connect to database
     await connectDB();
 
-    // TODO: Implement vector operations logic
+    // TODO: Implement bot-specific vector operations
     return NextResponse.json(
-      { message: 'Vector operations endpoint - implement your logic here' },
+      { message: 'Bot vector operations endpoint - implement your logic here' },
       { status: 501 }
     );
   } catch (error) {
-    console.error('Vector operations API error:', error);
+    console.error('Bot vector operations API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -31,10 +36,15 @@ export async function POST(request) {
 }
 
 /**
- * GET /api/vectors - Get vectors info
+ * GET /api/vectors/[botId] - Get bot vector info
  */
-export async function GET(request) {
+export async function GET(request, { params }) {
   try {
+    const { botId } = params;
+    if (!botId) {
+      return NextResponse.json({ error: 'Bot ID is required' }, { status: 400 });
+    }
+
     // Authentication check
     const { userId } = auth();
     if (!userId) {
@@ -44,13 +54,13 @@ export async function GET(request) {
     // Connect to database
     await connectDB();
 
-    // TODO: Implement vector info retrieval logic
+    // TODO: Implement bot vector info retrieval
     return NextResponse.json(
-      { message: 'Get vector info endpoint - implement your logic here' },
+      { message: 'Get bot vector info endpoint - implement your logic here' },
       { status: 501 }
     );
   } catch (error) {
-    console.error('Get vector info API error:', error);
+    console.error('Get bot vector info API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

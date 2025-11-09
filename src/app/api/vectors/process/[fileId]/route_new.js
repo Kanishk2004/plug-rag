@@ -3,10 +3,15 @@ import { auth } from '@clerk/nextjs/server';
 import connectDB from '@/lib/mongo';
 
 /**
- * POST /api/files/batch - Batch file upload
+ * POST /api/vectors/process/[fileId] - Process file for vectors
  */
-export async function POST(request) {
+export async function POST(request, { params }) {
   try {
+    const { fileId } = params;
+    if (!fileId) {
+      return NextResponse.json({ error: 'File ID is required' }, { status: 400 });
+    }
+
     // Authentication check
     const { userId } = auth();
     if (!userId) {
@@ -16,13 +21,13 @@ export async function POST(request) {
     // Connect to database
     await connectDB();
 
-    // TODO: Implement batch file upload logic
+    // TODO: Implement file vector processing logic
     return NextResponse.json(
-      { message: 'Batch file upload endpoint - implement your logic here' },
+      { message: 'File vector processing endpoint - implement your logic here' },
       { status: 501 }
     );
   } catch (error) {
-    console.error('Batch file upload API error:', error);
+    console.error('File vector processing API error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
