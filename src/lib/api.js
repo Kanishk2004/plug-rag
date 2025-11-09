@@ -86,16 +86,96 @@ export const botAPI = {
  * File API functions
  */
 export const fileAPI = {
-	// Upload a file
-	async upload(file, botId) {
-		const formData = new FormData();
-		formData.append('file', file);
-		formData.append('botId', botId);
+	// Upload a single file (simple version)
+	// async upload(file, botId) {
+	// 	const formData = new FormData();
+	// 	formData.append('file', file);
+	// 	formData.append('botId', botId);
 
-		return await apiFetch('/api/files', {
-			method: 'POST',
-			body: formData,
-		});
+	// 	return await apiFetch('/api/files', {
+	// 		method: 'POST',
+	// 		body: formData,
+	// 	});
+	// },
+
+	// Upload multiple files with progress tracking and options
+	async uploadMultiple(files, botId, options = {}, onProgress = null) {
+		const {
+			generateEmbeddings = true,
+			maxChunkSize = 700,
+			overlap = 100,
+		} = options;
+
+		const results = [];
+		const total = files.length;
+
+		for (let i = 0; i < files.length; i++) {
+			const file = files[i];
+
+			try {
+				// Notify progress - uploading
+				if (onProgress) {
+					onProgress({
+						fileIndex: i,
+						fileName: file.name,
+						status: 'uploading',
+						total: total,
+					});
+				}
+
+				const formData = new FormData();
+				formData.append('file', file);
+				formData.append('botId', botId);
+				formData.append('generateEmbeddings', generateEmbeddings.toString());
+				formData.append('maxChunkSize', maxChunkSize.toString());
+				formData.append('overlap', overlap.toString());
+
+				console.log(
+					'API CALL - /api/files from /lib/api.js file with formData: ',
+					formData
+				);
+				const result = await apiFetch('/api/files', {
+					method: 'POST',
+					body: formData,
+				});
+
+				results.push({ file: file.name, success: true, result });
+
+				// Notify progress - completed
+				if (onProgress) {
+					onProgress({
+						fileIndex: i,
+						fileName: file.name,
+						status: 'completed',
+						total: total,
+					});
+				}
+			} catch (error) {
+				results.push({
+					file: file.name,
+					success: false,
+					error: error.message,
+				});
+
+				// Notify progress - error
+				if (onProgress) {
+					onProgress({
+						fileIndex: i,
+						fileName: file.name,
+						status: 'error',
+						total: total,
+						error: error.message,
+					});
+				}
+			}
+		}
+
+		return {
+			success: results.every((r) => r.success),
+			results,
+			uploadedCount: results.filter((r) => r.success).length,
+			errorCount: results.filter((r) => !r.success).length,
+		};
 	},
 
 	// Get files
@@ -160,6 +240,48 @@ export const apiUtils = {
 		}
 
 		return error.message || 'An unexpected error occurred.';
+	},
+
+	// Validate file before upload
+	validateFile(file, options = {}) {
+		const {
+			maxSize = 30 * 1024 * 1024, // 30MB default
+			allowedTypes = [
+				'application/pdf',
+				'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+				'application/msword',
+				'text/plain',
+				'text/csv',
+				'text/html',
+			],
+		} = options;
+
+		if (file.size > maxSize) {
+			return {
+				isValid: false,
+				error: `File size must be less than ${this.formatFileSize(
+					maxSize
+				)}. Current size: ${this.formatFileSize(file.size)}`,
+			};
+		}
+
+		if (!allowedTypes.includes(file.type)) {
+			return {
+				isValid: false,
+				error: `File type ${file.type} is not supported. Please upload PDF, DOCX, TXT, CSV, or HTML files.`,
+			};
+		}
+
+		return { isValid: true };
+	},
+
+	// Format file size for display
+	formatFileSize(bytes) {
+		if (bytes === 0) return '0 Bytes';
+		const k = 1024;
+		const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 	},
 };
 
