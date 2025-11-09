@@ -361,7 +361,33 @@ async function processChunksToVectors(chunks, userId, botId, file) {
 						contentPreview: chunk.content?.substring(0, 100) + '...'
 					});
 
-					const embeddingResult = await generateEmbedding(chunk.content);
+					// Validate and truncate chunk content if necessary
+					let chunkContent = chunk.content;
+					
+					// Estimate tokens (4 characters ≈ 1 token for OpenAI)
+					const estimatedTokens = Math.ceil(chunkContent.length / 4);
+					const maxEmbeddingTokens = 8000; // Conservative limit for text-embedding-3-small (8192 limit)
+					
+					if (estimatedTokens > maxEmbeddingTokens) {
+						logger.warning('Chunk exceeds embedding token limit, truncating', {
+							chunkId: chunk._id,
+							originalLength: chunkContent.length,
+							estimatedTokens,
+							maxTokens: maxEmbeddingTokens
+						});
+						
+						// Truncate to fit within token limit
+						const maxChars = maxEmbeddingTokens * 4;
+						chunkContent = chunkContent.substring(0, maxChars);
+						
+						logger.debug('Chunk truncated for embedding', {
+							chunkId: chunk._id,
+							newLength: chunkContent.length,
+							newEstimatedTokens: Math.ceil(chunkContent.length / 4)
+						});
+					}
+
+					const embeddingResult = await generateEmbedding(chunkContent);
 					
 					logger.debug('Embedding result received', {
 						chunkId: chunk._id,

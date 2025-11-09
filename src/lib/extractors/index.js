@@ -130,8 +130,9 @@ export function chunkText(text, extractedData, options = {}) {
     
     const fileType = extractedData.metadata?.fileType || 'txt';
     const chunkOptions = {
-      maxChunkSize: 700,
-      overlap: 100,
+      maxChunkSize: 500, // Reduced from 700 to prevent embedding token limit issues
+      overlap: 50, // Reduced from 100 to keep chunks smaller
+      maxTokens: 6000, // Maximum tokens per chunk (well under 8192 embedding limit)
       ...options,
     };
 
@@ -163,7 +164,7 @@ export function chunkText(text, extractedData, options = {}) {
         chunks = chunkTXTText(text, {}, chunkOptions);
     }
 
-    // Add universal chunk metadata
+    // Add universal chunk metadata and validate token limits
     chunks = chunks.map((chunk, index) => ({
       ...chunk,
       id: generateChunkId(extractedData.metadata?.originalFilename || 'unknown', index),
@@ -171,14 +172,137 @@ export function chunkText(text, extractedData, options = {}) {
       extractedAt: new Date().toISOString(),
     }));
 
+    // Post-process chunks to ensure they don't exceed token limits
+    const validatedChunks = [];
+    const maxTokensPerChunk = chunkOptions.maxTokens || 6000;
+    
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const estimatedTokens = Math.ceil(chunk.content.length / 4); // Rough token estimate
+      
+      if (estimatedTokens <= maxTokensPerChunk) {
+        // Chunk is within limits
+        validatedChunks.push(chunk);
+      } else {
+        // Chunk is too large, split it
+        console.warn(`Chunk ${i} exceeds token limit (${estimatedTokens} tokens), splitting...`);
+        
+        const subChunks = splitLargeChunk(chunk, maxTokensPerChunk);
+        validatedChunks.push(...subChunks);
+      }
+    }
+
     PerformanceMonitor.endTimer('universal-chunking');
-    return chunks;
+    return validatedChunks;
 
   } catch (error) {
     PerformanceMonitor.endTimer('universal-chunking', 'error');
     console.error('Universal chunking error:', error);
     throw new Error(`Failed to chunk text: ${error.message}`);
   }
+}
+
+/**
+ * Split a large chunk into smaller sub-chunks that fit within token limits
+ */
+function splitLargeChunk(chunk, maxTokens) {
+  const maxChars = maxTokens * 4; // Convert tokens to approximate characters
+  const content = chunk.content;
+  const subChunks = [];
+  
+  // Split by sentences first, then by paragraphs if needed
+  const sentences = content.split(/[.!?]+\s+/);
+  let currentChunk = '';
+  let chunkIndex = 0;
+  
+  for (const sentence of sentences) {
+    const proposedChunk = currentChunk + (currentChunk ? '. ' : '') + sentence;
+    
+    if (proposedChunk.length <= maxChars) {
+      currentChunk = proposedChunk;
+    } else {
+      // Save current chunk if it has content
+      if (currentChunk.trim()) {
+        subChunks.push({
+          ...chunk,
+          id: `${chunk.id}_split_${chunkIndex}`,
+          content: currentChunk.trim(),
+          tokens: Math.ceil(currentChunk.length / 4),
+          chunkIndex: chunk.chunkIndex + chunkIndex / 100, // Maintain ordering
+          metadata: {
+            ...chunk.metadata,
+            isSplit: true,
+            originalChunkId: chunk.id,
+            splitIndex: chunkIndex
+          }
+        });
+        chunkIndex++;
+      }
+      
+      // Start new chunk with current sentence
+      if (sentence.length > maxChars) {
+        // Sentence itself is too long, force split by characters
+        const forceSplit = splitByCharacters(sentence, maxChars);
+        for (let j = 0; j < forceSplit.length; j++) {
+          subChunks.push({
+            ...chunk,
+            id: `${chunk.id}_split_${chunkIndex}`,
+            content: forceSplit[j],
+            tokens: Math.ceil(forceSplit[j].length / 4),
+            chunkIndex: chunk.chunkIndex + chunkIndex / 100,
+            metadata: {
+              ...chunk.metadata,
+              isSplit: true,
+              isForceplit: true,
+              originalChunkId: chunk.id,
+              splitIndex: chunkIndex
+            }
+          });
+          chunkIndex++;
+        }
+        currentChunk = '';
+      } else {
+        currentChunk = sentence;
+      }
+    }
+  }
+  
+  // Add final chunk if there's remaining content
+  if (currentChunk.trim()) {
+    subChunks.push({
+      ...chunk,
+      id: `${chunk.id}_split_${chunkIndex}`,
+      content: currentChunk.trim(),
+      tokens: Math.ceil(currentChunk.length / 4),
+      chunkIndex: chunk.chunkIndex + chunkIndex / 100,
+      metadata: {
+        ...chunk.metadata,
+        isSplit: true,
+        originalChunkId: chunk.id,
+        splitIndex: chunkIndex
+      }
+    });
+  }
+  
+  console.log(`Split large chunk into ${subChunks.length} sub-chunks`);
+  return subChunks;
+}
+
+/**
+ * Force split text by characters when sentences are too long
+ */
+function splitByCharacters(text, maxChars) {
+  const chunks = [];
+  const overlap = Math.min(100, maxChars * 0.1); // 10% overlap or 100 chars, whichever is smaller
+  
+  for (let i = 0; i < text.length; i += maxChars - overlap) {
+    const chunk = text.substring(i, i + maxChars);
+    chunks.push(chunk);
+    
+    if (i + maxChars >= text.length) break;
+  }
+  
+  return chunks;
 }
 
 /**

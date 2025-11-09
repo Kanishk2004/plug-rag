@@ -230,8 +230,9 @@ export async function POST(request) {
     PerformanceMonitor.startTimer('file-processing');
     
     const processingOptions = {
-      maxChunkSize: options.maxChunkSize || 700,
-      overlap: options.overlap || 100,
+      maxChunkSize: options.maxChunkSize || 500, // Reduced from 700
+      overlap: options.overlap || 50, // Reduced from 100
+      maxTokens: options.maxTokens || 6000, // Added token limit
       respectStructure: options.respectStructure !== false,
       ...options,
     };

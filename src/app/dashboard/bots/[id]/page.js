@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import FileUpload from '@/components/FileUpload';
+import ChatInterface from '@/components/ChatInterface';
 import { useBot, useBotFiles } from '@/hooks/useAPI';
 
 // Icons (you can replace with your preferred icon library)
@@ -455,9 +456,9 @@ export default function BotDetail({ params }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Main Content - 7 columns */}
+          <div className="lg:col-span-7 space-y-6">
             {/* Stats */}
             <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
               <h2 className="text-lg font-medium text-white mb-4">Overview</h2>
@@ -540,41 +541,11 @@ export default function BotDetail({ params }) {
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-              <h3 className="text-lg font-medium text-white mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <Link
-                  href={`/dashboard/bots/${bot.id}/embed`}
-                  className="block w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-3 px-4 rounded-lg text-center font-medium transition-colors"
-                >
-                  Get Embed Code
-                </Link>
-                <button
-                  onClick={handleToggleStatus}
-                  disabled={updating}
-                  className={`w-full py-3 px-4 rounded-lg text-center font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                    bot.status === 'active'
-                      ? 'bg-red-100 hover:bg-red-200 text-red-700'
-                      : 'bg-green-100 hover:bg-green-200 text-green-700'
-                  }`}
-                >
-                  {updating ? 'Updating...' : (bot.status === 'active' ? 'Disable Bot' : 'Enable Bot')}
-                </button>
-                <button className="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 py-3 px-4 rounded-lg text-center font-medium transition-colors">
-                  Download Chat History
-                </button>
-              </div>
-            </div>
-
-            {/* Bot Info */}
+            {/* Bot Information - Moved from sidebar */}
             <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
               <h3 className="text-lg font-medium text-white mb-4">Bot Information</h3>
-              <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-400">Created:</span>
                   <span className="ml-2 text-gray-200">
@@ -587,13 +558,13 @@ export default function BotDetail({ params }) {
                     {new Date(bot.updatedAt).toLocaleDateString()}
                   </span>
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <span className="text-gray-400">Bot ID:</span>
                   <span className="ml-2 font-mono text-gray-200 text-xs break-all">
                     {bot.id}
                   </span>
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <span className="text-gray-400">Bot Key:</span>
                   <span className="ml-2 font-mono text-gray-200 text-xs break-all">
                     {bot.botKey}
@@ -617,7 +588,7 @@ export default function BotDetail({ params }) {
                     {(bot.customization?.position || 'bottom-right').replace('-', ' ')}
                   </span>
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <span className="text-gray-400">Vector Storage:</span>
                   <span className={`ml-2 text-xs px-2 py-1 rounded ${
                     bot.vectorStorage?.enabled 
@@ -628,6 +599,40 @@ export default function BotDetail({ params }) {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Quick Actions - Moved from sidebar and made horizontal */}
+            <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+              <h3 className="text-lg font-medium text-white mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Link
+                  href={`/dashboard/bots/${bot.id}/embed`}
+                  className="block w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-3 px-4 rounded-lg text-center font-medium transition-colors"
+                >
+                  Get Embed Code
+                </Link>
+                <button
+                  onClick={handleToggleStatus}
+                  disabled={updating}
+                  className={`w-full py-3 px-4 rounded-lg text-center font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                    bot.status === 'active'
+                      ? 'bg-red-100 hover:bg-red-200 text-red-700'
+                      : 'bg-green-100 hover:bg-green-200 text-green-700'
+                  }`}
+                >
+                  {updating ? 'Updating...' : (bot.status === 'active' ? 'Disable Bot' : 'Enable Bot')}
+                </button>
+                <button className="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 py-3 px-4 rounded-lg text-center font-medium transition-colors">
+                  Download Chat History
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Chat Interface - 5 columns */}
+          <div className="lg:col-span-5">
+            <div className="bg-gray-900 rounded-lg border border-gray-800 h-[800px] flex flex-col">
+              <ChatInterface botId={bot.id} botName={bot.name} />
             </div>
           </div>
         </div>
