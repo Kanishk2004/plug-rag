@@ -191,3 +191,24 @@ export async function checkUserLimits(clerkId) {
 		throw error;
 	}
 }
+
+/**
+ * Check limits from existing user object (optimized - no DB query)
+ */
+export function checkUserLimitsFromUser(user) {
+	if (!user) {
+		throw new Error('User object is required');
+	}
+
+	const limits = {
+		botsReached: user.usage.botsCreated >= user.limits.maxBots,
+		messagesReached: user.usage.messagesThisMonth >= user.limits.maxMessages,
+		storageReached: user.usage.storageUsed >= user.limits.maxStorage,
+	};
+
+	return {
+		user,
+		limits,
+		hasReachedAnyLimit: Object.values(limits).some(Boolean),
+	};
+}

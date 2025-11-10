@@ -7,6 +7,7 @@ import {
 	syncUserWithDB,
 	checkUserLimits,
 	updateUserUsage,
+	checkUserLimitsFromUser,
 } from '@/lib/user';
 
 /**
@@ -23,9 +24,6 @@ export async function POST(request) {
 			);
 		}
 
-		// Connect to database
-		await connectDB();
-
 		// Get current user and check limits
 		let user = await getCurrentDBUser(userId);
 		if (!user) {
@@ -40,15 +38,11 @@ export async function POST(request) {
 			}
 		}
 
-		// Check user limits
-		const { limits, hasReachedAnyLimit } = await checkUserLimits(userId);
-		if (limits.botsReached) {
+		// Check user limits using existing user object (optimized)
+		const { limits } = checkUserLimitsFromUser(user);
+		if (limits.botsReached || limits.storageReached) {
 			return NextResponse.json(
-				{
-					error: 'Bot limit reached',
-					limits,
-					message: `You have reached the maximum number of bots allowed for your plan.`,
-				},
+				{ error: 'Plan limits reached', limits },
 				{ status: 429 }
 			);
 		}
@@ -81,11 +75,11 @@ export async function POST(request) {
 			);
 		}
 
-		// Generate unique bot key
-		const botKey = generateBotKey();
-
 		// Validate customization options
 		const validatedCustomization = validateCustomization(customization);
+
+		// Generate unique bot key
+		const botKey = generateBotKey();
 
 		// Create bot record
 		const bot = new Bot({

@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import connectDB from '@/lib/mongo';
-import { getCurrentDBUser, updateUserUsage, checkUserLimits } from '@/lib/user';
+import {
+	getCurrentDBUser,
+	updateUserUsage,
+	checkUserLimitsFromUser,
+} from '@/lib/user';
 import mongoose from 'mongoose';
 import File from '@/models/File';
 import Bot from '@/models/Bot';
+import { processFile } from '@/lib/fileProcessor';
 
 // Configuration
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -18,34 +23,6 @@ const ALLOWED_MIME_TYPES = [
 ];
 
 /**
- * GET /api/files - Get user's files
- */
-export async function GET(request) {
-	try {
-		// Authentication check
-		const { userId } = auth();
-		if (!userId) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-		}
-
-		// Connect to database
-		await connectDB();
-
-		// TODO: Implement file listing logic
-		return NextResponse.json(
-			{ message: 'Get files endpoint - implement your logic here' },
-			{ status: 501 }
-		);
-	} catch (error) {
-		console.error('Get files API error:', error);
-		return NextResponse.json(
-			{ error: 'Internal server error' },
-			{ status: 500 }
-		);
-	}
-}
-
-/**
  * POST /api/files - Upload file
  */
 export async function POST(request) {
@@ -56,19 +33,30 @@ export async function POST(request) {
 			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 		}
 
-		// Connect to database
-		await connectDB();
-
 		// Get current user and check limits
 		const user = await getCurrentDBUser(userId);
 		if (!user) {
 			return NextResponse.json({ error: 'User not found' }, { status: 404 });
 		}
 
+		// Check user limits using existing user object (optimized)
+		const { limits } = checkUserLimitsFromUser(user);
+		if (limits.botsReached || limits.storageReached) {
+			return NextResponse.json(
+				{ error: 'Plan limits reached', limits },
+				{ status: 429 }
+			);
+		}
+
 		// Parse form data
 		const formData = await request.formData();
 		const file = formData.get('file');
 		const botIdString = formData.get('botId');
+
+		// Parse optional upload options
+		const generateEmbeddings = formData.get('generateEmbeddings') === 'true';
+		const maxChunkSize = parseInt(formData.get('maxChunkSize')) || 700;
+		const overlap = parseInt(formData.get('overlap')) || 100;
 
 		// Validate required fields
 		if (!file || !botIdString) {
@@ -83,6 +71,9 @@ export async function POST(request) {
 			botId: botIdString,
 			userId,
 			fileSize: file?.size,
+			generateEmbeddings,
+			maxChunkSize,
+			overlap,
 		});
 
 		let botId;
@@ -103,8 +94,49 @@ export async function POST(request) {
 				{ status: 404 }
 			);
 		}
-		console.log('Bot ownership verified - Develop this route further!');
-    // CODE WORKING FINE TILL HERE
+		// CODE WORKING FINE TILL HERE
+
+		// Validate file object
+		if (!file || typeof file === 'string') {
+			return NextResponse.json(
+				{ error: 'Invalid file upload. Please select a valid file.' },
+				{ status: 400 }
+			);
+		}
+
+		if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+			return NextResponse.json(
+				{ error: 'File type is not supported.' },
+				{ status: 400 }
+			);
+		}
+
+		// create buffer from file
+		const buffer = Buffer.from(await file.arrayBuffer());
+		if (buffer.length > MAX_FILE_SIZE) {
+			return NextResponse.json(
+				{ error: 'File size exceeds the maximum limit of 50MB.' },
+				{ status: 400 }
+			);
+		}
+
+		// Verify buffer size matches file size
+		if (buffer.length !== file.size) {
+			console.warn('[FILE-UPLOAD] Buffer size mismatch', {
+				bufferSize: buffer.length,
+				fileSize: file.size,
+			});
+		}
+		console.log('[FILE-UPLOAD] File validation passed');
+		// At this point, the file is validated. Proceed to save the file and update usage.
+		// Create file ingestion logic using LangChain....
+		const result = await processFile(file, buffer, botId, userId, {
+			generateEmbeddings,
+			maxChunkSize,
+			overlap,
+		});
+
+		console.log('File processed successfully: ' + result);
 
 		// TODO: Implement file upload logic
 		return NextResponse.json(
@@ -113,34 +145,6 @@ export async function POST(request) {
 		);
 	} catch (error) {
 		console.error('File upload API error:', error);
-		return NextResponse.json(
-			{ error: 'Internal server error' },
-			{ status: 500 }
-		);
-	}
-}
-
-/**
- * DELETE /api/files - Delete file
- */
-export async function DELETE(request) {
-	try {
-		// Authentication check
-		const { userId } = auth();
-		if (!userId) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-		}
-
-		// Connect to database
-		await connectDB();
-
-		// TODO: Implement file deletion logic
-		return NextResponse.json(
-			{ message: 'Delete file endpoint - implement your logic here' },
-			{ status: 501 }
-		);
-	} catch (error) {
-		console.error('Delete file API error:', error);
 		return NextResponse.json(
 			{ error: 'Internal server error' },
 			{ status: 500 }
