@@ -124,7 +124,7 @@ export async function POST(request, { params }) {
 
 export async function GET(request, { params }) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -132,7 +132,7 @@ export async function GET(request, { params }) {
       );
     }
 
-    const fileId = params.id;
+    const fileId = (await params).id;
     const url = new URL(request.url);
     const includeChunks = url.searchParams.get('includeChunks') === 'true';
     const includeText = url.searchParams.get('includeText') === 'true';
@@ -194,6 +194,56 @@ export async function GET(request, { params }) {
 
   } catch (error) {
     console.error('Get file details error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/files/[id] - Delete a file and its associated data
+ */
+export async function DELETE(request, { params }) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const fileId = (await params).id;
+    await connectDB();
+
+    // Find and validate file ownership
+    const file = await File.findOne({ _id: fileId, ownerId: userId });
+    if (!file) {
+      return NextResponse.json(
+        { error: 'File not found or access denied' },
+        { status: 404 }
+      );
+    }
+
+    // Delete associated chunks
+    const deletedChunks = await Chunk.deleteMany({ fileId: file._id });
+    
+    // Delete the file itself
+    await File.deleteOne({ _id: file._id });
+
+    return NextResponse.json({
+      success: true,
+      message: 'File deleted successfully',
+      data: {
+        fileId: fileId,
+        fileName: file.originalName,
+        chunksDeleted: deletedChunks.deletedCount
+      }
+    });
+
+  } catch (error) {
+    console.error('Delete file error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

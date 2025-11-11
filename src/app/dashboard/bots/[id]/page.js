@@ -194,7 +194,8 @@ export default function BotDetail({ params }) {
     error: botError, 
     updating, 
     updateBot, 
-    toggleStatus 
+    toggleStatus,
+    deleteBot
   } = useBot(botId);
   
   const {
@@ -273,6 +274,27 @@ export default function BotDetail({ params }) {
       );
     } else {
       showNotification(result.error || 'Failed to update bot status', 'error');
+    }
+  };
+
+  const handleDeleteBot = async () => {
+    if (!bot) return;
+
+    const confirmed = confirm(
+      `Are you sure you want to delete "${bot.name}"? This action cannot be undone and will delete all associated files and chat data.`
+    );
+
+    if (!confirmed) return;
+
+    const result = await deleteBot();
+    if (result.success) {
+      showNotification(`${bot.name} and all associated data deleted successfully`);
+      // Redirect to bots list after successful deletion
+      setTimeout(() => {
+        router.push('/dashboard/bots');
+      }, 2000);
+    } else {
+      showNotification(result.error || 'Failed to delete bot', 'error');
     }
   };
 
@@ -465,7 +487,7 @@ export default function BotDetail({ params }) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-white">
-                    {bot.analytics?.totalMessages || 0}
+                    {bot.totalMessages || 0}
                   </p>
                   <p className="text-sm text-gray-200">Messages</p>
                 </div>
@@ -475,13 +497,13 @@ export default function BotDetail({ params }) {
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-orange-400">
-                    {bot.analytics?.totalEmbeddings || 0}
+                    {bot.totalEmbeddings || 0}
                   </p>
                   <p className="text-sm text-gray-200">Embeddings</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-blue-400">
-                    {Math.floor((bot.analytics?.totalTokensUsed || 0) / 1000)}K
+                    {Math.floor((bot.totalTokens || 0) / 1000)}K
                   </p>
                   <p className="text-sm text-gray-200">Tokens</p>
                 </div>
@@ -604,7 +626,7 @@ export default function BotDetail({ params }) {
             {/* Quick Actions - Moved from sidebar and made horizontal */}
             <div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
               <h3 className="text-lg font-medium text-white mb-4">Quick Actions</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 <Link
                   href={`/dashboard/bots/${bot.id}/embed`}
                   className="block w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-3 px-4 rounded-lg text-center font-medium transition-colors"
@@ -624,6 +646,13 @@ export default function BotDetail({ params }) {
                 </button>
                 <button className="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 py-3 px-4 rounded-lg text-center font-medium transition-colors">
                   Download Chat History
+                </button>
+                <button 
+                  onClick={handleDeleteBot}
+                  disabled={updating}
+                  className="w-full bg-red-900 hover:bg-red-800 text-red-100 py-3 px-4 rounded-lg text-center font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {updating ? 'Deleting...' : 'Delete Bot'}
                 </button>
               </div>
             </div>

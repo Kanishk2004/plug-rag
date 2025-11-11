@@ -162,6 +162,38 @@ export function useBot(botId) {
     return await updateBot({ status: newStatus });
   }, [bot, updateBot]);
 
+  const deleteBot = useCallback(async () => {
+    if (!botId) return { success: false, error: 'No bot ID provided' };
+
+    try {
+      setUpdating(true);
+      setError(null);
+
+      const response = await fetch(`/api/bots/${botId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to delete bot: ${response.status}`);
+      }
+
+      if (data.success) {
+        setBot(null);
+        return { success: true, deletionSummary: data.data };
+      } else {
+        throw new Error(data.error || 'Failed to delete bot');
+      }
+    } catch (err) {
+      console.error('Error deleting bot:', err);
+      setError(err.message);
+      return { success: false, error: err.message };
+    } finally {
+      setUpdating(false);
+    }
+  }, [botId]);
+
   useEffect(() => {
     fetchBot();
   }, [fetchBot]);
@@ -174,6 +206,7 @@ export function useBot(botId) {
     refetch: fetchBot,
     updateBot,
     toggleStatus,
+    deleteBot,
     setBot
   };
 }
@@ -205,15 +238,7 @@ export function useBotFiles(botId) {
       
       if (data.success) {
         // Handle standardized response format
-        if (data.data && data.data.files) {
-          // Response with files array
-          setFiles(data.data.files || []);
-        } else if (Array.isArray(data.data)) {
-          // Direct array response
-          setFiles(data.data || []);
-        } else {
-          setFiles([]);
-        }
+        setFiles(data.data || []);
       } else {
         throw new Error(data.error || 'Failed to fetch files');
       }

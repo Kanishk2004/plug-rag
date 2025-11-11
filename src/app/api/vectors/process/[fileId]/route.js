@@ -10,7 +10,7 @@ import connectMongo from '@/lib/mongo.js';
  */
 export async function POST(request, { params }) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
@@ -18,7 +18,7 @@ export async function POST(request, { params }) {
       );
     }
     
-    const { fileId } = params;
+    const { fileId } = await params;
     
     if (!fileId) {
       return NextResponse.json(

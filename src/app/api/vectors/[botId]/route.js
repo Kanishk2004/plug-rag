@@ -9,7 +9,7 @@ import connectMongo from '@/lib/mongo.js';
  */
 export async function GET(request, { params }) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
@@ -17,7 +17,7 @@ export async function GET(request, { params }) {
       );
     }
     
-    const { botId } = params;
+    const { botId } = await params;
     
     if (!botId) {
       return NextResponse.json(

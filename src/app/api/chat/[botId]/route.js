@@ -8,13 +8,13 @@ import Bot from '@/models/Bot';
  */
 export async function POST(request, { params }) {
   try {
-    const { botId } = params;
+    const { botId } = await params;
     if (!botId) {
       return NextResponse.json({ error: 'Bot ID is required' }, { status: 400 });
     }
 
     // Authentication check
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

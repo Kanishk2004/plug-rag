@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import connectDB from '@/lib/mongo';
 import {
 	getCurrentDBUser,
-	updateUserUsage,
 	checkUserLimitsFromUser,
 } from '@/lib/user';
 import mongoose from 'mongoose';
-import File from '@/models/File';
 import Bot from '@/models/Bot';
+import File from '@/models/File';
 import { processFile } from '@/lib/fileProcessor';
+import connectDB from '@/lib/mongo';
+import {
+  apiSuccess,
+  authError,
+  notFoundError,
+  forbiddenError,
+  serverError,
+  validationError
+} from '@/lib/apiResponse';
 
 // Configuration
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -94,7 +101,6 @@ export async function POST(request) {
 				{ status: 404 }
 			);
 		}
-		// CODE WORKING FINE TILL HERE
 
 		// Validate file object
 		if (!file || typeof file === 'string') {
@@ -153,5 +159,77 @@ export async function POST(request) {
 			{ error: 'Internal server error' },
 			{ status: 500 }
 		);
+	}
+}
+
+/**
+ * GET /api/files - Get files for a bot
+ * 
+ * Retrieves all files associated with a specific bot.
+ * Requires botId as query parameter.
+ * 
+ * @param {Request} request - The request object
+ * @returns {Response} List of files for the bot
+ */
+export async function GET(request) {
+	try {
+		// Step 1: Authenticate user
+		const { userId } = await auth();
+		if (!userId) return authError();
+
+		// Step 2: Parse query parameters
+		const { searchParams } = new URL(request.url);
+		const botId = searchParams.get('botId');
+
+		if (!botId) {
+			return validationError('botId parameter is required');
+		}
+
+		// Step 3: Connect to database
+		await connectDB();
+
+		// Step 4: Get user and verify existence
+		const user = await getCurrentDBUser(userId);
+		if (!user) {
+			return authError('User not found');
+		}
+
+		// Step 5: Verify bot ownership
+		const bot = await Bot.findOne({
+			_id: botId,
+			userId: user._id
+		});
+
+		if (!bot) {
+			return notFoundError('Bot not found or access denied');
+		}
+
+		// Step 6: Get files for the bot
+		const files = await File.find({ botId: bot._id })
+			.sort({ createdAt: -1 })
+			.lean();
+
+		// Step 7: Format file data
+		const formattedFiles = files.map(file => ({
+			id: file._id.toString(),
+			originalName: file.originalName,
+			fileName: file.fileName,
+			mimeType: file.mimeType,
+			size: file.size,
+			status: file.status,
+			chunks: file.chunks || 0,
+			vectorsCreated: file.vectorsCreated || 0,
+			errorMessage: file.errorMessage,
+			processingStartedAt: file.processingStartedAt,
+			processingCompletedAt: file.processingCompletedAt,
+			createdAt: file.createdAt,
+			updatedAt: file.updatedAt
+		}));
+
+		return apiSuccess(formattedFiles, `Retrieved ${formattedFiles.length} files successfully`);
+
+	} catch (error) {
+		console.error('Get files API error:', error);
+		return serverError('Failed to retrieve files');
 	}
 }

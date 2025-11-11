@@ -10,6 +10,7 @@
 
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { QdrantVectorStore } from '@langchain/qdrant';
+import { QdrantClient } from '@qdrant/js-client-rest';
 
 // Initialize embeddings
 const embeddings = new OpenAIEmbeddings({
@@ -148,6 +149,51 @@ export async function searchVectorsForBot(botKey, query, limit = 5) {
 		return results;
 	} catch (error) {
 		console.error(`[VECTOR-STORE] Error searching vectors for bot ${botKey}:`, error);
+		throw error;
+	}
+}
+
+/**
+ * Delete vector collection for a specific bot
+ * Permanently removes all vectors and the collection for the bot
+ * @param {string} botKey - The bot identifier
+ * @returns {Promise<boolean>} True if deletion was successful
+ */
+export async function deleteVectorCollectionForBot(botKey) {
+	try {
+		if (!botKey) {
+			throw new Error('Bot key is required for collection deletion');
+		}
+
+		const collectionName = generateCollectionName(botKey);
+		console.log(`[VECTOR-STORE] Deleting collection: ${collectionName} for bot: ${botKey}`);
+
+		const client = new QdrantClient({
+			url: process.env.QDRANT_URL || 'http://localhost:6333',
+			apiKey: process.env.QDRANT_API_KEY
+		});
+		
+		// Check if collection exists before attempting deletion
+		try {
+			await client.getCollection(collectionName);
+		} catch (error) {
+			console.log(`[VECTOR-STORE] Collection ${collectionName} does not exist, skipping deletion`);
+			return true;
+		}
+
+		// Delete the entire collection
+		await client.deleteCollection(collectionName);
+		
+		// Remove from cache if it exists
+		if (vectorStoreCache.has(botKey)) {
+			vectorStoreCache.delete(botKey);
+		}
+
+		console.log(`[VECTOR-STORE] Successfully deleted collection: ${collectionName} for bot: ${botKey}`);
+		return true;
+
+	} catch (error) {
+		console.error(`[VECTOR-STORE] Error deleting collection for bot ${botKey}:`, error);
 		throw error;
 	}
 }
