@@ -129,20 +129,24 @@ export async function POST(request) {
 		}
 		console.log('[FILE-UPLOAD] File validation passed');
 		// At this point, the file is validated. Proceed to save the file and update usage.
-		// Create file ingestion logic using LangChain....
 		const result = await processFile(file, buffer, botId, userId, {
 			generateEmbeddings,
 			maxChunkSize,
 			overlap,
 		});
 
-		console.log('File processed successfully: ' + result);
+		console.log('[FILE-UPLOAD] File processed successfully:', result);
 
-		// TODO: Implement file upload logic
-		return NextResponse.json(
-			{ message: 'File upload endpoint - implement your logic here' },
-			{ status: 501 }
-		);
+		return NextResponse.json({
+			success: true,
+			message: 'File uploaded and processed successfully',
+			data: {
+				fileId: result.fileId,
+				fileName: file.name,
+				chunksCreated: result.chunksCreated,
+				vectorsCreated: result.vectorsCreated,
+			}
+		}, { status: 200 });
 	} catch (error) {
 		console.error('File upload API error:', error);
 		return NextResponse.json(
