@@ -13,6 +13,7 @@ export function useBots(options = {}) {
     page = 1, 
     limit = 10, 
     status = 'all',
+    search = '',
     autoRefresh = false,
     refreshInterval = 30000 
   } = options;
@@ -25,7 +26,8 @@ export function useBots(options = {}) {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
-        ...(status !== 'all' && { status })
+        ...(status !== 'all' && { status }),
+        ...(search && { search })
       });
 
       const response = await fetch(`/api/bots?${params}`);
@@ -37,8 +39,16 @@ export function useBots(options = {}) {
       const data = await response.json();
       
       if (data.success) {
-        setBots(data.bots || []);
-        setPagination(data.pagination || {});
+        // Handle standardized response format
+        if (data.data && data.data.items) {
+          // Paginated response format
+          setBots(data.data.items || []);
+          setPagination(data.data.pagination || {});
+        } else {
+          // Direct array response
+          setBots(data.data || []);
+          setPagination({});
+        }
       } else {
         throw new Error(data.error || 'Failed to fetch bots');
       }
@@ -49,7 +59,7 @@ export function useBots(options = {}) {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, status]);
+  }, [page, limit, status, search]);
 
   // Initial fetch and auto-refresh setup
   useEffect(() => {
@@ -96,7 +106,7 @@ export function useBot(botId) {
       const data = await response.json();
       
       if (data.success) {
-        setBot(data.bot);
+        setBot(data.data || null);
       } else {
         throw new Error(data.error || 'Failed to fetch bot');
       }
@@ -131,8 +141,8 @@ export function useBot(botId) {
       }
 
       if (data.success) {
-        setBot(data.bot);
-        return { success: true, bot: data.bot };
+        setBot(data.data || null);
+        return { success: true, bot: data.data };
       } else {
         throw new Error(data.error || 'Failed to update bot');
       }
@@ -194,7 +204,16 @@ export function useBotFiles(botId) {
       const data = await response.json();
       
       if (data.success) {
-        setFiles(data.files || []);
+        // Handle standardized response format
+        if (data.data && data.data.files) {
+          // Response with files array
+          setFiles(data.data.files || []);
+        } else if (Array.isArray(data.data)) {
+          // Direct array response
+          setFiles(data.data || []);
+        } else {
+          setFiles([]);
+        }
       } else {
         throw new Error(data.error || 'Failed to fetch files');
       }
@@ -240,15 +259,18 @@ export function useBotFiles(botId) {
       }
 
       if (data.success) {
+        // Extract file data from standardized response
+        const fileData = data.data || {};
+        
         // Add the new file to the list
-        setFiles(prev => [data.file, ...prev]);
+        setFiles(prev => [fileData, ...prev]);
         
         // Start tracking processing status if the file is processing
-        if (data.file.embeddingStatus === 'pending' || data.file.embeddingStatus === 'processing') {
-          setProcessingFiles(prev => new Set([...prev, data.file.id]));
+        if (fileData.embeddingStatus === 'pending' || fileData.embeddingStatus === 'processing') {
+          setProcessingFiles(prev => new Set([...prev, fileData.id || fileData._id]));
         }
 
-        return { success: true, file: data.file };
+        return { success: true, file: fileData };
       } else {
         throw new Error(data.error || 'Upload failed');
       }
@@ -346,7 +368,13 @@ export function useBotFiles(botId) {
           const response = await fetch(`/api/files/${fileId}/status`);
           if (response.ok) {
             const data = await response.json();
-            return { fileId, status: data.embeddingStatus, error: data.error };
+            // Handle standardized response format
+            const statusData = data.data || data;
+            return { 
+              fileId, 
+              status: statusData.embeddingStatus || data.embeddingStatus, 
+              error: statusData.error || data.error 
+            };
           }
           return null;
         });
@@ -432,7 +460,7 @@ export function useCreateBot() {
       }
 
       if (data.success) {
-        return { success: true, bot: data.bot };
+        return { success: true, bot: data.data };
       } else {
         throw new Error(data.error || 'Failed to create bot');
       }

@@ -1,13 +1,17 @@
 /**
  * Document Processing and Chunking Module
- * 
- * Processes various file formats (PDF, CSV, TXT, MD, HTML) and converts them into 
+ *
+ * Processes various file formats (PDF, CSV, TXT, MD, HTML) and converts them into
  * LangChain document chunks for vector storage and retrieval.
- * 
+ *
  * Returns: Array of LangChain Document objects with the following structure:
  * - pageContent: string (the actual text chunk)
  * - metadata: object containing source, type, size, chunk info, and processing details
  */
+
+// FUNCTIONS WE HAVE
+// 1. injestFile(file, fileBuffer, options)
+// 2. processFileByType(file, fileBuffer)
 
 import { RecursiveCharacterTextSplitter } from '@langchain/textsplitters';
 import Papa from 'papaparse';
@@ -29,7 +33,7 @@ const SUPPORTED_MIME_TYPES = {
 
 /**
  * Processes uploaded files into LangChain document chunks
- * 
+ *
  * @param {File} file - The uploaded file object
  * @param {Buffer} fileBuffer - The file content as buffer
  * @param {Object} options - Processing configuration options
@@ -115,7 +119,7 @@ export async function injestFile(file, fileBuffer, options = {}) {
 
 /**
  * Routes file processing to the appropriate handler based on file type
- * 
+ *
  * @param {File} file - The file object
  * @param {Buffer} fileBuffer - The file content buffer
  * @returns {Promise<string>} Extracted plain text content from the file
@@ -126,25 +130,24 @@ async function processFileByType(file, fileBuffer) {
 
 	if (fileType === SUPPORTED_MIME_TYPES.PDF) {
 		return await processPDF(file, fileBuffer);
-	}
-	else if (fileType === SUPPORTED_MIME_TYPES.CSV || fileName.endsWith('.csv')) {
+	} else if (
+		fileType === SUPPORTED_MIME_TYPES.CSV ||
+		fileName.endsWith('.csv')
+	) {
 		return await processCSV(fileBuffer);
-	}
-	else if (
+	} else if (
 		fileType === SUPPORTED_MIME_TYPES.TEXT ||
 		fileType === SUPPORTED_MIME_TYPES.MARKDOWN ||
 		fileName.endsWith('.txt') ||
 		fileName.endsWith('.md')
 	) {
 		return processPlainText(fileBuffer);
-	}
-	else if (
+	} else if (
 		fileType === SUPPORTED_MIME_TYPES.HTML ||
 		fileName.endsWith('.html')
 	) {
 		return processHTML(fileBuffer);
-	}
-	else {
+	} else {
 		throw new Error(
 			`Unsupported file type: ${fileType}. Supported types: PDF, CSV, TXT, MD, HTML`
 		);
@@ -153,7 +156,7 @@ async function processFileByType(file, fileBuffer) {
 
 /**
  * Processes PDF files using pdf2json library
- * 
+ *
  * @param {File} file - The PDF file object
  * @param {Buffer} fileBuffer - The PDF file buffer
  * @returns {Promise<string>} Extracted text content from PDF
@@ -205,7 +208,7 @@ async function processPDF(file, fileBuffer) {
 
 /**
  * Extracts text content from parsed PDF data structure
- * 
+ *
  * @param {Object} pdfData - Parsed PDF data from pdf2json
  * @returns {string} Clean text content extracted from PDF pages
  */
@@ -245,7 +248,7 @@ function extractTextFromPDFData(pdfData) {
 
 /**
  * Processes CSV files using PapaParse library
- * 
+ *
  * @param {Buffer} fileBuffer - The CSV file buffer
  * @returns {Promise<string>} Formatted text with "Row X: key: value, key: value" format
  */
@@ -283,7 +286,7 @@ async function processCSV(fileBuffer) {
 
 /**
  * Processes plain text files (TXT, MD)
- * 
+ *
  * @param {Buffer} fileBuffer - The text file buffer
  * @returns {string} Clean UTF-8 text content with normalized line endings
  */
@@ -291,15 +294,12 @@ function processPlainText(fileBuffer) {
 	console.log('[TEXT-PROCESSOR] Processing plain text file');
 	const content = fileBuffer.toString('utf-8');
 
-	return content
-		.replace(/\r\n/g, '\n')
-		.replace(/\r/g, '\n')
-		.trim();
+	return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
 }
 
 /**
  * Processes HTML files by extracting text content
- * 
+ *
  * @param {Buffer} fileBuffer - The HTML file buffer
  * @returns {string} Plain text content with HTML tags removed and whitespace normalized
  */
