@@ -1,3 +1,10 @@
+// ⚙️ **File Processor (/lib/fileProcessor.js)** [NEW FILE]
+// │   ├── Orchestrates entire processing pipeline
+// │   ├── **→ CALL DOCUMENT LOADER**
+// │   ├── **→ CALL VECTOR STORE**
+// │   ├── Error handling & rollback
+// │   └── Return processing results
+
 /**
  * File Processing Orchestrator
  *
@@ -10,8 +17,7 @@
  */
 
 import { injestFile } from './loader.js';
-// import { generateAndStoreEmbeddings } from './vectorStore.js';
-// import { saveFileDocuments, updateFileStatus } from './dbOperations.js';
+import { storeDocumentsForBot } from './vectorStore.js';
 
 /**
  * Main file processing function
@@ -51,15 +57,18 @@ export async function processFile(
 
 		console.log(`[FILE-PROCESSOR] Extracted ${documents.length} chunks`);
 
-		// TODO: Step 3: Generate embeddings and store in vector DB
+		// Step 3: Generate embeddings and store in vector DB
+		console.log('[FILE-PROCESSOR] Step 2: Storing in vector database');
+		const vectorIds = await storeDocumentsForBot(
+			botId.toString(),
+			documents
+		);
 
 		return {
 			success: true,
 			chunksCreated: documents.length,
-
+			vectorsCreated: vectorIds?.length,
 			// fileId: fileRecord._id,
-			// vectorsCreated: vectorIds.length,
-			// documents: processedDocuments,
 		};
 	} catch (error) {
 		console.error('[FILE-PROCESSOR] Processing failed:', {
