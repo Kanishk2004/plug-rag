@@ -69,22 +69,25 @@ export async function processFile(
 		await updateFileProcessingStatus(fileRecord._id, {
 			status: 'processing',
 			totalChunks: documents.length,
-			extractedText: documents.map(doc => doc.pageContent).join(' ').substring(0, 10000), // Store first 10k chars
 		});
 
 		// Step 3: Generate embeddings and store in vector DB
 		console.log('[FILE-PROCESSOR] Step 3: Storing in vector database');
-		const vectorIds = await storeDocumentsForBot(
+		const vectorResult = await storeDocumentsForBot(
 			botId.toString(),
 			documents,
 			fileRecord._id // Pass file ID for metadata
 		);
 
+		console.log('[FILE-PROCESSOR] Vector storage result:', vectorResult);
+
 		// Step 4: Update file record with final results
 		await updateFileProcessingStatus(fileRecord._id, {
 			status: 'completed',
 			embeddingStatus: 'completed',
-			vectorCount: vectorIds?.length || 0,
+			vectorCount: vectorResult.documentsStored || 0,
+			embeddingTokens: vectorResult.totalTokens || 0,
+			estimatedCost: vectorResult.estimatedCost || 0,
 			embeddedAt: new Date(),
 			processedAt: new Date(),
 		});
@@ -95,7 +98,9 @@ export async function processFile(
 			success: true,
 			fileId: fileRecord._id,
 			chunksCreated: documents.length,
-			vectorsCreated: vectorIds?.length || 0,
+			vectorsCreated: vectorResult.documentsStored || 0,
+			tokensUsed: vectorResult.totalTokens || 0,
+			estimatedCost: vectorResult.estimatedCost || 0,
 		};
 	} catch (error) {
 		console.error('[FILE-PROCESSOR] Processing failed:', {

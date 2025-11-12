@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const fileSchema = new mongoose.Schema(
 	{
+		// Core file information
 		botId: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: 'Bot',
@@ -33,15 +34,7 @@ const fileSchema = new mongoose.Schema(
 			type: Number,
 			required: true, // in bytes
 		},
-		// Storage information
-		s3Key: {
-			type: String,
-			sparse: true, // temp storage, deleted after processing
-		},
-		s3Bucket: {
-			type: String,
-			sparse: true,
-		},
+		
 		// Processing status
 		status: {
 			type: String,
@@ -52,60 +45,35 @@ const fileSchema = new mongoose.Schema(
 			type: String,
 			default: '',
 		},
-		// Content analysis
-		extractedText: {
-			type: String,
-			default: '',
-		},
-		totalChunks: {
-			type: Number,
-			default: 0,
-		},
-		totalTokens: {
-			type: Number,
-			default: 0,
-		},
+		
 		// Vector embeddings info
 		embeddingStatus: {
 			type: String,
 			enum: ['pending', 'processing', 'completed', 'failed', 'deleted'],
 			default: 'pending',
 		},
+		totalChunks: {
+			type: Number,
+			default: 0,
+		},
 		vectorCount: {
+			type: Number,
+			default: 0,
+		},
+		embeddingTokens: {
+			type: Number,
+			default: 0,
+		},
+		estimatedCost: {
 			type: Number,
 			default: 0,
 		},
 		embeddedAt: {
 			type: Date,
 		},
-		// Processing details
-		processing: {
-			embeddingTokens: {
-				type: Number,
-				default: 0,
-			},
-			error: {
-				type: String,
-			},
+		processedAt: {
+			type: Date,
 		},
-		// Metadata
-		metadata: {
-			title: String,
-			author: String,
-			subject: String,
-			keywords: [String],
-			language: {
-				type: String,
-				default: 'en',
-			},
-			pageCount: Number,
-		},
-		// Job tracking
-		jobId: {
-			type: String,
-			sparse: true, // BullMQ job ID
-		},
-		processedAt: Date,
 	},
 	{ timestamps: true }
 );

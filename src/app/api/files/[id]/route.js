@@ -58,12 +58,11 @@ export async function POST(request, { params }) {
 
     // Create chunks from existing extracted text
     const { chunkText } = await import('@/lib/extractors');
-    const chunks = chunkText(file.extractedText, { metadata: file.metadata }, processingOptions);
+    const chunks = chunkText(file.extractedText, {}, processingOptions);
 
     // Update file record
     await File.findByIdAndUpdate(fileId, {
       totalChunks: chunks.length,
-      'metadata.processingOptions': processingOptions,
       embeddingStatus: 'pending', // Reset embedding status
       processedAt: new Date(),
     });
@@ -159,10 +158,12 @@ export async function GET(request, { params }) {
         size: file.size,
         status: file.status,
         totalChunks: file.totalChunks,
-        totalTokens: file.totalTokens,
         embeddingStatus: file.embeddingStatus,
         vectorCount: file.vectorCount,
-        metadata: file.metadata,
+        embeddingTokens: file.embeddingTokens || 0,
+        estimatedCost: file.estimatedCost || 0,
+        processingError: file.processingError,
+        embeddedAt: file.embeddedAt,
         createdAt: file.createdAt,
         processedAt: file.processedAt,
       },

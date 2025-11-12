@@ -11,6 +11,7 @@
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
+import { encoding_for_model } from 'tiktoken';
 
 // Initialize embeddings
 const embeddings = new OpenAIEmbeddings({
@@ -67,7 +68,7 @@ export async function getVectorStoreForBot(botKey) {
  * @param {string} botKey - The bot identifier to use as collection name
  * @param {Array} documents - Array of documents to store
  * @param {string} fileId - Optional file ID to add to metadata
- * @returns {Promise<Array>} Array of vector IDs
+ * @returns {Promise<Object>} Object containing token usage statistics and processing results
  */
 export async function storeDocumentsForBot(botKey, documents, fileId = null) {
 	try {
@@ -83,19 +84,31 @@ export async function storeDocumentsForBot(botKey, documents, fileId = null) {
 			`[VECTOR-STORE] Storing ${documents.length} documents for bot: ${botKey}`
 		);
 
-		// Enrich documents with fileId if provided
-		const enrichedDocuments = documents.map(doc => {
+		// Calculate accurate token count for each document
+		let totalTokensUsed = 0;
+		let totalCharacters = 0;
+
+		// Enrich documents with metadata and calculate token usage
+		const enrichedDocuments = documents.map((doc) => {
 			const enrichedMetadata = { ...doc.metadata };
-			
+
 			if (fileId) {
 				enrichedMetadata.fileId = fileId.toString();
 			}
 			enrichedMetadata.botId = botKey;
 			enrichedMetadata.storedAt = new Date().toISOString();
-			
+
+			// Calculate tokens for this document using tiktoken
+			const docTokens = getAccurateTokenCount(doc.pageContent);
+			totalTokensUsed += docTokens;
+			totalCharacters += doc.pageContent.length;
+
+			// Add token count to metadata for tracking
+			enrichedMetadata.tokenCount = docTokens;
+
 			return {
 				...doc,
-				metadata: enrichedMetadata
+				metadata: enrichedMetadata,
 			};
 		});
 
@@ -103,13 +116,28 @@ export async function storeDocumentsForBot(botKey, documents, fileId = null) {
 		const vectorStore = await getVectorStoreForBot(botKey);
 
 		// Store enriched documents in the vector store
-		const vectorIds = await vectorStore.addDocuments(enrichedDocuments);
+		const startTime = Date.now();
+		await vectorStore.addDocuments(enrichedDocuments);
+		const processingTime = Date.now() - startTime;
 
-		console.log(
-			`[VECTOR-STORE] Successfully stored vectors for bot: ${botKey}`
-		);
+		// Calculate cost estimation
+		const estimatedCost = calculateEmbeddingCost(totalTokensUsed);
 
-		return vectorIds;
+		console.log(`[VECTOR-STORE] Successfully stored ${documents.length} documents`);
+		console.log(`[VECTOR-STORE] Total tokens used: ${totalTokensUsed}`);
+		console.log(`[VECTOR-STORE] Estimated cost: $${estimatedCost.toFixed(6)}`);
+
+		// Return comprehensive token usage statistics
+		return {
+			success: true,
+			documentsStored: documents.length,
+			totalTokens: totalTokensUsed,
+			totalCharacters: totalCharacters,
+			estimatedCost: estimatedCost,
+			processingTimeMs: processingTime,
+			botKey: botKey,
+			fileId: fileId,
+		};
 	} catch (error) {
 		console.error(
 			`[VECTOR-STORE] Error storing documents for bot ${botKey}:`,
@@ -136,7 +164,9 @@ export async function searchVectorsForBot(botKey, query, limit = 5) {
 			throw new Error('query is required');
 		}
 
-		console.log(`[VECTOR-STORE] Searching vectors for bot: ${botKey}, query: "${query}"`);
+		console.log(
+			`[VECTOR-STORE] Searching vectors for bot: ${botKey}, query: "${query}"`
+		);
 
 		// Get vector store for this bot
 		const vectorStore = await getVectorStoreForBot(botKey);
@@ -144,11 +174,16 @@ export async function searchVectorsForBot(botKey, query, limit = 5) {
 		// Perform similarity search
 		const results = await vectorStore.similaritySearch(query, limit);
 
-		console.log(`[VECTOR-STORE] Found ${results.length} similar documents for bot: ${botKey}`);
+		console.log(
+			`[VECTOR-STORE] Found ${results.length} similar documents for bot: ${botKey}`
+		);
 
 		return results;
 	} catch (error) {
-		console.error(`[VECTOR-STORE] Error searching vectors for bot ${botKey}:`, error);
+		console.error(
+			`[VECTOR-STORE] Error searching vectors for bot ${botKey}:`,
+			error
+		);
 		throw error;
 	}
 }
@@ -166,34 +201,42 @@ export async function deleteVectorCollectionForBot(botKey) {
 		}
 
 		const collectionName = generateCollectionName(botKey);
-		console.log(`[VECTOR-STORE] Deleting collection: ${collectionName} for bot: ${botKey}`);
+		console.log(
+			`[VECTOR-STORE] Deleting collection: ${collectionName} for bot: ${botKey}`
+		);
 
 		const client = new QdrantClient({
 			url: process.env.QDRANT_URL || 'http://localhost:6333',
-			apiKey: process.env.QDRANT_API_KEY
+			apiKey: process.env.QDRANT_API_KEY,
 		});
-		
+
 		// Check if collection exists before attempting deletion
 		try {
 			await client.getCollection(collectionName);
 		} catch (error) {
-			console.log(`[VECTOR-STORE] Collection ${collectionName} does not exist, skipping deletion`);
+			console.log(
+				`[VECTOR-STORE] Collection ${collectionName} does not exist, skipping deletion`
+			);
 			return true;
 		}
 
 		// Delete the entire collection
 		await client.deleteCollection(collectionName);
-		
+
 		// Remove from cache if it exists
 		if (vectorStoreCache.has(botKey)) {
 			vectorStoreCache.delete(botKey);
 		}
 
-		console.log(`[VECTOR-STORE] Successfully deleted collection: ${collectionName} for bot: ${botKey}`);
+		console.log(
+			`[VECTOR-STORE] Successfully deleted collection: ${collectionName} for bot: ${botKey}`
+		);
 		return true;
-
 	} catch (error) {
-		console.error(`[VECTOR-STORE] Error deleting collection for bot ${botKey}:`, error);
+		console.error(
+			`[VECTOR-STORE] Error deleting collection for bot ${botKey}:`,
+			error
+		);
 		throw error;
 	}
 }

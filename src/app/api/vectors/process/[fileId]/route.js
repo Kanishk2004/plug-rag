@@ -92,7 +92,7 @@ export async function POST(request, { params }) {
       // Update file status to failed
       await File.findByIdAndUpdate(fileId, {
         embeddingStatus: 'failed',
-        'processing.error': processingError.message,
+        processingError: processingError.message,
       });
       
       throw processingError;

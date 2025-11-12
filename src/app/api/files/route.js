@@ -1,21 +1,17 @@
-import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import {
-	getCurrentDBUser,
-	checkUserLimitsFromUser,
-} from '@/lib/user';
+import { getCurrentDBUser, checkUserLimitsFromUser } from '@/lib/user';
 import mongoose from 'mongoose';
 import Bot from '@/models/Bot';
 import File from '@/models/File';
 import { processFile } from '@/lib/fileProcessor';
 import connectDB from '@/lib/mongo';
 import {
-  apiSuccess,
-  authError,
-  notFoundError,
-  forbiddenError,
-  serverError,
-  validationError
+	apiSuccess,
+	authError,
+	notFoundError,
+	forbiddenError,
+	serverError,
+	validationError,
 } from '@/lib/apiResponse';
 
 // Configuration
@@ -36,24 +32,18 @@ export async function POST(request) {
 	try {
 		// Authentication check
 		const { userId } = await auth();
-		if (!userId) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-		}
+		if (!userId) return authError();
 
 		// Get current user and check limits
 		const user = await getCurrentDBUser(userId);
 		if (!user) {
-			return NextResponse.json({ error: 'User not found' }, { status: 404 });
+			return notFoundError('User not found');
 		}
 
 		// Check user limits using existing user object (optimized)
 		const { limits } = checkUserLimitsFromUser(user);
-		if (limits.botsReached || limits.storageReached) {
-			return NextResponse.json(
-				{ error: 'Plan limits reached', limits },
-				{ status: 429 }
-			);
-		}
+		if (limits.botsReached || limits.storageReached)
+			return forbiddenError('Plan limits reached', limits);
 
 		// Parse form data
 		const formData = await request.formData();
@@ -66,12 +56,8 @@ export async function POST(request) {
 		const overlap = parseInt(formData.get('overlap')) || 100;
 
 		// Validate required fields
-		if (!file || !botIdString) {
-			return NextResponse.json(
-				{ error: 'File and botId are required' },
-				{ status: 400 }
-			);
-		}
+		if (!file || !botIdString)
+			return validationError('file and botId are required');
 
 		console.log('[FILE-UPLOAD] Processing request', {
 			fileName: file?.name,
@@ -87,43 +73,28 @@ export async function POST(request) {
 		try {
 			botId = new mongoose.Types.ObjectId(botIdString);
 		} catch (error) {
-			return NextResponse.json(
-				{ error: 'Invalid botId format' },
-				{ status: 400 }
-			);
+			return validationError('Invalid botId format');
 		}
 
 		// Validate bot ownership
 		const bot = await Bot.findOne({ _id: botId, ownerId: userId });
-		if (!bot) {
-			return NextResponse.json(
-				{ error: 'Bot not found or access denied' },
-				{ status: 404 }
-			);
-		}
+		if (!bot) return notFoundError('Bot not found or access denied');
 
 		// Validate file object
 		if (!file || typeof file === 'string') {
-			return NextResponse.json(
-				{ error: 'Invalid file upload. Please select a valid file.' },
-				{ status: 400 }
+			return validationError(
+				'Invalid file upload. Please select a valid file.'
 			);
 		}
 
 		if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-			return NextResponse.json(
-				{ error: 'File type is not supported.' },
-				{ status: 400 }
-			);
+			return validationError('File type is not supported.');
 		}
 
 		// create buffer from file
 		const buffer = Buffer.from(await file.arrayBuffer());
 		if (buffer.length > MAX_FILE_SIZE) {
-			return NextResponse.json(
-				{ error: 'File size exceeds the maximum limit of 50MB.' },
-				{ status: 400 }
-			);
+			return validationError('File size exceeds the maximum limit of 50MB.');
 		}
 
 		// Verify buffer size matches file size
@@ -135,6 +106,7 @@ export async function POST(request) {
 		}
 		console.log('[FILE-UPLOAD] File validation passed');
 		// At this point, the file is validated. Proceed to save the file and update usage.
+
 		const result = await processFile(file, buffer, botId, userId, {
 			generateEmbeddings,
 			maxChunkSize,
@@ -143,31 +115,29 @@ export async function POST(request) {
 
 		console.log('[FILE-UPLOAD] File processed successfully:', result);
 
-		return NextResponse.json({
-			success: true,
-			message: 'File uploaded and processed successfully',
-			data: {
+		return apiSuccess(
+			{
 				fileId: result.fileId,
 				fileName: file.name,
 				chunksCreated: result.chunksCreated,
 				vectorsCreated: result.vectorsCreated,
-			}
-		}, { status: 200 });
+				tokensUsed: result.tokensUsed || 0,
+				estimatedCost: result.estimatedCost || 0,
+			},
+			'File uploaded and processed successfully'
+		);
 	} catch (error) {
 		console.error('File upload API error:', error);
-		return NextResponse.json(
-			{ error: 'Internal server error' },
-			{ status: 500 }
-		);
+		return serverError('Internal server error');
 	}
 }
 
 /**
  * GET /api/files - Get files for a bot
- * 
+ *
  * Retrieves all files associated with a specific bot.
  * Requires botId as query parameter.
- * 
+ *
  * @param {Request} request - The request object
  * @returns {Response} List of files for the bot
  */
@@ -197,7 +167,7 @@ export async function GET(request) {
 		// Step 5: Verify bot ownership
 		const bot = await Bot.findOne({
 			_id: botId,
-			userId: user._id
+			userId: user._id,
 		});
 
 		if (!bot) {
@@ -210,24 +180,29 @@ export async function GET(request) {
 			.lean();
 
 		// Step 7: Format file data
-		const formattedFiles = files.map(file => ({
+		const formattedFiles = files.map((file) => ({
 			id: file._id.toString(),
 			originalName: file.originalName,
-			fileName: file.fileName,
+			filename: file.filename,
 			mimeType: file.mimeType,
 			size: file.size,
 			status: file.status,
-			chunks: file.chunks || 0,
-			vectorsCreated: file.vectorsCreated || 0,
-			errorMessage: file.errorMessage,
-			processingStartedAt: file.processingStartedAt,
-			processingCompletedAt: file.processingCompletedAt,
+			embeddingStatus: file.embeddingStatus,
+			totalChunks: file.totalChunks || 0,
+			vectorCount: file.vectorCount || 0,
+			embeddingTokens: file.embeddingTokens || 0,
+			estimatedCost: file.estimatedCost || 0,
+			processingError: file.processingError,
+			embeddedAt: file.embeddedAt,
+			processedAt: file.processedAt,
 			createdAt: file.createdAt,
-			updatedAt: file.updatedAt
+			updatedAt: file.updatedAt,
 		}));
 
-		return apiSuccess(formattedFiles, `Retrieved ${formattedFiles.length} files successfully`);
-
+		return apiSuccess(
+			formattedFiles,
+			`Retrieved ${formattedFiles.length} files successfully`
+		);
 	} catch (error) {
 		console.error('Get files API error:', error);
 		return serverError('Failed to retrieve files');

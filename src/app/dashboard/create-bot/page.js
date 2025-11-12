@@ -50,8 +50,8 @@ export default function CreateBot() {
 				},
 			});
 
-			console.log('Bot created:', botResponse.bot);
-			setCreatedBot(botResponse.bot);
+			console.log('Bot created:', botResponse.data);
+			setCreatedBot(botResponse.data);
 
 			// Step 2: Upload files if any
 			if (uploadedFiles.length > 0) {
@@ -62,7 +62,7 @@ export default function CreateBot() {
 
 				await fileAPI.uploadMultiple(
 					fileObjects,
-					botResponse.bot.id,
+					botResponse.data.id,
 					{
 						generateEmbeddings: true,
 						maxChunkSize: 700,
