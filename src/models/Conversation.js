@@ -14,7 +14,7 @@ const messageSchema = new mongoose.Schema({
 		type: Date,
 		default: Date.now,
 	},
-	// For assistant responses
+	// For assistant responses - legacy field (keeping for backward compatibility)
 	retrievedChunks: [
 		{
 			chunkId: {
@@ -25,6 +25,19 @@ const messageSchema = new mongoose.Schema({
 			content: String,
 		},
 	],
+	// New RAG-specific fields
+	sources: [
+		{
+			fileName: String,
+			pageNumber: Number,
+			chunkIndex: Number,
+			score: Number,
+		},
+	],
+	hasRelevantContext: {
+		type: Boolean,
+		default: false,
+	},
 	tokens: {
 		type: Number,
 		default: 0,

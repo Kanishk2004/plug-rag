@@ -78,24 +78,29 @@ const SourceDisplay = ({ sources = [] }) => {
 						className="flex items-center justify-between bg-gray-800/50 rounded px-2 py-1 text-xs">
 						<div className="flex items-center space-x-2 flex-1 min-w-0">
 							<FileIcon className="w-3 h-3 text-gray-400 flex-shrink-0" />
-							<span className="text-gray-300 truncate">{source.fileName}</span>
-						</div>
-						<div className="flex items-center space-x-1 flex-shrink-0">
-							<span className="text-gray-500">
-								{(source.similarityScore * 100).toFixed(0)}%
+							<span className="text-gray-300 truncate">
+								{source.fileName}
+								{source.pageNumber && ` (Page ${source.pageNumber})`}
 							</span>
-							<div
-								className="w-2 h-2 rounded-full"
-								style={{
-									backgroundColor:
-										source.similarityScore > 0.8
-											? '#10b981'
-											: source.similarityScore > 0.6
-											? '#f59e0b'
-											: '#ef4444',
-								}}
-							/>
 						</div>
+						{source.score && (
+							<div className="flex items-center space-x-1 flex-shrink-0">
+								<span className="text-gray-500">
+									{(source.score * 100).toFixed(0)}%
+								</span>
+								<div
+									className="w-2 h-2 rounded-full"
+									style={{
+										backgroundColor:
+											source.score > 0.8
+												? '#10b981'
+												: source.score > 0.6
+												? '#f59e0b'
+												: '#ef4444',
+									}}
+								/>
+							</div>
+						)}
 					</div>
 				))}
 			</div>
@@ -255,13 +260,16 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 			const response = await chatSession.sendMessage(message);
 
 			if (response.success) {
-				// Add assistant response
+				// Add assistant response with sources and metadata
 				const assistantMessage = {
 					id: response.data.messageId || `assistant_${Date.now()}`,
 					role: 'assistant',
 					content: response.data.response,
 					timestamp: new Date(),
-					sources: [], // Will be populated when vector search is implemented
+					sources: response.data.sources || [],
+					responseTime: response.data.responseTime,
+					tokensUsed: response.data.tokensUsed,
+					hasRelevantContext: response.data.hasRelevantContext
 				};
 
 				setMessages((prev) => [...prev, assistantMessage]);

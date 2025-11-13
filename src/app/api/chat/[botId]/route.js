@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongo';
 import Bot from '@/models/Bot';
 import Conversation from '@/models/Conversation';
+import { ragService } from '@/lib/ragService';
 import { 
   apiSuccess,
   validationError,
@@ -70,22 +71,40 @@ export async function POST(request, { params }) {
       role: 'user',
       content: message,
       timestamp: new Date(),
-      tokens: 0, // Will be calculated when implementing AI response
+      tokens: 0, // Will be calculated if needed
     };
 
     conversation.messages.push(userMessage);
     conversation.totalMessages += 1;
     conversation.lastMessageAt = new Date();
 
-    // TODO: Implement AI response generation with vector search
-    // For now, return a simple response
+    // Generate AI response using RAG service
+    const botInfo = {
+      name: bot.name,
+      description: bot.description
+    };
+
+    // Get conversation history for context (excluding current message)
+    const conversationHistory = conversation.messages.slice(0, -1);
+
+    // Generate intelligent response using vector search
+    const aiResponse = await ragService.generateResponse(
+      botId,
+      message,
+      conversationHistory,
+      botInfo
+    );
+
+    // Create assistant message with AI response
     const assistantMessage = {
       role: 'assistant',
-      content: `Hello! I'm ${bot.name}. I received your message: "${message}". I'm currently being set up to provide intelligent responses based on my knowledge base.`,
+      content: aiResponse.content,
       timestamp: new Date(),
-      tokens: 0, // Will be calculated when implementing AI response
-      responseTime: 500,
-      model: 'gpt-3.5-turbo',
+      tokens: aiResponse.tokensUsed,
+      responseTime: aiResponse.responseTime,
+      model: aiResponse.model,
+      sources: aiResponse.sources || [],
+      hasRelevantContext: aiResponse.hasRelevantContext
     };
 
     conversation.messages.push(assistantMessage);
@@ -94,9 +113,7 @@ export async function POST(request, { params }) {
 
     // Calculate total tokens for conversation
     const totalTokensInConversation = conversation.messages.reduce((sum, msg) => sum + (msg.tokens || 0), 0);
-    conversation.totalTokens = totalTokensInConversation;
-
-    // Save conversation
+    conversation.totalTokens = totalTokensInConversation;    // Save conversation
     await conversation.save();
 
     // Update bot message count efficiently
@@ -117,6 +134,10 @@ export async function POST(request, { params }) {
         sessionId: sessionId,
         messageId: assistantMessage._id,
         conversationId: conversation._id,
+        sources: assistantMessage.sources,
+        responseTime: assistantMessage.responseTime,
+        tokensUsed: assistantMessage.tokens,
+        hasRelevantContext: assistantMessage.hasRelevantContext
       },
       'Message sent successfully'
     );
@@ -193,6 +214,8 @@ export async function GET(request, { params }) {
       timestamp: msg.timestamp,
       tokens: msg.tokens,
       responseTime: msg.responseTime,
+      sources: msg.sources || [],
+      hasRelevantContext: msg.hasRelevantContext
     }));
 
     return apiSuccess(
