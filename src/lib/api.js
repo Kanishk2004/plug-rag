@@ -132,14 +132,28 @@ export const fileAPI = {
 
 				console.log(
 					'API CALL - /api/files from /lib/api.js file with formData: ',
-					formData
+					{
+						fileName: file.name,
+						botId: botId,
+						generateEmbeddings: generateEmbeddings.toString(),
+						maxChunkSize: maxChunkSize.toString(),
+						overlap: overlap.toString()
+					}
 				);
 				const result = await apiFetch('/api/files', {
 					method: 'POST',
 					body: formData,
 				});
 
-				results.push({ file: file.name, success: true, result });
+				results.push({ 
+					file: file.name, 
+					success: true, 
+					result,
+					tokensUsed: result.tokensUsed || 0,
+					estimatedCost: result.estimatedCost || 0,
+					chunksCreated: result.chunksCreated || 0,
+					vectorsCreated: result.vectorsCreated || 0
+				});
 
 				// Notify progress - completed
 				if (onProgress) {
@@ -175,6 +189,10 @@ export const fileAPI = {
 			results,
 			uploadedCount: results.filter((r) => r.success).length,
 			errorCount: results.filter((r) => !r.success).length,
+			totalTokensUsed: results.reduce((sum, r) => sum + (r.tokensUsed || 0), 0),
+			totalEstimatedCost: results.reduce((sum, r) => sum + (r.estimatedCost || 0), 0),
+			totalChunksCreated: results.reduce((sum, r) => sum + (r.chunksCreated || 0), 0),
+			totalVectorsCreated: results.reduce((sum, r) => sum + (r.vectorsCreated || 0), 0),
 		};
 	},
 

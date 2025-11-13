@@ -56,8 +56,29 @@ export async function POST(request) {
 		const overlap = parseInt(formData.get('overlap')) || 100;
 
 		// Validate required fields
-		if (!file || !botIdString)
+		if (!file || !botIdString) {
+			console.log('[FILE-UPLOAD] Missing required fields:', {
+				hasFile: !!file,
+				fileType: typeof file,
+				fileConstructor: file?.constructor?.name,
+				hasBotId: !!botIdString
+			});
 			return validationError('file and botId are required');
+		}
+
+		// Validate file is actually a File object
+		// Note: instanceof File may fail in server context, so check properties instead
+		if (!file || typeof file !== 'object' || !file.name || !file.size || typeof file.stream !== 'function') {
+			console.log('[FILE-UPLOAD] Invalid file object:', {
+				fileType: typeof file,
+				fileConstructor: file?.constructor?.name,
+				hasName: !!file?.name,
+				hasSize: !!file?.size,
+				hasStream: typeof file?.stream === 'function',
+				isFile: file instanceof File
+			});
+			return validationError('Invalid file object - missing required file properties');
+		}
 
 		console.log('[FILE-UPLOAD] Processing request', {
 			fileName: file?.name,
@@ -167,7 +188,7 @@ export async function GET(request) {
 		// Step 5: Verify bot ownership
 		const bot = await Bot.findOne({
 			_id: botId,
-			userId: user._id,
+			ownerId: userId, // Use Clerk userId directly, not user._id
 		});
 
 		if (!bot) {

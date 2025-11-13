@@ -123,7 +123,9 @@ export async function storeDocumentsForBot(botKey, documents, fileId = null) {
 		// Calculate cost estimation
 		const estimatedCost = calculateEmbeddingCost(totalTokensUsed);
 
-		console.log(`[VECTOR-STORE] Successfully stored ${documents.length} documents`);
+		console.log(
+			`[VECTOR-STORE] Successfully stored ${documents.length} documents`
+		);
 		console.log(`[VECTOR-STORE] Total tokens used: ${totalTokensUsed}`);
 		console.log(`[VECTOR-STORE] Estimated cost: $${estimatedCost.toFixed(6)}`);
 
@@ -239,4 +241,39 @@ export async function deleteVectorCollectionForBot(botKey) {
 		);
 		throw error;
 	}
+}
+
+/**
+ * Get accurate token count for text using tiktoken
+ * @param {string} text - Text to count tokens for
+ * @param {string} model - Model to use for token counting (default: text-embedding-3-small)
+ * @returns {number} Accurate token count
+ */
+function getAccurateTokenCount(text, model = 'text-embedding-3-small') {
+	try {
+		const encoding = encoding_for_model(model);
+		const tokens = encoding.encode(text);
+		const tokenCount = tokens.length;
+		encoding.free();
+		return tokenCount;
+	} catch (error) {
+		console.warn(
+			'[VECTOR-STORE] Tiktoken error, falling back to estimation:',
+			error
+		);
+		// Fallback to character-based estimation (roughly 1 token per 4 characters)
+		return Math.ceil(text.length / 4);
+	}
+}
+
+/**
+ * Calculate embedding cost based on token count
+ * Uses OpenAI's text-embedding-3-small pricing: $0.00002 per 1K tokens
+ * @param {number} tokenCount - Number of tokens
+ * @returns {number} Cost in USD
+ */
+function calculateEmbeddingCost(tokenCount) {
+	// OpenAI text-embedding-3-small pricing: $0.00002 per 1K tokens
+	const pricePerThousandTokens = 0.00002;
+	return (tokenCount / 1000) * pricePerThousandTokens;
 }

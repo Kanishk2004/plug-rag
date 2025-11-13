@@ -82,9 +82,9 @@ export default function CreateBot() {
 
 			// Step 3: Success - redirect to bots page
 			console.log('Bot creation completed successfully!');
-			// setTimeout(() => {
-			// 	router.push('/dashboard/bots');
-			// }, 1500);
+			setTimeout(() => {
+				router.push('/dashboard/bots');
+			}, 1500);
 		} catch (error) {
 			console.error('Error creating bot:', error);
 			setError(apiUtils.formatError(error));

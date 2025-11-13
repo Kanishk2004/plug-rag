@@ -252,6 +252,9 @@ export function useBotFiles(botId) {
   }, [botId]);
 
   const uploadFile = useCallback(async (file, options = {}) => {
+    // This function is deprecated. Use fileAPI.uploadMultiple() from lib/api.js instead
+    console.warn('useBotFiles.uploadFile is deprecated. Use fileAPI.uploadMultiple() instead.');
+    
     if (!botId || !file) {
       return { success: false, error: 'Bot ID and file are required' };
     }
@@ -260,32 +263,16 @@ export function useBotFiles(botId) {
       setUploading(true);
       setError(null);
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('botId', botId);
-      
-      // Add any additional options
-      if (options.maxChunkSize) {
-        formData.append('maxChunkSize', options.maxChunkSize.toString());
-      }
-      if (options.overlap) {
-        formData.append('overlap', options.overlap.toString());
-      }
-
-      const response = await fetch('/api/files', {
-        method: 'POST',
-        body: formData,
+      // Use the consolidated fileAPI instead
+      const { fileAPI } = await import('../lib/api.js');
+      const result = await fileAPI.uploadMultiple([file], botId, {
+        onProgress: () => {}, // No progress callback for single file
+        maxChunkSize: options.maxChunkSize,
+        overlap: options.overlap
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `Upload failed: ${response.status}`);
-      }
-
-      if (data.success) {
-        // Extract file data from standardized response
-        const fileData = data.data || {};
+      if (result.success && result.results.length > 0) {
+        const fileData = result.results[0];
         
         // Add the new file to the list
         setFiles(prev => [fileData, ...prev]);
@@ -297,7 +284,7 @@ export function useBotFiles(botId) {
 
         return { success: true, file: fileData };
       } else {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(result.error || 'Upload failed');
       }
     } catch (err) {
       console.error('Error uploading file:', err);
