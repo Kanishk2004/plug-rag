@@ -377,10 +377,12 @@ export default function BotDetail({ params }) {
 
 		try {
 			// Extract the actual File objects from the queued file objects
-			const actualFiles = queuedFiles.map(fileObj => fileObj.file);
+			const actualFiles = queuedFiles.map((fileObj) => fileObj.file);
 
 			// Validate all files before uploading
-			const invalidFiles = actualFiles.filter(file => !file || !file.name || !file.size);
+			const invalidFiles = actualFiles.filter(
+				(file) => !file || !file.name || !file.size
+			);
 			if (invalidFiles.length > 0) {
 				showNotification(
 					`Invalid files detected: ${invalidFiles.length} files are missing required properties`,
@@ -390,7 +392,9 @@ export default function BotDetail({ params }) {
 				return;
 			}
 
-			console.log(`Starting upload of ${actualFiles.length} files to bot ${botId}`);
+			console.log(
+				`Starting upload of ${actualFiles.length} files to bot ${botId}`
+			);
 
 			// Use the well-tested fileAPI.uploadMultiple function
 			const result = await fileAPI.uploadMultiple(
@@ -870,11 +874,11 @@ export default function BotDetail({ params }) {
 					</div>
 
 					{/* Chat Interface - 5 columns */}
-					{/* <div className="lg:col-span-5">
+					<div className="lg:col-span-5">
 						<div className="bg-gray-900 rounded-lg border border-gray-800 h-[800px] flex flex-col">
 							<ChatInterface botId={bot.id} botName={bot.name} />
 						</div>
-					</div> */}
+					</div>
 				</div>
 			</div>
 		</DashboardLayout>

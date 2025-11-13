@@ -61,23 +61,31 @@ export async function POST(request) {
 				hasFile: !!file,
 				fileType: typeof file,
 				fileConstructor: file?.constructor?.name,
-				hasBotId: !!botIdString
+				hasBotId: !!botIdString,
 			});
 			return validationError('file and botId are required');
 		}
 
 		// Validate file is actually a File object
 		// Note: instanceof File may fail in server context, so check properties instead
-		if (!file || typeof file !== 'object' || !file.name || !file.size || typeof file.stream !== 'function') {
+		if (
+			!file ||
+			typeof file !== 'object' ||
+			!file.name ||
+			!file.size ||
+			typeof file.stream !== 'function'
+		) {
 			console.log('[FILE-UPLOAD] Invalid file object:', {
 				fileType: typeof file,
 				fileConstructor: file?.constructor?.name,
 				hasName: !!file?.name,
 				hasSize: !!file?.size,
 				hasStream: typeof file?.stream === 'function',
-				isFile: file instanceof File
+				isFile: file instanceof File,
 			});
-			return validationError('Invalid file object - missing required file properties');
+			return validationError(
+				'Invalid file object - missing required file properties'
+			);
 		}
 
 		console.log('[FILE-UPLOAD] Processing request', {
@@ -133,6 +141,34 @@ export async function POST(request) {
 			maxChunkSize,
 			overlap,
 		});
+
+		// Update bot statistics efficiently using atomic operations
+		try {
+			await Bot.updateOne(
+				{ _id: botId },
+				{
+					$inc: {
+						fileCount: 1,
+						totalTokens: result.tokensUsed || 0,
+						totalEmbeddings: result.vectorsCreated || 0,
+					},
+					$set: {
+						updatedAt: new Date(),
+					},
+				}
+			);
+			console.log('[FILE-UPLOAD] Bot statistics updated:', {
+				botId: botId.toString(),
+				tokensAdded: result.tokensUsed || 0,
+				vectorsAdded: result.vectorsCreated || 0,
+			});
+		} catch (updateError) {
+			console.error(
+				'[FILE-UPLOAD] Failed to update bot statistics:',
+				updateError
+			);
+			// Don't fail the entire operation if stats update fails
+		}
 
 		console.log('[FILE-UPLOAD] File processed successfully:', result);
 

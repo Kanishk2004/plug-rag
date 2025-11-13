@@ -15,14 +15,16 @@ const messageSchema = new mongoose.Schema({
 		default: Date.now,
 	},
 	// For assistant responses
-	retrievedChunks: [{
-		chunkId: {
-			type: mongoose.Schema.Types.ObjectId,
-			ref: 'Chunk',
+	retrievedChunks: [
+		{
+			chunkId: {
+				type: mongoose.Schema.Types.ObjectId,
+				ref: 'Chunk',
+			},
+			score: Number,
+			content: String,
 		},
-		score: Number,
-		content: String,
-	}],
+	],
 	tokens: {
 		type: Number,
 		default: 0,
@@ -62,10 +64,10 @@ const conversationSchema = new mongoose.Schema(
 			type: String,
 			default: '',
 		},
-		// Domain and referrer info
+		// Domain info
 		domain: {
 			type: String,
-			required: true,
+			default: 'unknown',
 		},
 		referrer: {
 			type: String,
@@ -75,10 +77,10 @@ const conversationSchema = new mongoose.Schema(
 		messages: [messageSchema],
 		status: {
 			type: String,
-			enum: ['active', 'ended', 'abandoned'],
+			enum: ['active', 'ended'],
 			default: 'active',
 		},
-		// Analytics
+		// Analytics (calculated fields)
 		totalMessages: {
 			type: Number,
 			default: 0,
@@ -87,27 +89,7 @@ const conversationSchema = new mongoose.Schema(
 			type: Number,
 			default: 0,
 		},
-		duration: {
-			type: Number, // in seconds
-			default: 0,
-		},
-		// Feedback
-		rating: {
-			type: Number,
-			min: 1,
-			max: 5,
-			sparse: true,
-		},
-		feedback: {
-			type: String,
-			maxlength: 1000,
-		},
 		// Session metadata
-		startedAt: {
-			type: Date,
-			default: Date.now,
-		},
-		endedAt: Date,
 		lastMessageAt: {
 			type: Date,
 			default: Date.now,
@@ -122,4 +104,5 @@ conversationSchema.index({ sessionId: 1 });
 conversationSchema.index({ domain: 1, createdAt: -1 });
 conversationSchema.index({ status: 1, lastMessageAt: -1 });
 
-export default mongoose.models.Conversation || mongoose.model('Conversation', conversationSchema);
+export default mongoose.models.Conversation ||
+	mongoose.model('Conversation', conversationSchema);
