@@ -2,8 +2,8 @@
  * Vector Store Operations
  *
  * This module handles all vector database operations including:
- * - Embedding generation using OpenAI
- * - Vector storage in Qdrant/Pinecone
+ * - Embedding generation using OpenAI with bot-specific API keys
+ * - Vector storage in Qdrant
  * - Vector search and retrieval
  * - Vector metadata management
  */
@@ -12,34 +12,63 @@ import { OpenAIEmbeddings } from '@langchain/openai';
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { encoding_for_model } from 'tiktoken';
+import { apiKeyService } from './apiKeyService.js';
+import connectDB from './mongo.js';
+import Bot from '@/models/Bot.js';
 
-// Initialize embeddings
-const embeddings = new OpenAIEmbeddings({
-	openAIApiKey: process.env.OPENAI_API_KEY,
-	model: 'text-embedding-3-small',
-});
-
-// FUNCTIONS WE HAVE
-// 1. getVectorStoreForBot(botKey)
-// 2. storeDocumentsForBot(botKey, documents)
-
-// Cache for bot-specific vector stores
+// Cache for bot-specific vector stores - now includes userId for proper API key resolution
 const vectorStoreCache = new Map();
 
 /**
- * Get or create vector store for a specific bot
+ * Get OpenAI embeddings instance for a specific bot using its API key configuration
+ * @param {string} botId - The bot ID
+ * @param {string} userId - The bot owner's user ID
+ * @returns {Promise<OpenAIEmbeddings>} Configured embeddings instance
+ */
+async function getEmbeddingsForBot(botId, userId) {
+	try {
+		// Get bot-specific API key configuration
+		const keyData = await apiKeyService.getApiKey(botId, userId);
+		
+		return new OpenAIEmbeddings({
+			openAIApiKey: keyData.apiKey,
+			model: keyData.models?.embeddings || 'text-embedding-3-small',
+		});
+		
+	} catch (error) {
+		// Fallback to global API key if available and bot allows fallback
+		if (process.env.OPENAI_API_KEY) {
+			console.warn(`[VECTOR-STORE] Using global API key fallback for bot ${botId}: ${error.message}`);
+			return new OpenAIEmbeddings({
+				openAIApiKey: process.env.OPENAI_API_KEY,
+				model: 'text-embedding-3-small',
+			});
+		}
+		throw new Error(`No OpenAI API key available for bot ${botId}: ${error.message}`);
+	}
+}
+
+/**
+ * Get or create vector store for a specific bot using its API key configuration
  * @param {string} botKey - The bot identifier to use as collection name
+ * @param {string} userId - The bot owner's user ID for API key lookup
  * @returns {Promise<QdrantVectorStore>} Vector store instance for the bot
  */
-export async function getVectorStoreForBot(botKey) {
+export async function getVectorStoreForBot(botKey, userId) {
+	// Create cache key with both botKey and userId for proper isolation
+	const cacheKey = `${botKey}-${userId}`;
+	
 	// Check if we have a cached instance
-	if (vectorStoreCache.has(botKey)) {
-		return vectorStoreCache.get(botKey);
+	if (vectorStoreCache.has(cacheKey)) {
+		return vectorStoreCache.get(cacheKey);
 	}
 
 	let vectorStore = null;
 
 	try {
+		// Get bot-specific embeddings using the bot's API key
+		const embeddings = await getEmbeddingsForBot(botKey, userId);
+		
 		// Try to connect to existing collection first
 		vectorStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
 			url: process.env.QDRANT_URL || 'http://localhost:6333',
@@ -51,6 +80,7 @@ export async function getVectorStoreForBot(botKey) {
 			`[VECTOR-STORE] Collection ${botKey} does not exist, creating new one...`
 		);
 		// If collection doesn't exist, create a new vector store
+		const embeddings = await getEmbeddingsForBot(botKey, userId);
 		vectorStore = new QdrantVectorStore(embeddings, {
 			url: process.env.QDRANT_URL || 'http://localhost:6333',
 			collectionName: botKey,
@@ -59,21 +89,33 @@ export async function getVectorStoreForBot(botKey) {
 	}
 
 	// Cache the vector store instance
-	vectorStoreCache.set(botKey, vectorStore);
+	vectorStoreCache.set(cacheKey, vectorStore);
 	return vectorStore;
 }
 
 /**
- * Store documents in bot-specific vector collection
+ * Store documents in bot-specific vector collection using the bot's API key
  * @param {string} botKey - The bot identifier to use as collection name
  * @param {Array} documents - Array of documents to store
  * @param {string} fileId - Optional file ID to add to metadata
+ * @param {string} userId - The bot owner's user ID for API key lookup
  * @returns {Promise<Object>} Object containing token usage statistics and processing results
  */
-export async function storeDocumentsForBot(botKey, documents, fileId = null) {
+export async function storeDocumentsForBot(botKey, documents, fileId = null, userId) {
 	try {
 		if (!botKey) {
 			throw new Error('botKey is required');
+		}
+		
+		if (!userId) {
+			// Try to resolve userId from bot if not provided
+			await connectDB();
+			const bot = await Bot.findById(botKey, 'ownerId');
+			if (!bot) {
+				throw new Error(`Bot ${botKey} not found`);
+			}
+			userId = bot.ownerId;
+			console.log(`[VECTOR-STORE] Resolved userId ${userId} for bot ${botKey}`);
 		}
 
 		if (!documents || !Array.isArray(documents) || documents.length === 0) {
@@ -81,7 +123,7 @@ export async function storeDocumentsForBot(botKey, documents, fileId = null) {
 		}
 
 		console.log(
-			`[VECTOR-STORE] Storing ${documents.length} documents for bot: ${botKey}`
+			`[VECTOR-STORE] Storing ${documents.length} documents for bot: ${botKey} (owner: ${userId})`
 		);
 
 		// Calculate accurate token count for each document
@@ -112,8 +154,8 @@ export async function storeDocumentsForBot(botKey, documents, fileId = null) {
 			};
 		});
 
-		// Get or create vector store for this bot
-		const vectorStore = await getVectorStoreForBot(botKey);
+		// Get or create vector store for this bot using its API key
+		const vectorStore = await getVectorStoreForBot(botKey, userId);
 
 		// Store enriched documents in the vector store
 		const startTime = Date.now();
@@ -150,13 +192,14 @@ export async function storeDocumentsForBot(botKey, documents, fileId = null) {
 }
 
 /**
- * Search vectors for a specific bot
+ * Search vectors for a specific bot using its API key configuration
  * @param {string} botKey - The bot identifier
  * @param {string} query - Search query
  * @param {number} limit - Number of results to return (default: 5)
+ * @param {string} userId - The bot owner's user ID for API key lookup
  * @returns {Promise<Array>} Array of search results
  */
-export async function searchVectorsForBot(botKey, query, limit = 5) {
+export async function searchVectorsForBot(botKey, query, limit = 5, userId) {
 	try {
 		if (!botKey) {
 			throw new Error('botKey is required');
@@ -165,13 +208,23 @@ export async function searchVectorsForBot(botKey, query, limit = 5) {
 		if (!query) {
 			throw new Error('query is required');
 		}
+		
+		if (!userId) {
+			// Try to resolve userId from bot if not provided
+			await connectDB();
+			const bot = await Bot.findById(botKey, 'ownerId');
+			if (!bot) {
+				throw new Error(`Bot ${botKey} not found`);
+			}
+			userId = bot.ownerId;
+		}
 
 		console.log(
 			`[VECTOR-STORE] Searching vectors for bot: ${botKey}, query: "${query}"`
 		);
 
-		// Get vector store for this bot
-		const vectorStore = await getVectorStoreForBot(botKey);
+		// Get vector store for this bot using its API key
+		const vectorStore = await getVectorStoreForBot(botKey, userId);
 
 		// Perform similarity search
 		const results = await vectorStore.similaritySearch(query, limit);

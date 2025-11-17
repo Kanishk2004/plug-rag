@@ -5,6 +5,7 @@ import Bot from '@/models/Bot';
 import File from '@/models/File';
 import { processFile } from '@/lib/fileProcessor';
 import connectDB from '@/lib/mongo';
+import { apiKeyService } from '@/lib/apiKeyService';
 import {
 	apiSuccess,
 	authError,
@@ -108,6 +109,29 @@ export async function POST(request) {
 		// Validate bot ownership
 		const bot = await Bot.findOne({ _id: botId, ownerId: userId });
 		if (!bot) return notFoundError('Bot not found or access denied');
+
+		// CRITICAL: Validate that bot has a custom API key configured
+		// This prevents file processing without proper API key setup
+		try {
+			const keyStatus = await apiKeyService.getKeyStatus(botId.toString(), userId);
+			if (!keyStatus.hasCustomKey || keyStatus.keyStatus !== 'valid') {
+				return forbiddenError(
+					'Custom OpenAI API key required for file processing. Please configure your API key first.',
+					{
+						hasCustomKey: keyStatus.hasCustomKey,
+						keyStatus: keyStatus.keyStatus,
+						requiredAction: 'Configure custom API key in bot settings'
+					}
+				);
+			}
+			console.log('[FILE-UPLOAD] API key validation passed for bot:', botId.toString());
+		} catch (keyError) {
+			console.error('[FILE-UPLOAD] API key validation failed:', keyError);
+			return forbiddenError(
+				'Unable to validate API key configuration. Please ensure you have configured a valid OpenAI API key.',
+				{ error: keyError.message }
+			);
+		}
 
 		// Validate file object
 		if (!file || typeof file === 'string') {

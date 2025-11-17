@@ -68,41 +68,80 @@ const SourceDisplay = ({ sources = [] }) => {
 		return null;
 	}
 
+	// Group sources by file name and collect page numbers
+	const groupedSources = sources.reduce((acc, source) => {
+		const fileName = source.fileName;
+		if (!acc[fileName]) {
+			acc[fileName] = {
+				fileName,
+				pageNumbers: new Set(),
+				maxScore: source.score || 0,
+			};
+		}
+		
+		// Add page number if it exists
+		if (source.pageNumber) {
+			acc[fileName].pageNumbers.add(source.pageNumber);
+		}
+		
+		// Keep track of the highest score for this file
+		if (source.score && source.score > acc[fileName].maxScore) {
+			acc[fileName].maxScore = source.score;
+		}
+		
+		return acc;
+	}, {});
+
+	// Convert to array and sort by score
+	const deduplicatedSources = Object.values(groupedSources).sort(
+		(a, b) => b.maxScore - a.maxScore
+	);
+
 	return (
 		<div className="mt-3 space-y-2">
 			<div className="text-xs text-gray-400 font-medium">Sources:</div>
 			<div className="space-y-1">
-				{sources.map((source, index) => (
-					<div
-						key={index}
-						className="flex items-center justify-between bg-gray-800/50 rounded px-2 py-1 text-xs">
-						<div className="flex items-center space-x-2 flex-1 min-w-0">
-							<FileIcon className="w-3 h-3 text-gray-400 flex-shrink-0" />
-							<span className="text-gray-300 truncate">
-								{source.fileName}
-								{source.pageNumber && ` (Page ${source.pageNumber})`}
-							</span>
-						</div>
-						{source.score && (
-							<div className="flex items-center space-x-1 flex-shrink-0">
-								<span className="text-gray-500">
-									{(source.score * 100).toFixed(0)}%
+				{deduplicatedSources.map((source, index) => {
+					const pageNumbers = Array.from(source.pageNumbers).sort((a, b) => a - b);
+					const pageText = pageNumbers.length > 0 
+						? pageNumbers.length === 1 
+							? ` (Page ${pageNumbers[0]})`
+							: pageNumbers.length <= 3
+								? ` (Pages ${pageNumbers.join(', ')})`
+								: ` (Pages ${pageNumbers.slice(0, 2).join(', ')}, +${pageNumbers.length - 2} more)`
+						: '';
+					
+					return (
+						<div
+							key={index}
+							className="flex items-center justify-between bg-gray-800/50 rounded px-2 py-1 text-xs">
+							<div className="flex items-center space-x-2 flex-1 min-w-0">
+								<FileIcon className="w-3 h-3 text-gray-400 flex-shrink-0" />
+								<span className="text-gray-300 truncate">
+									{source.fileName}{pageText}
 								</span>
-								<div
-									className="w-2 h-2 rounded-full"
-									style={{
-										backgroundColor:
-											source.score > 0.8
-												? '#10b981'
-												: source.score > 0.6
-												? '#f59e0b'
-												: '#ef4444',
-									}}
-								/>
 							</div>
-						)}
-					</div>
-				))}
+							{source.maxScore > 0 && (
+								<div className="flex items-center space-x-1 flex-shrink-0">
+									<span className="text-gray-500">
+										{(source.maxScore * 100).toFixed(0)}%
+									</span>
+									<div
+										className="w-2 h-2 rounded-full"
+										style={{
+											backgroundColor:
+												source.maxScore > 0.8
+													? '#10b981'
+													: source.maxScore > 0.6
+													? '#f59e0b'
+													: '#ef4444',
+										}}
+									/>
+								</div>
+							)}
+						</div>
+					);
+				})}
 			</div>
 		</div>
 	);

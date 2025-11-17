@@ -1,13 +1,11 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import FileUpload from '@/components/FileUpload';
-import { botAPI, fileAPI, apiUtils } from '@/lib/api';
+import { botAPI, apiUtils } from '@/lib/api';
 
 export default function CreateBot() {
 	const router = useRouter();
-	const fileUploadRef = useRef();
 
 	const [formData, setFormData] = useState({
 		name: '',
@@ -15,11 +13,9 @@ export default function CreateBot() {
 		embedColor: '#f97316',
 		embedPosition: 'bottom-right',
 	});
-	const [uploadedFiles, setUploadedFiles] = useState([]);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState(null);
 	const [createdBot, setCreatedBot] = useState(null);
-	const [uploadProgress, setUploadProgress] = useState(null);
 
 	const handleInputChange = (e) => {
 		const { name, value } = e.target;
@@ -29,9 +25,7 @@ export default function CreateBot() {
 		}));
 	};
 
-	const handleFilesUploaded = (files) => {
-		setUploadedFiles(files);
-	};
+	// Simplified bot creation - no file upload during creation
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -39,7 +33,7 @@ export default function CreateBot() {
 		setError(null);
 
 		try {
-			// Step 1: Create the bot
+			// Create the bot - files will be uploaded later after API key setup
 			console.log('Creating bot...');
 			const botResponse = await botAPI.create({
 				name: formData.name,
@@ -50,46 +44,17 @@ export default function CreateBot() {
 				},
 			});
 
-			console.log('Bot created:', botResponse.data);
+			console.log('Bot created successfully:', botResponse.data);
 			setCreatedBot(botResponse.data);
 
-			// Step 2: Upload files if any
-			if (uploadedFiles.length > 0) {
-				console.log('Uploading files...');
-				setUploadProgress({ current: 0, total: uploadedFiles.length });
-
-				const fileObjects = uploadedFiles.map((f) => f.file);
-
-				await fileAPI.uploadMultiple(
-					fileObjects,
-					botResponse.data.id,
-					{
-						generateEmbeddings: true,
-						maxChunkSize: 700,
-						overlap: 100,
-					},
-					(progress) => {
-						setUploadProgress({
-							current:
-								progress.fileIndex + (progress.status === 'completed' ? 1 : 0),
-							total: progress.total,
-							currentFile: progress.fileName,
-							status: progress.status,
-						});
-					}
-				);
-			}
-
-			// Step 3: Success - redirect to bots page
-			console.log('Bot creation completed successfully!');
+			// Redirect to the individual bot page for API key setup and file upload
 			setTimeout(() => {
-				router.push('/dashboard/bots');
-			}, 1500);
+				router.push(`/dashboard/bots/${botResponse.data.id}`);
+			}, 2000);
 		} catch (error) {
 			console.error('Error creating bot:', error);
 			setError(apiUtils.formatError(error));
 			setCreatedBot(null);
-			setUploadProgress(null);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -131,40 +96,8 @@ export default function CreateBot() {
 							</p>
 						</div>
 						<p className="text-green-300 text-sm mt-1">
-							{uploadedFiles.length > 0
-								? 'Processing uploaded files...'
-								: 'Redirecting to your bots...'}
+							Redirecting to bot setup page to configure API key and upload files...
 						</p>
-					</div>
-				)}
-
-				{/* Upload Progress */}
-				{uploadProgress && (
-					<div className="bg-blue-900/20 border border-blue-800 rounded-lg p-4">
-						<div className="flex items-center justify-between mb-2">
-							<p className="text-blue-200 font-medium">Uploading Files</p>
-							<span className="text-blue-300 text-sm">
-								{uploadProgress.current} / {uploadProgress.total}
-							</span>
-						</div>
-						<div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-							<div
-								className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-								style={{
-									width: `${
-										(uploadProgress.current / uploadProgress.total) * 100
-									}%`,
-								}}
-							/>
-						</div>
-						{uploadProgress.currentFile && (
-							<p className="text-blue-300 text-sm">
-								{uploadProgress.status === 'uploading'
-									? 'Uploading'
-									: 'Processing'}
-								: {uploadProgress.currentFile}
-							</p>
-						)}
 					</div>
 				)}
 
@@ -282,20 +215,49 @@ export default function CreateBot() {
 						</div>
 					</div>
 
-					{/* File Upload */}
+					{/* Next Steps Information */}
 					<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
 						<h2 className="text-lg font-medium text-white mb-4">
-							Upload Content
+							Next Steps After Creation
 						</h2>
-						<p className="text-sm text-gray-200 mb-4">
-							Upload files that your chatbot will use to answer questions.
-							Supported formats: PDF, DOCX, TXT, CSV, HTML
-						</p>
-						<FileUpload
-							ref={fileUploadRef}
-							onFilesUploaded={handleFilesUploaded}
-							maxFiles={10}
-						/>
+						<div className="space-y-3">
+							<div className="flex items-start space-x-3">
+								<div className="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+									1
+								</div>
+								<div>
+									<h3 className="text-sm font-medium text-white">Configure OpenAI API Key</h3>
+									<p className="text-sm text-gray-300">Set up your custom OpenAI API key for this bot to enable AI responses and file processing.</p>
+								</div>
+							</div>
+							<div className="flex items-start space-x-3">
+								<div className="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+									2
+								</div>
+								<div>
+									<h3 className="text-sm font-medium text-white">Upload Knowledge Base</h3>
+									<p className="text-sm text-gray-300">Upload PDF, DOCX, TXT, CSV, or HTML files that your bot will use to answer questions.</p>
+								</div>
+							</div>
+							<div className="flex items-start space-x-3">
+								<div className="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+									3
+								</div>
+								<div>
+									<h3 className="text-sm font-medium text-white">Test & Deploy</h3>
+									<p className="text-sm text-gray-300">Test your bot's responses and get the embed code to add it to your website.</p>
+								</div>
+							</div>
+						</div>
+						<div className="mt-4 p-3 bg-blue-900/20 border border-blue-800 rounded-lg">
+							<div className="flex items-start space-x-2">
+								<InfoIcon className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+								<div>
+									<p className="text-blue-200 text-sm font-medium">Why API Keys First?</p>
+									<p className="text-blue-300 text-sm">Each bot uses its own OpenAI API key for security and cost isolation. This ensures your usage and costs are separate for each bot.</p>
+								</div>
+							</div>
+						</div>
 					</div>
 
 					{/* Actions */}
@@ -321,9 +283,7 @@ export default function CreateBot() {
 								{createdBot
 									? 'Bot Created!'
 									: isSubmitting
-									? uploadProgress
-										? 'Uploading Files...'
-										: 'Creating Bot...'
+									? 'Creating Bot...'
 									: 'Create Bot'}
 							</span>
 						</button>
@@ -382,6 +342,17 @@ const CheckIcon = () => (
 			strokeLinecap="round"
 			strokeLinejoin="round"
 			d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+		/>
+	</svg>
+);
+
+// Information icon for helpful tips
+const InfoIcon = ({ className }) => (
+	<svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+		<path
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z"
 		/>
 	</svg>
 );

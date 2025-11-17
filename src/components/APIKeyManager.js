@@ -37,7 +37,7 @@ const XCircleIcon = ({ className }) => (
  * API Key Manager Component
  * Provides interface for managing custom OpenAI API keys per bot
  */
-export default function APIKeyManager({ botId }) {
+export default function APIKeyManager({ botId, onKeyUpdate }) {
   // State management
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -156,6 +156,11 @@ export default function APIKeyManager({ botId }) {
         setApiKey(''); // Clear input for security
         setValidationResult(null);
         await loadConfiguration(); // Reload configuration
+        
+        // Notify parent component about the update
+        if (onKeyUpdate) {
+          onKeyUpdate();
+        }
       } else {
         setError(data.error || 'Failed to save API key');
       }
@@ -190,6 +195,11 @@ export default function APIKeyManager({ botId }) {
         setApiKey('');
         setValidationResult(null);
         await loadConfiguration();
+        
+        // Notify parent component about the update
+        if (onKeyUpdate) {
+          onKeyUpdate();
+        }
       } else {
         setError(data.error || 'Failed to remove API key');
       }

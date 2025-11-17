@@ -71,12 +71,13 @@ export async function processFile(
 			totalChunks: documents.length,
 		});
 
-		// Step 3: Generate embeddings and store in vector DB
+		// Step 3: Generate embeddings and store in vector DB using bot's API key
 		console.log('[FILE-PROCESSOR] Step 3: Storing in vector database');
 		const vectorResult = await storeDocumentsForBot(
 			botId.toString(),
 			documents,
-			fileRecord._id // Pass file ID for metadata
+			fileRecord._id, // Pass file ID for metadata
+			userId // Pass userId for API key resolution
 		);
 
 		console.log('[FILE-PROCESSOR] Vector storage result:', vectorResult);
