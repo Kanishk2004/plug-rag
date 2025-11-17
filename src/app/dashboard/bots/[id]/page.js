@@ -5,6 +5,7 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import FileUpload from '@/components/FileUpload';
 import ChatInterface from '@/components/ChatInterface';
+import APIKeyManager from '@/components/APIKeyManager';
 import { useBot, useBotFiles } from '@/hooks/useAPI';
 import { fileAPI } from '@/lib/api';
 
@@ -241,6 +242,7 @@ const BotDetailSkeleton = () => (
 export default function BotDetail({ params }) {
 	const router = useRouter();
 	const [botId, setBotId] = useState(null);
+	const [activeTab, setActiveTab] = useState('overview');
 
 	// Handle async params in Next.js 15
 	useEffect(() => {
@@ -628,257 +630,312 @@ export default function BotDetail({ params }) {
 					</div>
 				</div>
 
+				{/* Tab Navigation */}
+				<div className="border-b border-gray-800">
+					<nav className="flex space-x-8">
+						<button
+							onClick={() => setActiveTab('overview')}
+							className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+								activeTab === 'overview'
+									? 'border-orange-500 text-orange-400'
+									: 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
+							}`}
+						>
+							Overview & Files
+						</button>
+						<button
+							onClick={() => setActiveTab('api-config')}
+							className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+								activeTab === 'api-config'
+									? 'border-orange-500 text-orange-400'
+									: 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
+							}`}
+						>
+							API Configuration
+						</button>
+						<button
+							onClick={() => setActiveTab('chat')}
+							className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+								activeTab === 'chat'
+									? 'border-orange-500 text-orange-400'
+									: 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
+							}`}
+						>
+							Test Chat
+						</button>
+					</nav>
+				</div>
+
 				<div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-					{/* Main Content - 7 columns */}
-					<div className="lg:col-span-7 space-y-6">
-						{/* Stats */}
-						<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-							<h2 className="text-lg font-medium text-white mb-4">Overview</h2>
-							<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-								<div className="text-center">
-									<p className="text-2xl font-bold text-white">
-										{bot.totalMessages || 0}
-									</p>
-									<p className="text-sm text-gray-200">Messages</p>
-								</div>
-								<div className="text-center">
-									<p className="text-2xl font-bold text-white">
-										{files.length}
-									</p>
-									<p className="text-sm text-gray-200">Files</p>
-								</div>
-								<div className="text-center">
-									<p className="text-2xl font-bold text-orange-400">
-										{bot.totalEmbeddings || 0}
-									</p>
-									<p className="text-sm text-gray-200">Embeddings</p>
-								</div>
-								<div className="text-center">
-									<p className="text-2xl font-bold text-blue-400">
-										{Math.floor((bot.totalTokens || 0) / 1000)}K
-									</p>
-									<p className="text-sm text-gray-200">Tokens</p>
+					{/* Main Content */}
+					{activeTab === 'overview' && (
+						<div className="lg:col-span-7 space-y-6">
+							{/* Stats */}
+							<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+								<h2 className="text-lg font-medium text-white mb-4">Overview</h2>
+								<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+									<div className="text-center">
+										<p className="text-2xl font-bold text-white">
+											{bot.totalMessages || 0}
+										</p>
+										<p className="text-sm text-gray-200">Messages</p>
+									</div>
+									<div className="text-center">
+										<p className="text-2xl font-bold text-white">
+											{files.length}
+										</p>
+										<p className="text-sm text-gray-200">Files</p>
+									</div>
+									<div className="text-center">
+										<p className="text-2xl font-bold text-orange-400">
+											{bot.totalEmbeddings || 0}
+										</p>
+										<p className="text-sm text-gray-200">Embeddings</p>
+									</div>
+									<div className="text-center">
+										<p className="text-2xl font-bold text-blue-400">
+											{Math.floor((bot.totalTokens || 0) / 1000)}K
+										</p>
+										<p className="text-sm text-gray-200">Tokens</p>
+									</div>
 								</div>
 							</div>
-						</div>
 
-						{/* Files Management */}
-						<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-							<div className="flex items-center justify-between mb-4">
-								<h2 className="text-lg font-medium text-white">
-									Content Files
-								</h2>
-								{filesLoading && (
-									<div className="flex items-center space-x-2 text-gray-400">
-										<LoadingSpinner className="w-4 h-4" />
-										<span className="text-sm">Loading files...</span>
+							{/* Files Management */}
+							<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+								<div className="flex items-center justify-between mb-4">
+									<h2 className="text-lg font-medium text-white">
+										Content Files
+									</h2>
+									{filesLoading && (
+										<div className="flex items-center space-x-2 text-gray-400">
+											<LoadingSpinner className="w-4 h-4" />
+											<span className="text-sm">Loading files...</span>
+										</div>
+									)}
+								</div>
+
+								{filesError && (
+									<div className="bg-red-900 border border-red-700 rounded-lg p-4 mb-4">
+										<p className="text-red-100 text-sm">{filesError}</p>
 									</div>
 								)}
-							</div>
 
-							{filesError && (
-								<div className="bg-red-900 border border-red-700 rounded-lg p-4 mb-4">
-									<p className="text-red-100 text-sm">{filesError}</p>
-								</div>
-							)}
-
-							{/* Upload Queue */}
-							{queuedFiles.length > 0 && (
-								<div className="mb-6">
-									<div className="flex items-center justify-between mb-3">
-										<h3 className="text-sm font-medium text-blue-300">
-											Upload Queue ({queuedFiles.length} files)
-										</h3>
-										<div className="flex space-x-2">
-											<button
-												onClick={handleStartUpload}
-												disabled={uploading}
-												className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-												{uploading ? (
-													<>
-														<LoadingSpinner className="w-3 h-3 mr-1 inline-block" />
-														Uploading...
-													</>
-												) : (
-													'Start Upload'
-												)}
-											</button>
-											<button
-												onClick={handleClearQueue}
-												disabled={uploading}
-												className="px-3 py-1 border border-gray-600 text-gray-300 hover:bg-gray-700 text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-												Clear Queue
-											</button>
+								{/* Upload Queue */}
+								{queuedFiles.length > 0 && (
+									<div className="mb-6">
+										<div className="flex items-center justify-between mb-3">
+											<h3 className="text-sm font-medium text-blue-300">
+												Upload Queue ({queuedFiles.length} files)
+											</h3>
+											<div className="flex space-x-2">
+												<button
+													onClick={handleStartUpload}
+													disabled={uploading}
+													className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+													{uploading ? (
+														<>
+															<LoadingSpinner className="w-3 h-3 mr-1 inline-block" />
+															Uploading...
+														</>
+													) : (
+														'Start Upload'
+													)}
+												</button>
+												<button
+													onClick={handleClearQueue}
+													disabled={uploading}
+													className="px-3 py-1 border border-gray-600 text-gray-300 hover:bg-gray-700 text-sm rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+													Clear Queue
+												</button>
+											</div>
+										</div>
+										<div className="space-y-2">
+											{queuedFiles.map((file, index) => (
+												<QueuedFileItem
+													key={`queued-${index}`}
+													file={file}
+													onRemove={() => handleRemoveFromQueue(file)}
+												/>
+											))}
 										</div>
 									</div>
-									<div className="space-y-2">
-										{queuedFiles.map((file, index) => (
-											<QueuedFileItem
-												key={`queued-${index}`}
-												file={file}
-												onRemove={() => handleRemoveFromQueue(file)}
-											/>
-										))}
-									</div>
-								</div>
-							)}
-
-							{/* Current Files */}
-							<div className="space-y-3 mb-6">
-								{files.map((file) => (
-									<FileItem
-										key={file.id}
-										file={file}
-										isProcessing={processingFiles.has(file.id)}
-										onDelete={() =>
-											handleDeleteFile(file.id, file.originalName)
-										}
-									/>
-								))}
-
-								{files.length === 0 && !filesLoading && (
-									<div className="text-center py-8">
-										<FileIcon className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-										<p className="text-gray-400">No files uploaded yet</p>
-										<p className="text-gray-500 text-sm">
-											Upload some files to get started
-										</p>
-									</div>
 								)}
-							</div>
 
-							{/* Upload New Files */}
-							<div>
-								<h3 className="text-sm font-medium text-gray-300 mb-3">
-									Add More Files
-								</h3>
-								<FileUpload
-									onFilesUploaded={handleFilesUploaded}
-									maxFiles={5}
-									disabled={uploading}
-									className="border-gray-700 bg-gray-800"
-								/>
-								{queuedFiles.length === 0 && (
-									<p className="text-sm text-gray-500 mt-2">
-										Files will be added to upload queue. Click "Start Upload" to
-										process them.
-									</p>
-								)}
-							</div>
-						</div>
-
-						{/* Bot Information - Moved from sidebar */}
-						<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-							<h3 className="text-lg font-medium text-white mb-4">
-								Bot Information
-							</h3>
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-								<div>
-									<span className="text-gray-400">Created:</span>
-									<span className="ml-2 text-gray-200">
-										{new Date(bot.createdAt).toLocaleDateString()}
-									</span>
-								</div>
-								<div>
-									<span className="text-gray-400">Last Updated:</span>
-									<span className="ml-2 text-gray-200">
-										{new Date(bot.updatedAt).toLocaleDateString()}
-									</span>
-								</div>
-								<div className="md:col-span-2">
-									<span className="text-gray-400">Bot ID:</span>
-									<span className="ml-2 font-mono text-gray-200 text-xs break-all">
-										{bot.id}
-									</span>
-								</div>
-								<div className="md:col-span-2">
-									<span className="text-gray-400">Bot Key:</span>
-									<span className="ml-2 font-mono text-gray-200 text-xs break-all">
-										{bot.botKey}
-									</span>
-								</div>
-								<div>
-									<span className="text-gray-400">Theme Color:</span>
-									<div className="flex items-center space-x-2 mt-1">
-										<div
-											className="w-4 h-4 rounded border border-gray-600"
-											style={{
-												backgroundColor:
-													bot.customization?.bubbleColor || '#f97316',
-											}}
+								{/* Current Files */}
+								<div className="space-y-3 mb-6">
+									{files.map((file) => (
+										<FileItem
+											key={file.id}
+											file={file}
+											isProcessing={processingFiles.has(file.id)}
+											onDelete={() =>
+												handleDeleteFile(file.id, file.originalName)
+											}
 										/>
-										<span className="font-mono text-gray-200 text-xs">
-											{bot.customization?.bubbleColor || '#f97316'}
+									))}
+
+									{files.length === 0 && !filesLoading && (
+										<div className="text-center py-8">
+											<FileIcon className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+											<p className="text-gray-400">No files uploaded yet</p>
+											<p className="text-gray-500 text-sm">
+												Upload some files to get started
+											</p>
+										</div>
+									)}
+								</div>
+
+								{/* Upload New Files */}
+								<div>
+									<h3 className="text-sm font-medium text-gray-300 mb-3">
+										Add More Files
+									</h3>
+									<FileUpload
+										onFilesUploaded={handleFilesUploaded}
+										maxFiles={5}
+										disabled={uploading}
+										className="border-gray-700 bg-gray-800"
+									/>
+									{queuedFiles.length === 0 && (
+										<p className="text-sm text-gray-500 mt-2">
+											Files will be added to upload queue. Click "Start Upload" to
+											process them.
+										</p>
+									)}
+								</div>
+							</div>
+
+							{/* Bot Information */}
+							<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+								<h3 className="text-lg font-medium text-white mb-4">
+									Bot Information
+								</h3>
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+									<div>
+										<span className="text-gray-400">Created:</span>
+										<span className="ml-2 text-gray-200">
+											{new Date(bot.createdAt).toLocaleDateString()}
+										</span>
+									</div>
+									<div>
+										<span className="text-gray-400">Last Updated:</span>
+										<span className="ml-2 text-gray-200">
+											{new Date(bot.updatedAt).toLocaleDateString()}
+										</span>
+									</div>
+									<div className="md:col-span-2">
+										<span className="text-gray-400">Bot ID:</span>
+										<span className="ml-2 font-mono text-gray-200 text-xs break-all">
+											{bot.id}
+										</span>
+									</div>
+									<div className="md:col-span-2">
+										<span className="text-gray-400">Bot Key:</span>
+										<span className="ml-2 font-mono text-gray-200 text-xs break-all">
+											{bot.botKey}
+										</span>
+									</div>
+									<div>
+										<span className="text-gray-400">Theme Color:</span>
+										<div className="flex items-center space-x-2 mt-1">
+											<div
+												className="w-4 h-4 rounded border border-gray-600"
+												style={{
+													backgroundColor:
+														bot.customization?.bubbleColor || '#f97316',
+												}}
+											/>
+											<span className="font-mono text-gray-200 text-xs">
+												{bot.customization?.bubbleColor || '#f97316'}
+											</span>
+										</div>
+									</div>
+									<div>
+										<span className="text-gray-400">Position:</span>
+										<span className="ml-2 text-gray-200 capitalize">
+											{(bot.customization?.position || 'bottom-right').replace(
+												'-',
+												' '
+											)}
+										</span>
+									</div>
+									<div className="md:col-span-2">
+										<span className="text-gray-400">Vector Storage:</span>
+										<span
+											className={`ml-2 text-xs px-2 py-1 rounded ${
+												bot.vectorStorage?.enabled
+													? 'bg-green-900 text-green-200'
+													: 'bg-gray-800 text-gray-400'
+											}`}>
+											{bot.vectorStorage?.enabled ? 'Enabled' : 'Disabled'}
 										</span>
 									</div>
 								</div>
-								<div>
-									<span className="text-gray-400">Position:</span>
-									<span className="ml-2 text-gray-200 capitalize">
-										{(bot.customization?.position || 'bottom-right').replace(
-											'-',
-											' '
-										)}
-									</span>
-								</div>
-								<div className="md:col-span-2">
-									<span className="text-gray-400">Vector Storage:</span>
-									<span
-										className={`ml-2 text-xs px-2 py-1 rounded ${
-											bot.vectorStorage?.enabled
-												? 'bg-green-900 text-green-200'
-												: 'bg-gray-800 text-gray-400'
+							</div>
+
+							{/* Quick Actions */}
+							<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+								<h3 className="text-lg font-medium text-white mb-4">
+									Quick Actions
+								</h3>
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+									<Link
+										href={`/dashboard/bots/${bot.id}/embed`}
+										className="block w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-3 px-4 rounded-lg text-center font-medium transition-colors">
+										Get Embed Code
+									</Link>
+									<button
+										onClick={handleToggleStatus}
+										disabled={updating}
+										className={`w-full py-3 px-4 rounded-lg text-center font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+											bot.status === 'active'
+												? 'bg-red-100 hover:bg-red-200 text-red-700'
+												: 'bg-green-100 hover:bg-green-200 text-green-700'
 										}`}>
-										{bot.vectorStorage?.enabled ? 'Enabled' : 'Disabled'}
-									</span>
+										{updating
+											? 'Updating...'
+											: bot.status === 'active'
+											? 'Disable Bot'
+											: 'Enable Bot'}
+									</button>
+									<button className="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 py-3 px-4 rounded-lg text-center font-medium transition-colors">
+										Download Chat History
+									</button>
+									<button
+										onClick={handleDeleteBot}
+										disabled={updating}
+										className="w-full bg-red-900 hover:bg-red-800 text-red-100 py-3 px-4 rounded-lg text-center font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+										{updating ? 'Deleting...' : 'Delete Bot'}
+									</button>
 								</div>
 							</div>
 						</div>
+					)}
 
-						{/* Quick Actions - Moved from sidebar and made horizontal */}
-						<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-							<h3 className="text-lg font-medium text-white mb-4">
-								Quick Actions
-							</h3>
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-								<Link
-									href={`/dashboard/bots/${bot.id}/embed`}
-									className="block w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-3 px-4 rounded-lg text-center font-medium transition-colors">
-									Get Embed Code
-								</Link>
-								<button
-									onClick={handleToggleStatus}
-									disabled={updating}
-									className={`w-full py-3 px-4 rounded-lg text-center font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-										bot.status === 'active'
-											? 'bg-red-100 hover:bg-red-200 text-red-700'
-											: 'bg-green-100 hover:bg-green-200 text-green-700'
-									}`}>
-									{updating
-										? 'Updating...'
-										: bot.status === 'active'
-										? 'Disable Bot'
-										: 'Enable Bot'}
-								</button>
-								<button className="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 py-3 px-4 rounded-lg text-center font-medium transition-colors">
-									Download Chat History
-								</button>
-								<button
-									onClick={handleDeleteBot}
-									disabled={updating}
-									className="w-full bg-red-900 hover:bg-red-800 text-red-100 py-3 px-4 rounded-lg text-center font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-									{updating ? 'Deleting...' : 'Delete Bot'}
-								</button>
+					{/* API Configuration Tab */}
+					{activeTab === 'api-config' && (
+						<div className="lg:col-span-7 space-y-6">
+							<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
+								<APIKeyManager botId={bot.id} />
 							</div>
 						</div>
-					</div>
+					)}
 
-					{/* Chat Interface - 5 columns */}
-					<div className="lg:col-span-5">
-						<div className="bg-gray-900 rounded-lg border border-gray-800 h-[800px] flex flex-col">
-							<ChatInterface botId={bot.id} botName={bot.name} />
+					{/* Chat Interface - Show on all tabs but take full width on chat tab */}
+					{activeTab === 'chat' ? (
+						<div className="lg:col-span-12">
+							<div className="bg-gray-900 rounded-lg border border-gray-800 h-[800px] flex flex-col">
+								<ChatInterface botId={bot.id} botName={bot.name} />
+							</div>
 						</div>
-					</div>
+					) : (
+						<div className="lg:col-span-5">
+							<div className="bg-gray-900 rounded-lg border border-gray-800 h-[800px] flex flex-col">
+								<ChatInterface botId={bot.id} botName={bot.name} />
+							</div>
+						</div>
+					)}
 				</div>
 			</div>
 		</DashboardLayout>

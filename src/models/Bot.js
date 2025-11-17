@@ -138,6 +138,83 @@ const botSchema = new mongoose.Schema(
 				default: 1000,
 			},
 		},
+		// API Configuration for custom OpenAI keys
+		apiConfiguration: {
+			// Custom OpenAI API Key Configuration
+			openaiConfig: {
+				// Encrypted API key storage
+				apiKeyEncrypted: {
+					type: String,
+					default: null,
+					select: false, // Don't return in queries by default for security
+				},
+				// Key status tracking
+				keyStatus: {
+					type: String,
+					enum: ['none', 'valid', 'invalid', 'expired', 'quota_exceeded'],
+					default: 'none'
+				},
+				// Last validation check
+				lastValidated: {
+					type: Date,
+					default: null
+				},
+				// Usage tracking for this bot's API key
+				usage: {
+					totalTokens: {
+						type: Number,
+						default: 0
+					},
+					embedTokens: {
+						type: Number,
+						default: 0
+					},
+					chatTokens: {
+						type: Number,
+						default: 0
+					},
+					lastResetDate: {
+						type: Date,
+						default: Date.now
+					}
+				},
+				// Model preferences for this bot
+				models: {
+					chat: {
+						type: String,
+						default: 'gpt-4',
+						enum: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo']
+					},
+					embeddings: {
+						type: String,
+						default: 'text-embedding-3-small',
+						enum: ['text-embedding-3-small', 'text-embedding-3-large']
+					}
+				},
+				// Cost tracking
+				costTracking: {
+					enabled: {
+						type: Boolean,
+						default: true
+					},
+					monthlyLimit: {
+						type: Number,
+						default: null // No limit by default
+					},
+					currentSpend: {
+						type: Number,
+						default: 0
+					}
+				}
+			},
+			
+			// Fallback configuration
+			fallbackToGlobal: {
+				type: Boolean,
+				default: true
+			}
+		},
+
 		// File management
 		fileCount: {
 			type: Number,

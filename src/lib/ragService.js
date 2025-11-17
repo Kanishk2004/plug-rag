@@ -6,28 +6,16 @@ import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { getAccurateTokenCount } from './vectorStore.js';
+import { apiKeyService } from './apiKeyService.js';
+import Bot from '@/models/Bot.js';
 
 /**
- * RAG (Retrieval Augmented Generation) Service
- * Handles AI response generation using vector search and LLM
+ * Enhanced RAG (Retrieval Augmented Generation) Service
+ * Handles AI response generation using vector search and LLM with dynamic API key injection
  */
 export class RAGService {
 	constructor() {
-		// Initialize OpenAI LLM
-		this.llm = new ChatOpenAI({
-			modelName: 'gpt-4',
-			temperature: 0.3, // Low temperature for more focused responses
-			maxTokens: 1000, // Reasonable limit for chat responses
-			openAIApiKey: process.env.OPENAI_API_KEY,
-		});
-
-		// Initialize embeddings (same as used for indexing)
-		this.embeddings = new OpenAIEmbeddings({
-			modelName: 'text-embedding-3-small',
-			openAIApiKey: process.env.OPENAI_API_KEY,
-		});
-
-		// Initialize Qdrant client
+		// Initialize Qdrant client (this doesn't require OpenAI API key)
 		this.qdrantClient = new QdrantClient({
 			host: process.env.QDRANT_HOST || 'localhost',
 			port: process.env.QDRANT_PORT || 6333,
@@ -58,6 +46,77 @@ ASSISTANT RESPONSE:`);
 	}
 
 	/**
+	 * Get OpenAI configuration for a specific bot (API key and models)
+	 * @param {string} botId - The bot ID
+	 * @param {string} userId - The user ID (bot owner)
+	 * @returns {Promise<Object>} OpenAI configuration
+	 */
+	async getOpenAIConfig(botId, userId) {
+		try {
+			const keyData = await apiKeyService.getApiKey(botId, userId);
+			
+			return {
+				apiKey: keyData.apiKey,
+				isCustom: keyData.isCustom,
+				source: keyData.source,
+				models: keyData.models || {
+					chat: 'gpt-4',
+					embeddings: 'text-embedding-3-small'
+				}
+			};
+			
+		} catch (error) {
+			// Fallback to global key if configured
+			if (process.env.OPENAI_API_KEY) {
+				console.warn(`[RAGService] Using global API key fallback for bot ${botId}: ${error.message}`);
+				return {
+					apiKey: process.env.OPENAI_API_KEY,
+					isCustom: false,
+					source: 'global_fallback',
+					models: {
+						chat: 'gpt-4',
+						embeddings: 'text-embedding-3-small'
+					}
+				};
+			}
+			throw new Error(`No OpenAI API key available for bot ${botId}: ${error.message}`);
+		}
+	}
+
+	/**
+	 * Create LLM instance with bot-specific configuration
+	 * @param {string} botId - The bot ID
+	 * @param {string} userId - The user ID
+	 * @returns {Promise<ChatOpenAI>} Configured LLM instance
+	 */
+	async createLLM(botId, userId) {
+		const config = await this.getOpenAIConfig(botId, userId);
+		
+		return new ChatOpenAI({
+			model: config.models.chat,
+			temperature: 0.3,
+			maxTokens: 1000,
+			apiKey: config.apiKey,        // Try this parameter name
+			openAIApiKey: config.apiKey,  // And also this one
+		});
+	}
+
+	/**
+	 * Create embeddings instance with bot-specific configuration
+	 * @param {string} botId - The bot ID
+	 * @param {string} userId - The user ID
+	 * @returns {Promise<OpenAIEmbeddings>} Configured embeddings instance
+	 */
+	async createEmbeddings(botId, userId) {
+		const config = await this.getOpenAIConfig(botId, userId);
+		
+		return new OpenAIEmbeddings({
+			model: config.models.embeddings,
+			openAIApiKey: config.apiKey,
+		});
+	}
+
+	/**
 	 * Check if a collection exists for the given botId
 	 * @param {string} botId - The bot ID (collection name)
 	 * @returns {Promise<boolean>} Whether collection exists
@@ -73,34 +132,32 @@ ASSISTANT RESPONSE:`);
 	}
 
 	/**
-	 * Get relevant documents from vector database
+	 * Get relevant documents from vector database with dynamic embeddings
 	 * @param {string} botId - The bot ID (collection name)
+	 * @param {string} userId - The user ID (for API key lookup)
 	 * @param {string} query - User query
 	 * @param {number} topK - Number of documents to retrieve
 	 * @returns {Promise<Array>} Relevant document chunks
 	 */
-	async getRelevantDocuments(botId, query, topK = 4) {
+	async getRelevantDocuments(botId, userId, query, topK = 4) {
 		try {
 			// Check if collection exists
 			const exists = await this.collectionExists(botId);
 			if (!exists) {
-				console.log(`Collection ${botId} does not exist`);
 				return [];
 			}
 
+			// Create embeddings instance with bot-specific API key
+			const embeddings = await this.createEmbeddings(botId, userId);
+
 			// Create vector store instance for this bot's collection
-			const vectorStore = new QdrantVectorStore(this.embeddings, {
+			const vectorStore = new QdrantVectorStore(embeddings, {
 				client: this.qdrantClient,
 				collectionName: botId,
 			});
 
 			// Perform similarity search
 			const documents = await vectorStore.similaritySearch(query, topK);
-
-			// Log search results for debugging
-			console.log(
-				`Found ${documents.length} relevant documents for query: "${query}"`
-			);
 
 			return documents;
 		} catch (error) {
@@ -155,7 +212,7 @@ ASSISTANT RESPONSE:`);
 	}
 
 	/**
-	 * Generate AI response using RAG
+	 * Generate AI response using RAG with dynamic API key injection
 	 * @param {string} botId - The bot ID
 	 * @param {string} userQuery - User's question
 	 * @param {Array} conversationHistory - Recent messages for context
@@ -171,8 +228,14 @@ ASSISTANT RESPONSE:`);
 		try {
 			const startTime = Date.now();
 
-			// Step 1: Retrieve relevant documents
-			const relevantDocs = await this.getRelevantDocuments(botId, userQuery, 4);
+			// Get bot owner for API key lookup
+			const bot = await Bot.findById(botId, 'ownerId');
+			if (!bot) {
+				throw new Error('Bot not found');
+			}
+
+			// Step 1: Retrieve relevant documents with dynamic embeddings
+			const relevantDocs = await this.getRelevantDocuments(botId, bot.ownerId, userQuery, 4);
 
 			// Step 2: Format context and chat history
 			const context = this.formatDocumentsAsContext(relevantDocs);
@@ -184,14 +247,16 @@ ASSISTANT RESPONSE:`);
 				return {
 					content: fallbackResponse,
 					sources: [],
-					//   tokensUsed: await getAccurateTokenCount(fallbackResponse),
 					responseTime: Date.now() - startTime,
-					model: 'gpt-4',
+					model: 'fallback',
 					hasRelevantContext: false,
 				};
 			}
 
-			// Step 4: Create the RAG chain
+			// Step 4: Create dynamic LLM instance with bot-specific API key
+			const llm = await this.createLLM(botId, bot.ownerId);
+
+			// Step 5: Create the RAG chain with dynamic LLM
 			const ragChain = RunnableSequence.from([
 				{
 					context: () => context,
@@ -199,14 +264,14 @@ ASSISTANT RESPONSE:`);
 					question: (input) => input.question,
 				},
 				this.systemPromptTemplate,
-				this.llm,
+				llm,
 				new StringOutputParser(),
 			]);
 
-			// Step 5: Generate response
+			// Step 6: Generate response
 			const response = await ragChain.invoke({ question: userQuery });
 
-			// Step 6: Extract source information
+			// Step 7: Extract source information
 			const sources = relevantDocs.map((doc) => ({
 				fileName:
 					doc.metadata?.fileName || doc.metadata?.source || 'Unknown file',
@@ -215,18 +280,26 @@ ASSISTANT RESPONSE:`);
 				score: doc.metadata?.score,
 			}));
 
-			// Step 7: Calculate tokens used
-			//   const tokensUsed = await getAccurateTokenCount(response);
+			// Step 8: Calculate response time and prepare usage tracking
 			const responseTime = Date.now() - startTime;
+			
+			// Step 9: Track usage for cost management (async, don't block response)
+			this.trackUsage(botId, bot.ownerId, {
+				chatTokens: response.length, // Rough estimation - could be improved with tiktoken
+				totalTokens: response.length
+			}).catch(error => {
+				console.warn('Failed to track usage:', error);
+			});
 
 			return {
 				content: response,
 				sources: sources,
-				// tokensUsed: tokensUsed || 0,
 				responseTime: responseTime,
-				model: 'gpt-4',
+				model: llm.modelName,
 				hasRelevantContext: true,
+				apiSource: (await this.getOpenAIConfig(botId, bot.ownerId)).source
 			};
+
 		} catch (error) {
 			console.error('RAG generation error:', error);
 
@@ -236,12 +309,27 @@ ASSISTANT RESPONSE:`);
 			return {
 				content: fallbackResponse,
 				sources: [],
-				// tokensUsed: await getAccurateTokenCount(fallbackResponse),
 				responseTime: 1000,
-				model: 'gpt-4',
+				model: 'error-fallback',
 				hasRelevantContext: false,
 				error: error.message,
 			};
+		}
+	}
+
+	/**
+	 * Track usage for a bot's API key
+	 * @param {string} botId - The bot ID
+	 * @param {string} userId - The user ID
+	 * @param {Object} usage - Usage data
+	 * @returns {Promise<void>}
+	 */
+	async trackUsage(botId, userId, usage) {
+		try {
+			await apiKeyService.trackUsage(botId, userId, usage);
+		} catch (error) {
+			console.error('Error tracking usage:', error);
+			// Don't throw - usage tracking shouldn't break main functionality
 		}
 	}
 
