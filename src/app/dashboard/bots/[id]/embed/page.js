@@ -209,92 +209,94 @@ export default function BotEmbedPage({ params }) {
 
 	return (
 		<DashboardLayout>
-			<div className="max-w-6xl mx-auto space-y-8">
-				{/* Header */}
-				<div>
-					<h1 className="text-2xl font-bold text-white">
-						Embed Code Generator
-					</h1>
-					<p className="mt-2 text-gray-200">
-						Customize and generate embed code for{' '}
-						<span className="font-medium">{bot.name}</span>
-					</p>
-				</div>
+			<div className="min-h-screen bg-gray-900">
+				<div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+					{/* Header */}
+					<div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+						<h1 className="text-3xl font-bold text-white mb-2">
+							Embed Code Generator
+						</h1>
+						<p className="text-gray-300 text-lg">
+							Customize and generate embed code for{' '}
+							<span className="font-semibold text-orange-400">{bot.name}</span>
+						</p>
+					</div>
 
-				<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-					{/* Left Column - Customization and Security */}
-					<div className="space-y-6">
-						{/* Domain Security */}
-						<div className="bg-white rounded-lg border border-gray-200 p-6">
-							<h2 className="text-lg font-medium text-gray-900 mb-4">
-								Domain Security
-							</h2>
-							<p className="text-sm text-gray-600 mb-4">
-								Control which domains can embed your chatbot. Leave empty to
-								allow all domains.
-							</p>
-
-							<div className="space-y-3">
-								<div className="flex space-x-2">
-									<input
-										type="text"
-										value={newDomain}
-										onChange={(e) => setNewDomain(e.target.value)}
-										onKeyPress={(e) => e.key === 'Enter' && addDomain()}
-										placeholder="example.com"
-										className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
-									/>
-									<button
-										onClick={addDomain}
-										disabled={saving}
-										className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 text-sm font-medium">
-										Add
-									</button>
-								</div>
-
-								{domains.length > 0 && (
-									<div className="space-y-2">
-										<p className="text-sm font-medium text-gray-700">
-											Allowed Domains:
-										</p>
-										{domains.map((domain) => (
-											<div
-												key={domain}
-												className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg">
-												<span className="text-sm text-gray-700">{domain}</span>
-												<button
-													onClick={() => removeDomain(domain)}
-													disabled={saving}
-													className="text-red-600 hover:text-red-800 disabled:opacity-50">
-													<TrashIcon className="w-4 h-4" />
-												</button>
-											</div>
-										))}
-									</div>
-								)}
-
-								{domains.length === 0 && (
-									<div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-										<p className="text-sm text-yellow-800">
-											<strong>Warning:</strong> No domain restrictions set. The
-											chatbot can be embedded on any website.
-										</p>
-									</div>
-								)}
-							</div>
-						</div>
-
-						{/* Customization Panel */}
-						<div className="space-y-6">
-							<div className="bg-white rounded-lg border border-gray-200 p-6">
-								<h2 className="text-lg font-medium text-gray-900 mb-4">
-									Customization
+					<div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+						{/* Left Column - Domain Security & Customization */}
+						<div className="xl:col-span-2 space-y-6">
+							{/* Domain Security */}
+							<div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+								<h2 className="text-xl font-semibold text-white mb-4">
+									🔒 Domain Security
 								</h2>
+								<p className="text-gray-400 mb-6">
+									Control which domains can embed your chatbot. Leave empty to
+									allow all domains.
+								</p>
 
 								<div className="space-y-4">
+									<div className="flex space-x-3">
+										<input
+											type="text"
+											value={newDomain}
+											onChange={(e) => setNewDomain(e.target.value)}
+											onKeyPress={(e) => e.key === 'Enter' && addDomain()}
+											placeholder="example.com"
+											className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-400"
+										/>
+										<button
+											onClick={addDomain}
+											disabled={saving}
+											className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors">
+											{saving ? 'Adding...' : 'Add'}
+										</button>
+									</div>
+
+									{domains.length > 0 && (
+										<div className="space-y-3">
+											<p className="text-sm font-medium text-gray-300">
+												Allowed Domains:
+											</p>
+											<div className="max-h-48 overflow-y-auto space-y-2">
+												{domains.map((domain) => (
+													<div
+														key={domain}
+														className="flex items-center justify-between bg-gray-700 px-4 py-3 rounded-lg border border-gray-600">
+														<span className="text-white font-mono">{domain}</span>
+														<button
+															onClick={() => removeDomain(domain)}
+															disabled={saving}
+															className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors p-1">
+															<TrashIcon className="w-5 h-5" />
+														</button>
+													</div>
+												))}
+											</div>
+										</div>
+									)}
+
+									{domains.length === 0 && (
+										<div className="bg-yellow-900/50 border border-yellow-700 rounded-lg p-4">
+											<p className="text-yellow-200 text-sm">
+												<strong>⚠️ Warning:</strong> No domain restrictions set. The
+												chatbot can be embedded on any website.
+											</p>
+										</div>
+									)}
+								</div>
+							</div>
+
+							{/* Customization Panel */}
+							<div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+								<h2 className="text-xl font-semibold text-white mb-4">
+									🎨 Customization
+								</h2>
+
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 									{/* Color Picker */}
 									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-2">
+										<label className="block text-sm font-medium text-gray-300 mb-3">
 											Theme Color
 										</label>
 										<div className="flex items-center space-x-3">
@@ -304,7 +306,7 @@ export default function BotEmbedPage({ params }) {
 												onChange={(e) =>
 													handleCustomizationChange('color', e.target.value)
 												}
-												className="w-12 h-10 border border-gray-300 rounded-lg cursor-pointer"
+												className="w-14 h-12 border border-gray-600 rounded-lg cursor-pointer bg-gray-700"
 											/>
 											<input
 												type="text"
@@ -312,26 +314,26 @@ export default function BotEmbedPage({ params }) {
 												onChange={(e) =>
 													handleCustomizationChange('color', e.target.value)
 												}
-												className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+												className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white font-mono"
 											/>
 										</div>
 									</div>
 
 									{/* Position */}
 									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-2">
+										<label className="block text-sm font-medium text-gray-300 mb-3">
 											Position
 										</label>
-										<div className="grid grid-cols-2 gap-2">
+										<div className="grid grid-cols-2 gap-3">
 											<button
 												type="button"
 												onClick={() =>
 													handleCustomizationChange('position', 'bottom-left')
 												}
-												className={`p-3 text-sm font-medium rounded-lg border transition-colors ${
+												className={`p-4 text-sm font-medium rounded-lg border transition-all ${
 													customization.position === 'bottom-left'
-														? 'bg-orange-50 border-orange-200 text-orange-700'
-														: 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+														? 'bg-orange-600 border-orange-500 text-white'
+														: 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
 												}`}>
 												Bottom Left
 											</button>
@@ -340,10 +342,10 @@ export default function BotEmbedPage({ params }) {
 												onClick={() =>
 													handleCustomizationChange('position', 'bottom-right')
 												}
-												className={`p-3 text-sm font-medium rounded-lg border transition-colors ${
+												className={`p-4 text-sm font-medium rounded-lg border transition-all ${
 													customization.position === 'bottom-right'
-														? 'bg-orange-50 border-orange-200 text-orange-700'
-														: 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+														? 'bg-orange-600 border-orange-500 text-white'
+														: 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
 												}`}>
 												Bottom Right
 											</button>
@@ -352,7 +354,7 @@ export default function BotEmbedPage({ params }) {
 
 									{/* Greeting Message */}
 									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-2">
+										<label className="block text-sm font-medium text-gray-300 mb-3">
 											Greeting Message
 										</label>
 										<input
@@ -361,14 +363,14 @@ export default function BotEmbedPage({ params }) {
 											onChange={(e) =>
 												handleCustomizationChange('greeting', e.target.value)
 											}
-											className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+											className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white"
 											placeholder="Hi! How can I help you today?"
 										/>
 									</div>
 
 									{/* Placeholder Text */}
 									<div>
-										<label className="block text-sm font-medium text-gray-700 mb-2">
+										<label className="block text-sm font-medium text-gray-300 mb-3">
 											Input Placeholder
 										</label>
 										<input
@@ -377,7 +379,7 @@ export default function BotEmbedPage({ params }) {
 											onChange={(e) =>
 												handleCustomizationChange('placeholder', e.target.value)
 											}
-											className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+											className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white"
 											placeholder="Type your message..."
 										/>
 									</div>
@@ -385,41 +387,41 @@ export default function BotEmbedPage({ params }) {
 							</div>
 
 							{/* Embed Code */}
-							<div className="bg-white rounded-lg border border-gray-200 p-6">
-								<div className="flex justify-between items-center mb-4">
-									<h2 className="text-lg font-medium text-gray-900">
-										Embed Code
+							<div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+								<div className="flex justify-between items-center mb-6">
+									<h2 className="text-xl font-semibold text-white">
+										📋 Embed Code
 									</h2>
 									<button
 										onClick={copyToClipboard}
-										className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+										className={`px-6 py-3 font-medium rounded-lg transition-all ${
 											copied
-												? 'bg-green-100 text-green-700 border border-green-200'
-												: 'bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200'
+												? 'bg-green-600 text-white border border-green-500'
+												: 'bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600'
 										}`}>
 										{copied ? (
 											<>
-												<CheckIcon className="w-4 h-4 inline mr-1" />
+												<CheckIcon className="w-5 h-5 inline mr-2" />
 												Copied!
 											</>
 										) : (
 											<>
-												<CopyIcon className="w-4 h-4 inline mr-1" />
+												<CopyIcon className="w-5 h-5 inline mr-2" />
 												Copy Code
 											</>
 										)}
 									</button>
 								</div>
 
-								<div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
-									<pre className="text-sm text-gray-300 whitespace-pre-wrap">
+								<div className="bg-black rounded-lg p-6 overflow-x-auto border border-gray-700">
+									<pre className="text-sm text-green-400 whitespace-pre-wrap font-mono">
 										<code>{generateEmbedCode()}</code>
 									</pre>
 								</div>
 
-								<div className="mt-4 text-sm text-gray-600">
-									<p className="font-medium mb-2">Instructions:</p>
-									<ol className="list-decimal list-inside space-y-1">
+								<div className="mt-6 p-4 bg-gray-700 rounded-lg border border-gray-600">
+									<p className="font-medium mb-3 text-white">📖 Instructions:</p>
+									<ol className="list-decimal list-inside space-y-2 text-gray-300">
 										<li>Copy the code above</li>
 										<li>
 											Paste it before the closing &lt;/body&gt; tag on your
@@ -431,91 +433,98 @@ export default function BotEmbedPage({ params }) {
 							</div>
 						</div>
 
-						{/* Preview */}
-						<div className="space-y-6">
-							<div className="bg-white rounded-lg border border-gray-200 p-6">
-								<h2 className="text-lg font-medium text-gray-900 mb-4">
-									Live Preview
-								</h2>
+						{/* Right Column - Preview */}
+						<div className="xl:col-span-1">
+							<div className="sticky top-8">
+								<div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+									<h2 className="text-xl font-semibold text-white mb-6">
+										👁️ Live Preview
+									</h2>
 
-								{/* Mock Website */}
-								<div
-									className="relative bg-gray-100 rounded-lg overflow-hidden"
-									style={{ height: '500px' }}>
-									{/* Mock Header */}
-									<div className="bg-white border-b border-gray-200 p-4">
-										<div className="flex items-center space-x-4">
-											<div className="w-8 h-8 bg-gray-300 rounded"></div>
-											<div className="space-y-1">
-												<div className="w-24 h-3 bg-gray-300 rounded"></div>
-												<div className="w-16 h-2 bg-gray-200 rounded"></div>
+									{/* Mock Website */}
+									<div
+										className="relative bg-gray-100 rounded-xl overflow-hidden border-2 border-gray-600"
+										style={{ height: '600px' }}>
+										{/* Mock Header */}
+										<div className="bg-white border-b border-gray-200 p-3">
+											<div className="flex items-center space-x-3">
+												<div className="w-6 h-6 bg-gray-300 rounded"></div>
+												<div className="space-y-1">
+													<div className="w-20 h-2 bg-gray-300 rounded"></div>
+													<div className="w-14 h-1.5 bg-gray-200 rounded"></div>
+												</div>
 											</div>
 										</div>
-									</div>
 
-									{/* Mock Content */}
-									<div className="p-6 space-y-4">
-										<div className="w-3/4 h-4 bg-gray-300 rounded"></div>
-										<div className="w-full h-4 bg-gray-200 rounded"></div>
-										<div className="w-2/3 h-4 bg-gray-200 rounded"></div>
-										<div className="w-1/2 h-32 bg-gray-300 rounded mt-6"></div>
-									</div>
+										{/* Mock Content */}
+										<div className="p-4 space-y-3">
+											<div className="w-3/4 h-3 bg-gray-300 rounded"></div>
+											<div className="w-full h-3 bg-gray-200 rounded"></div>
+											<div className="w-2/3 h-3 bg-gray-200 rounded"></div>
+											<div className="w-1/2 h-20 bg-gray-300 rounded mt-4"></div>
+										</div>
 
-									{/* Chat Widget */}
-									<div
-										className={`absolute ${
-											customization.position === 'bottom-right'
-												? 'bottom-6 right-6'
-												: 'bottom-6 left-6'
-										} transition-all duration-300`}>
-										<div className="relative">
-											{/* Chat Button */}
-											<button
-												className="w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white transition-transform hover:scale-110"
-												style={{ backgroundColor: customization.color }}>
-												<ChatIcon className="w-6 h-6" />
-											</button>
-
-											{/* Chat Preview (always show for demo) */}
-											<div className="absolute bottom-16 right-0 w-80 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-												{/* Chat Header */}
-												<div
-													className="p-4 text-white"
+										{/* Chat Widget */}
+										<div
+											className={`absolute ${
+												customization.position === 'bottom-right'
+													? 'bottom-4 right-4'
+													: 'bottom-4 left-4'
+											} transition-all duration-300`}>
+											<div className="relative">
+												{/* Chat Button */}
+												<button
+													className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center text-white transition-transform hover:scale-105"
 													style={{ backgroundColor: customization.color }}>
-													<h3 className="font-medium">{bot.name}</h3>
-													<p className="text-sm opacity-90">Online now</p>
-												</div>
+													<ChatIcon className="w-5 h-5" />
+												</button>
 
-												{/* Chat Content */}
-												<div className="p-4 space-y-3">
-													<div className="flex items-start space-x-2">
-														<div
-															className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs"
-															style={{ backgroundColor: customization.color }}>
-															AI
-														</div>
-														<div className="bg-gray-100 rounded-lg p-3 flex-1">
-															<p className="text-sm">
-																{customization.greeting}
-															</p>
+												{/* Chat Preview (always show for demo) */}
+												<div 
+													className={`absolute ${
+														customization.position === 'bottom-right' 
+															? 'bottom-14 right-0' 
+															: 'bottom-14 left-0'
+													} w-64 bg-white rounded-lg shadow-xl border border-gray-300 overflow-hidden`}>
+													{/* Chat Header */}
+													<div
+														className="p-3 text-white"
+														style={{ backgroundColor: customization.color }}>
+														<h3 className="font-medium text-sm truncate">{bot.name}</h3>
+														<p className="text-xs opacity-90">Online now</p>
+													</div>
+
+													{/* Chat Content */}
+													<div className="p-3 space-y-2 h-32 overflow-y-auto">
+														<div className="flex items-start space-x-2">
+															<div
+																className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+																style={{ backgroundColor: customization.color }}>
+																AI
+															</div>
+															<div className="bg-gray-100 rounded-lg p-2 flex-1 min-w-0">
+																<p className="text-xs text-gray-800 leading-relaxed">
+																	{customization.greeting}
+																</p>
+															</div>
 														</div>
 													</div>
 
 													{/* Input */}
-													<div className="border-t pt-3">
+													<div className="border-t p-3 bg-gray-50">
 														<div className="flex items-center space-x-2">
 															<input
 																type="text"
 																placeholder={customization.placeholder}
-																className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+																className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs"
 																disabled
 															/>
 															<button
-																className="p-2 rounded-lg text-white"
+																className="p-1.5 rounded text-white"
 																style={{
 																	backgroundColor: customization.color,
 																}}>
-																<SendIcon className="w-4 h-4" />
+																<SendIcon className="w-3 h-3" />
 															</button>
 														</div>
 													</div>

@@ -127,56 +127,65 @@ export async function POST(request, { params }) {
       botInfo
     );
 
-    // Create assistant message with AI response
-    const assistantMessage = {
-      role: 'assistant',
-      content: aiResponse.content,
-      timestamp: new Date(),
-      tokens: aiResponse.tokensUsed,
-      responseTime: aiResponse.responseTime,
-      model: aiResponse.model,
-      sources: aiResponse.sources || [],
-      hasRelevantContext: aiResponse.hasRelevantContext
-    };
+    console.log('RAG service response:', aiResponse);
+    console.log('AI response content:', aiResponse.content);
+    console.log('AI response type:', typeof aiResponse.content);
 
-    conversation.messages.push(assistantMessage);
+		// Create assistant message with AI response
+		const assistantMessage = {
+			role: 'assistant',
+			content: aiResponse.content,
+			timestamp: new Date(),
+			tokens: aiResponse.tokensUsed,
+			responseTime: aiResponse.responseTime,
+			model: aiResponse.model,
+			sources: aiResponse.sources || [],
+			hasRelevantContext: aiResponse.hasRelevantContext
+		};    conversation.messages.push(assistantMessage);
     conversation.totalMessages += 1;
     conversation.lastMessageAt = new Date();
 
     // Calculate total tokens for conversation
     const totalTokensInConversation = conversation.messages.reduce((sum, msg) => sum + (msg.tokens || 0), 0);
-    conversation.totalTokens = totalTokensInConversation;    // Save conversation
+    conversation.totalTokens = totalTokensInConversation;
+
+    // Save conversation
     await conversation.save();
 
-    // Update bot message count efficiently
-    await Bot.updateOne(
-      { _id: botId },
-      { 
-        $inc: { 
-          totalMessages: 2, // user + assistant message
-          totalTokens: totalTokensInConversation 
-        },
-        $set: { updatedAt: new Date() }
-      }
-    );
+    // Determine if this is a new session (first time this sessionId is used)
+    const isNewSession = conversation.messages.length === 2; // Only user + assistant message means new session
 
-    const response = apiSuccess(
-      {
-        message: assistantMessage.content,
-        sessionId: sessionId,
-        messageId: assistantMessage._id,
-        conversationId: conversation._id,
-        sources: assistantMessage.sources,
-        responseTime: assistantMessage.responseTime,
-        tokensUsed: assistantMessage.tokens,
-        hasRelevantContext: assistantMessage.hasRelevantContext
+    // Prepare bot analytics updates
+    const botUpdates = {
+      $inc: {
+        'analytics.totalMessages': 2, // user + assistant message
+        'analytics.totalTokensUsed': assistantMessage.tokens || 0,
+        ...(isNewSession && { 'analytics.totalSessions': 1 })
       },
-      'Message sent successfully'
-    );
+      $set: { 
+        'analytics.lastActiveAt': new Date(),
+        updatedAt: new Date()
+      }
+    };
 
-    return addCorsHeaders(response);
+    // Update bot analytics efficiently
+    await Bot.updateOne({ _id: botId }, botUpdates);
 
-  } catch (error) {
+		const response = apiSuccess(
+			{
+				message: assistantMessage.content,
+				sessionId: sessionId,
+				messageId: assistantMessage._id,
+				conversationId: conversation._id,
+				sources: assistantMessage.sources,
+				responseTime: assistantMessage.responseTime,
+				tokensUsed: assistantMessage.tokens,
+				hasRelevantContext: assistantMessage.hasRelevantContext
+			},
+			'Message sent successfully'
+		);
+
+		return addCorsHeaders(response);  } catch (error) {
     console.error('Chat API error:', error);
     return addCorsHeaders(serverError('Failed to process chat message'));
   }

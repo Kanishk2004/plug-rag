@@ -270,6 +270,9 @@ ASSISTANT RESPONSE:`);
 
 			// Step 6: Generate response
 			const response = await ragChain.invoke({ question: userQuery });
+			
+			// Step 6.1: Remove source citations from the response text
+			const cleanResponse = response.replace(/\s*\[Source \d+:[^\]]+\]\s*/g, '').trim();
 
 			// Step 7: Extract source information
 			const sources = relevantDocs.map((doc) => ({
@@ -292,7 +295,7 @@ ASSISTANT RESPONSE:`);
 			});
 
 			return {
-				content: response,
+				content: cleanResponse,
 				sources: sources,
 				responseTime: responseTime,
 				model: llm.modelName,

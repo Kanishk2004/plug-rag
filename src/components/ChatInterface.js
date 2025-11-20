@@ -303,7 +303,7 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 				const assistantMessage = {
 					id: response.data.messageId || `assistant_${Date.now()}`,
 					role: 'assistant',
-					content: response.data.response,
+					content: response.data.message,
 					timestamp: new Date(),
 					sources: response.data.sources || [],
 					responseTime: response.data.responseTime,
@@ -439,8 +439,8 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 						/>
 					</div>
 				) : (
-					<>
-						{messages.map((message) => (
+				<>
+					{messages.map((message) => (
 							<MessageBubble
 								key={message.id}
 								message={message.content}
@@ -448,7 +448,7 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 								sources={message.sources}
 							/>
 						))}
-					</>
+				</>
 				)}
 
 				{/* Loading indicator */}

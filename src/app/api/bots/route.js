@@ -296,6 +296,8 @@ export async function GET(request) {
 					createdAt: 1,
 					updatedAt: 1,
 					'analytics.totalMessages': 1,
+					'analytics.totalSessions': 1,
+					'analytics.totalTokensUsed': 1,
 					'analytics.lastActiveAt': 1,
 				})
 				.sort({ createdAt: -1 }) // Newest first
@@ -306,7 +308,8 @@ export async function GET(request) {
 		]);
 
 		// Step 8: Format bot data for consistent API response
-		// Transform MongoDB documents to clean API format
+		// For now, use stored analytics instead of real-time sync due to model import issues
+		// TODO: Fix dynamic model imports in analytics sync utility
 		const formattedBots = bots.map((bot) => ({
 			id: bot._id, // Convert _id to id for frontend consistency
 			name: bot.name,
@@ -314,9 +317,9 @@ export async function GET(request) {
 			botKey: bot.botKey,
 			status: bot.status,
 			fileCount: bot.fileCount || 0,
-			totalTokens: bot.totalTokens || 0,
-			totalMessages: bot.analytics?.totalMessages || 0,
-			lastActiveAt: bot.analytics?.lastActiveAt,
+			totalTokens: bot.analytics?.totalTokensUsed || bot.totalTokens || 0,
+			totalMessages: bot.analytics?.totalMessages || bot.totalMessages || 0,
+			lastActiveAt: bot.analytics?.lastActiveAt || bot.lastActiveAt,
 			customization: bot.customization,
 			createdAt: bot.createdAt,
 			updatedAt: bot.updatedAt,

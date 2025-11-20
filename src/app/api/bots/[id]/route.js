@@ -95,6 +95,7 @@ export async function GET(request, { params }) {
     };
 
     // Step 7: Format bot data with computed fields
+    // Use stored analytics for now due to model import issues in analytics sync
     const botData = {
       id: bot._id.toString(),
       name: bot.name,
@@ -108,10 +109,21 @@ export async function GET(request, { params }) {
       failedFiles: stats.failed,
       totalSize: stats.totalSize,
       totalChunks: stats.totalChunks,
+      
+      // Use stored analytics for consistency
+      analytics: {
+        totalTokensUsed: bot.analytics?.totalTokensUsed || 0,
+        totalMessages: bot.analytics?.totalMessages || 0,
+        totalSessions: bot.analytics?.totalSessions || 0,
+        totalEmbeddings: bot.analytics?.totalEmbeddings || 0,
+        lastActiveAt: bot.analytics?.lastActiveAt || bot.updatedAt,
+      },
+      
+      // Legacy fields for backward compatibility
       totalTokens: bot.analytics?.totalTokensUsed || 0,
       totalMessages: bot.analytics?.totalMessages || 0,
-      totalEmbeddings: bot.analytics?.totalEmbeddings || 0,
-      lastActiveAt: bot.lastActiveAt,
+      lastActiveAt: bot.analytics?.lastActiveAt || bot.updatedAt,
+      
       customization: bot.customization || {},
       vectorStorage: bot.vectorStorage || { enabled: true },
       limits: bot.limits || {},

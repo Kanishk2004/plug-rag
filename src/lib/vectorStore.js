@@ -29,22 +29,25 @@ async function getEmbeddingsForBot(botId, userId) {
 	try {
 		// Get bot-specific API key configuration
 		const keyData = await apiKeyService.getApiKey(botId, userId);
-		
+
 		return new OpenAIEmbeddings({
 			openAIApiKey: keyData.apiKey,
 			model: keyData.models?.embeddings || 'text-embedding-3-small',
 		});
-		
 	} catch (error) {
 		// Fallback to global API key if available and bot allows fallback
 		if (process.env.OPENAI_API_KEY) {
-			console.warn(`[VECTOR-STORE] Using global API key fallback for bot ${botId}: ${error.message}`);
+			console.warn(
+				`[VECTOR-STORE] Using global API key fallback for bot ${botId}: ${error.message}`
+			);
 			return new OpenAIEmbeddings({
 				openAIApiKey: process.env.OPENAI_API_KEY,
 				model: 'text-embedding-3-small',
 			});
 		}
-		throw new Error(`No OpenAI API key available for bot ${botId}: ${error.message}`);
+		throw new Error(
+			`No OpenAI API key available for bot ${botId}: ${error.message}`
+		);
 	}
 }
 
@@ -57,7 +60,7 @@ async function getEmbeddingsForBot(botId, userId) {
 export async function getVectorStoreForBot(botKey, userId) {
 	// Create cache key with both botKey and userId for proper isolation
 	const cacheKey = `${botKey}-${userId}`;
-	
+
 	// Check if we have a cached instance
 	if (vectorStoreCache.has(cacheKey)) {
 		return vectorStoreCache.get(cacheKey);
@@ -68,7 +71,7 @@ export async function getVectorStoreForBot(botKey, userId) {
 	try {
 		// Get bot-specific embeddings using the bot's API key
 		const embeddings = await getEmbeddingsForBot(botKey, userId);
-		
+
 		// Try to connect to existing collection first
 		vectorStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
 			url: process.env.QDRANT_URL || 'http://localhost:6333',
@@ -101,12 +104,17 @@ export async function getVectorStoreForBot(botKey, userId) {
  * @param {string} userId - The bot owner's user ID for API key lookup
  * @returns {Promise<Object>} Object containing token usage statistics and processing results
  */
-export async function storeDocumentsForBot(botKey, documents, fileId = null, userId) {
+export async function storeDocumentsForBot(
+	botKey,
+	documents,
+	fileId = null,
+	userId
+) {
 	try {
 		if (!botKey) {
 			throw new Error('botKey is required');
 		}
-		
+
 		if (!userId) {
 			// Try to resolve userId from bot if not provided
 			await connectDB();
@@ -199,7 +207,7 @@ export async function storeDocumentsForBot(botKey, documents, fileId = null, use
  * @param {string} userId - The bot owner's user ID for API key lookup
  * @returns {Promise<Array>} Array of search results
  */
-export async function searchVectorsForBot(botKey, query, limit = 5, userId) {
+export async function searchVectorsForBot(botKey, query, limit = 2, userId) {
 	try {
 		if (!botKey) {
 			throw new Error('botKey is required');
@@ -208,7 +216,7 @@ export async function searchVectorsForBot(botKey, query, limit = 5, userId) {
 		if (!query) {
 			throw new Error('query is required');
 		}
-		
+
 		if (!userId) {
 			// Try to resolve userId from bot if not provided
 			await connectDB();
