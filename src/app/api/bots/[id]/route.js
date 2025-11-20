@@ -101,6 +101,7 @@ export async function GET(request, { params }) {
       description: bot.description,
       botKey: bot.botKey,
       status: bot.status,
+      domainWhitelist: bot.domainWhitelist || [],
       fileCount: stats.total,
       processedFiles: stats.processed,
       processingFiles: stats.processing,
@@ -152,7 +153,7 @@ export async function PATCH(request, { params }) {
     // Step 3: Parse and validate request body
     const body = await request.json();
     const allowedFields = [
-      'name', 'description', 'status', 'customization'
+      'name', 'description', 'status', 'customization', 'domainWhitelist'
     ];
     
     const updateData = {};
@@ -211,6 +212,23 @@ export async function PATCH(request, { params }) {
       if (customization.title && customization.title.length > 50) {
         return validationError('Title cannot exceed 50 characters');
       }
+    }
+
+    if (updateData.domainWhitelist !== undefined) {
+      if (!Array.isArray(updateData.domainWhitelist)) {
+        return validationError('Domain whitelist must be an array');
+      }
+      
+      // Validate each domain
+      const domainRegex = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      for (const domain of updateData.domainWhitelist) {
+        if (typeof domain !== 'string' || !domainRegex.test(domain)) {
+          return validationError(`Invalid domain format: ${domain}`);
+        }
+      }
+      
+      // Remove duplicates and normalize
+      updateData.domainWhitelist = [...new Set(updateData.domainWhitelist.map(d => d.toLowerCase()))];
     }
 
     // Step 5: Connect to database

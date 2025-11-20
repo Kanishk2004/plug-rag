@@ -10,6 +10,38 @@ import {
   serverError
 } from '@/lib/apiResponse';
 
+// Helper function to add CORS headers
+function addCorsHeaders(response) {
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  return response;
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS(request) {
+  return addCorsHeaders(new Response(null, { status: 200 }));
+}
+
+// Helper function to validate domain whitelist
+function validateDomain(bot, requestDomain) {
+  if (!bot.domainWhitelist || bot.domainWhitelist.length === 0) {
+    return true; // No whitelist means all domains allowed
+  }
+  
+  if (!requestDomain) {
+    return false; // No domain provided but whitelist exists
+  }
+  
+  // Remove protocol and normalize domain
+  const cleanDomain = requestDomain.replace(/^https?:\/\//, '').split('/')[0];
+  
+  return bot.domainWhitelist.some(allowedDomain => {
+    // Exact match or subdomain match
+    return cleanDomain === allowedDomain || cleanDomain.endsWith('.' + allowedDomain);
+  });
+}
+
 /**
  * POST /api/chat/[botId] - Handle chat messages (Public, no authentication required)
  */
@@ -128,9 +160,9 @@ export async function POST(request, { params }) {
       }
     );
 
-    return apiSuccess(
+    const response = apiSuccess(
       {
-        response: assistantMessage.content,
+        message: assistantMessage.content,
         sessionId: sessionId,
         messageId: assistantMessage._id,
         conversationId: conversation._id,
@@ -142,9 +174,11 @@ export async function POST(request, { params }) {
       'Message sent successfully'
     );
 
+    return addCorsHeaders(response);
+
   } catch (error) {
     console.error('Chat API error:', error);
-    return serverError('Failed to process chat message');
+    return addCorsHeaders(serverError('Failed to process chat message'));
   }
 }
 
@@ -167,7 +201,7 @@ export async function GET(request, { params }) {
 
     // If no sessionId provided, return empty conversation
     if (!sessionId) {
-      return apiSuccess(
+      return addCorsHeaders(apiSuccess(
         {
           messages: [],
           sessionId: null,
@@ -175,7 +209,7 @@ export async function GET(request, { params }) {
           totalMessages: 0,
         },
         'No session ID provided - fresh conversation'
-      );
+      ));
     }
 
     // Verify bot exists and is active
@@ -195,7 +229,7 @@ export async function GET(request, { params }) {
     });
 
     if (!conversation) {
-      return apiSuccess(
+      return addCorsHeaders(apiSuccess(
         {
           messages: [],
           sessionId: sessionId,
@@ -203,7 +237,7 @@ export async function GET(request, { params }) {
           totalMessages: 0,
         },
         'No conversation found for this session'
-      );
+      ));
     }
 
     // Format messages for response
@@ -218,7 +252,7 @@ export async function GET(request, { params }) {
       hasRelevantContext: msg.hasRelevantContext
     }));
 
-    return apiSuccess(
+    return addCorsHeaders(apiSuccess(
       {
         messages: messages,
         sessionId: sessionId,
@@ -226,11 +260,11 @@ export async function GET(request, { params }) {
         totalMessages: conversation.totalMessages,
       },
       `Retrieved ${messages.length} messages successfully`
-    );
+    ));
 
   } catch (error) {
     console.error('Get conversation API error:', error);
-    return serverError('Failed to retrieve conversation history');
+    return addCorsHeaders(serverError('Failed to retrieve conversation history'));
   }
 }
 
@@ -253,13 +287,13 @@ export async function DELETE(request, { params }) {
 
     // If no sessionId provided, nothing to delete
     if (!sessionId) {
-      return apiSuccess(
+      return addCorsHeaders(apiSuccess(
         {
           deletedCount: 0,
           sessionId: null,
         },
         'No session ID provided - nothing to clear'
-      );
+      ));
     }
 
     // Delete conversation for this session
@@ -268,7 +302,7 @@ export async function DELETE(request, { params }) {
       sessionId: sessionId 
     });
 
-    return apiSuccess(
+    return addCorsHeaders(apiSuccess(
       {
         deletedCount: result.deletedCount,
         sessionId: sessionId,
@@ -276,10 +310,10 @@ export async function DELETE(request, { params }) {
       result.deletedCount > 0 
         ? 'Conversation history cleared successfully'
         : 'No conversation found to clear'
-    );
+    ));
 
   } catch (error) {
     console.error('Clear conversation API error:', error);
-    return serverError('Failed to clear conversation history');
+    return addCorsHeaders(serverError('Failed to clear conversation history'));
   }
 }

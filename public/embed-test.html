@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlugRAG Embed Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            margin: -40px -20px 40px -20px;
+            text-align: center;
+        }
+        .content {
+            margin-bottom: 2rem;
+        }
+        .code-block {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 PlugRAG Chatbot Demo</h1>
+        <p>This is a test page to demonstrate the embedded chatbot functionality</p>
+    </div>
+
+    <div class="content">
+        <h2>Welcome to our website!</h2>
+        <p>This is a sample webpage that demonstrates how the PlugRAG chatbot can be embedded into any website. The chatbot widget should appear in the bottom-right corner of your screen.</p>
+
+        <h3>How it works:</h3>
+        <ol>
+            <li>Add the PlugRAG embed script to your website</li>
+            <li>Configure your bot settings and customization</li>
+            <li>The chatbot widget automatically appears on your site</li>
+            <li>Visitors can interact with your AI-powered assistant</li>
+        </ol>
+
+        <div class="warning">
+            <strong>⚠️ Test Configuration:</strong>
+            <p>This page is configured to test with a local development server. Make sure your PlugRAG server is running on localhost:3000 and you have a valid bot ID configured below.</p>
+        </div>
+
+        <h3>Sample Embed Code:</h3>
+        <div class="code-block">
+            <pre><code>&lt;!-- PlugRAG Embed Code --&gt;
+&lt;script&gt;
+  window.PlugRAGConfig = {
+    botId: "691b8cabab305b7858e9b65f",
+    color: "#f97316",
+    position: "bottom-right",
+    greeting: "Hi! How can I help you today?",
+    placeholder: "Type your message...",
+    apiBase: "http://localhost:3000"
+  };
+&lt;/script&gt;
+&lt;script src="http://localhost:3000/embed.js" async&gt;&lt;/script&gt;</code></pre>
+        </div>
+
+        <h3>Features:</h3>
+        <ul>
+            <li>🎨 Customizable colors and positioning</li>
+            <li>🔒 Domain whitelist security</li>
+            <li>💬 Real-time chat with AI</li>
+            <li>📱 Mobile responsive design</li>
+            <li>🚀 Fast loading and lightweight</li>
+        </ul>
+    </div>
+
+    <!-- PlugRAG Embed Code -->
+    <script>
+      window.PlugRAGConfig = {
+        botId: "691b8cabab305b7858e9b65f", // Replace this with an actual bot ID from your dashboard
+        color: "#f97316",
+        position: "bottom-left",
+        greeting: "Hi! I'm a demo bot. How can I help you today?",
+        placeholder: "Type your message...",
+        apiBase: "http://localhost:3000"
+      };
+    </script>
+    <script src="http://localhost:3000/embed.js"></script>
+</body>
+</html>
