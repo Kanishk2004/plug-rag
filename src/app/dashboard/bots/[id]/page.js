@@ -280,12 +280,12 @@ export default function BotDetail({ params }) {
 	const [notification, setNotification] = useState(null);
 	const [queuedFiles, setQueuedFiles] = useState([]);
 	const [uploading, setUploading] = useState(false);
-	
+
 	// API Key Management State
 	const [apiKeyStatus, setApiKeyStatus] = useState({
 		hasCustomKey: false,
 		keyStatus: 'none',
-		loading: true
+		loading: true,
 	});
 
 	// Update form when bot data loads
@@ -302,23 +302,23 @@ export default function BotDetail({ params }) {
 	useEffect(() => {
 		const checkApiKeyStatus = async () => {
 			if (!botId) return;
-			
+
 			try {
-				setApiKeyStatus(prev => ({ ...prev, loading: true }));
-				
+				setApiKeyStatus((prev) => ({ ...prev, loading: true }));
+
 				const response = await fetch(`/api/bots/${botId}/api-keys`);
 				if (response.ok) {
 					const data = await response.json();
 					setApiKeyStatus({
 						hasCustomKey: data.data.hasCustomKey,
 						keyStatus: data.data.keyStatus,
-						loading: false
+						loading: false,
 					});
 				} else {
 					setApiKeyStatus({
 						hasCustomKey: false,
 						keyStatus: 'none',
-						loading: false
+						loading: false,
 					});
 				}
 			} catch (error) {
@@ -326,7 +326,7 @@ export default function BotDetail({ params }) {
 				setApiKeyStatus({
 					hasCustomKey: false,
 					keyStatus: 'none',
-					loading: false
+					loading: false,
 				});
 			}
 		};
@@ -343,7 +343,7 @@ export default function BotDetail({ params }) {
 	// Handle API key updates
 	const handleApiKeyUpdate = () => {
 		// Refresh API key status
-		setApiKeyStatus(prev => ({ ...prev, loading: true }));
+		setApiKeyStatus((prev) => ({ ...prev, loading: true }));
 		setTimeout(async () => {
 			try {
 				const response = await fetch(`/api/bots/${botId}/api-keys`);
@@ -352,7 +352,7 @@ export default function BotDetail({ params }) {
 					setApiKeyStatus({
 						hasCustomKey: data.data.hasCustomKey,
 						keyStatus: data.data.keyStatus,
-						loading: false
+						loading: false,
 					});
 				}
 			} catch (error) {
@@ -703,8 +703,7 @@ export default function BotDetail({ params }) {
 								activeTab === 'overview'
 									? 'border-orange-500 text-orange-400'
 									: 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
-							}`}
-						>
+							}`}>
 							Overview & Files
 						</button>
 						<button
@@ -713,8 +712,7 @@ export default function BotDetail({ params }) {
 								activeTab === 'api-config'
 									? 'border-orange-500 text-orange-400'
 									: 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
-							}`}
-						>
+							}`}>
 							API Configuration
 						</button>
 						<button
@@ -723,8 +721,7 @@ export default function BotDetail({ params }) {
 								activeTab === 'chat'
 									? 'border-orange-500 text-orange-400'
 									: 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
-							}`}
-						>
+							}`}>
 							Test Chat
 						</button>
 					</nav>
@@ -736,31 +733,71 @@ export default function BotDetail({ params }) {
 						<div className="lg:col-span-12 space-y-6">
 							{/* Stats */}
 							<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-								<h2 className="text-lg font-medium text-white mb-4">Overview</h2>
+								<div className="flex items-center justify-between mb-4">
+									<h2 className="text-lg font-medium text-white">Overview</h2>
+									<div className="flex items-center space-x-2 text-xs">
+										<div className="w-2 h-2 bg-green-400 rounded-full"></div>
+										<span className="text-green-400 font-medium">
+											Analytics Synced
+										</span>
+									</div>
+								</div>
 								<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 									<div className="text-center">
-										<p className="text-2xl font-bold text-white">
-											{bot.totalMessages || 0}
-										</p>
-										<p className="text-sm text-gray-200">Messages</p>
+										<div className="flex items-center justify-center space-x-1 mb-1">
+											<p className="text-2xl font-bold text-white">
+												{bot.analytics?.totalMessages || bot.totalMessages || 0}
+											</p>
+											<div
+												className="w-2 h-2 bg-green-400 rounded-full"
+												title="Data synced across all pages"></div>
+										</div>
+										<p className="text-xs text-gray-300">Messages</p>
 									</div>
 									<div className="text-center">
-										<p className="text-2xl font-bold text-white">
-											{files.length}
-										</p>
-										<p className="text-sm text-gray-200">Files</p>
+										<div className="flex items-center justify-center space-x-1 mb-1">
+											<p className="text-2xl font-bold text-white">
+												{bot.fileCount || 0}
+											</p>
+											<div
+												className="w-2 h-2 bg-green-400 rounded-full"
+												title="Data synced across all pages"></div>
+										</div>
+										<p className="text-xs text-gray-300">Files</p>
 									</div>
 									<div className="text-center">
-										<p className="text-2xl font-bold text-orange-400">
-											{bot.totalEmbeddings || 0}
-										</p>
-										<p className="text-sm text-gray-200">Embeddings</p>
+										<div className="flex items-center justify-center space-x-1 mb-1">
+											<p className="text-2xl font-bold text-orange-400">
+												{bot.analytics?.totalEmbeddings ||
+													bot.totalEmbeddings ||
+													0}
+											</p>
+											<div
+												className="w-2 h-2 bg-green-400 rounded-full"
+												title="Data synced across all pages"></div>
+										</div>
+										<p className="text-xs text-gray-300">Embeddings</p>
 									</div>
 									<div className="text-center">
-										<p className="text-2xl font-bold text-blue-400">
-											{Math.floor((bot.totalTokens || 0) / 1000)}K
-										</p>
-										<p className="text-sm text-gray-200">Tokens</p>
+										<div className="flex items-center justify-center space-x-1 mb-1">
+											<p className="text-lg font-semibold text-orange-400">
+												{(() => {
+													const tokens =
+														bot.analytics?.totalTokensUsed ||
+														bot.totalTokens ||
+														0;
+													if (tokens >= 1000) {
+														return Math.floor(tokens / 1000) + 'K';
+													} else {
+														return tokens.toLocaleString();
+													}
+												})()}
+											</p>
+											<div
+												className="w-2 h-2 bg-green-400 rounded-full"
+												title="Data synced across all pages"></div>
+										</div>
+										<p className="text-xs text-gray-300">Tokens</p>
 									</div>
 								</div>
 							</div>
@@ -855,108 +892,164 @@ export default function BotDetail({ params }) {
 									<h3 className="text-sm font-medium text-gray-300 mb-3">
 										Add More Files
 									</h3>
-									
+
 									{/* Show API Key Setup Guidance */}
-									{(!apiKeyStatus.hasCustomKey || !['valid'].includes(apiKeyStatus.keyStatus)) && !apiKeyStatus.loading && (
-										<div className="bg-gradient-to-r from-orange-900/20 to-blue-900/20 border-l-4 border-orange-500 rounded-lg p-6">
-											<div className="flex items-start space-x-3">
-												<div className="flex-shrink-0">
-													<div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
-														<svg className="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-5V9m0 0V7m0 2h2M12 9H10m0 0l-3.5-7h7L10 9z" />
-														</svg>
-													</div>
-												</div>
-												<div className="flex-1">
-													<h4 className="text-orange-300 font-medium text-sm mb-2">
-														Setup Required: Configure API Key First
-													</h4>
-													<p className="text-gray-300 text-sm mb-4 leading-relaxed">
-														To ensure optimal performance and cost control, please configure your custom OpenAI API key before uploading files. 
-														This prevents usage of global API limits and gives you full control over your bot's processing.
-													</p>
-													
-													<div className="space-y-3">
-														<div className="flex items-center space-x-2 text-sm">
-															<span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-medium">1</span>
-															<span className="text-gray-200">
-																Switch to the <span className="text-orange-300 font-medium">"API Configuration"</span> tab above
-															</span>
-														</div>
-														<div className="flex items-center space-x-2 text-sm">
-															<span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-medium">2</span>
-															<span className="text-gray-200">
-																Enter your OpenAI API key and save
-															</span>
-														</div>
-														<div className="flex items-center space-x-2 text-sm">
-															<span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-medium">3</span>
-															<span className="text-gray-200">
-																Return here to upload and process your files
-															</span>
-														</div>
-													</div>
-													
-													<div className="mt-4 pt-4 border-t border-gray-700">
-														<button
-															onClick={() => setActiveTab('api-config')}
-															className="inline-flex items-center px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors">
-															<svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-																<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+									{(!apiKeyStatus.hasCustomKey ||
+										!['valid'].includes(apiKeyStatus.keyStatus)) &&
+										!apiKeyStatus.loading && (
+											<div className="bg-gradient-to-r from-orange-900/20 to-blue-900/20 border-l-4 border-orange-500 rounded-lg p-6">
+												<div className="flex items-start space-x-3">
+													<div className="flex-shrink-0">
+														<div className="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center">
+															<svg
+																className="w-4 h-4 text-orange-400"
+																fill="none"
+																stroke="currentColor"
+																viewBox="0 0 24 24">
+																<path
+																	strokeLinecap="round"
+																	strokeLinejoin="round"
+																	strokeWidth={2}
+																	d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-5V9m0 0V7m0 2h2M12 9H10m0 0l-3.5-7h7L10 9z"
+																/>
 															</svg>
-															Configure API Key
-														</button>
-														
-														<p className="text-xs text-gray-400 mt-2">
-															Need help getting an API key? 
-															<a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:text-orange-300 ml-1">
-																Get your OpenAI API key here →
-															</a>
+														</div>
+													</div>
+													<div className="flex-1">
+														<h4 className="text-orange-300 font-medium text-sm mb-2">
+															Setup Required: Configure API Key First
+														</h4>
+														<p className="text-gray-300 text-sm mb-4 leading-relaxed">
+															To ensure optimal performance and cost control,
+															please configure your custom OpenAI API key before
+															uploading files. This prevents usage of global API
+															limits and gives you full control over your bot's
+															processing.
 														</p>
+
+														<div className="space-y-3">
+															<div className="flex items-center space-x-2 text-sm">
+																<span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
+																	1
+																</span>
+																<span className="text-gray-200">
+																	Switch to the{' '}
+																	<span className="text-orange-300 font-medium">
+																		"API Configuration"
+																	</span>{' '}
+																	tab above
+																</span>
+															</div>
+															<div className="flex items-center space-x-2 text-sm">
+																<span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
+																	2
+																</span>
+																<span className="text-gray-200">
+																	Enter your OpenAI API key and save
+																</span>
+															</div>
+															<div className="flex items-center space-x-2 text-sm">
+																<span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
+																	3
+																</span>
+																<span className="text-gray-200">
+																	Return here to upload and process your files
+																</span>
+															</div>
+														</div>
+
+														<div className="mt-4 pt-4 border-t border-gray-700">
+															<button
+																onClick={() => setActiveTab('api-config')}
+																className="inline-flex items-center px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors">
+																<svg
+																	className="w-4 h-4 mr-2"
+																	fill="none"
+																	stroke="currentColor"
+																	viewBox="0 0 24 24">
+																	<path
+																		strokeLinecap="round"
+																		strokeLinejoin="round"
+																		strokeWidth={2}
+																		d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+																	/>
+																	<path
+																		strokeLinecap="round"
+																		strokeLinejoin="round"
+																		strokeWidth={2}
+																		d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+																	/>
+																</svg>
+																Configure API Key
+															</button>
+
+															<p className="text-xs text-gray-400 mt-2">
+																Need help getting an API key?
+																<a
+																	href="https://platform.openai.com/api-keys"
+																	target="_blank"
+																	rel="noopener noreferrer"
+																	className="text-orange-400 hover:text-orange-300 ml-1">
+																	Get your OpenAI API key here →
+																</a>
+															</p>
+														</div>
 													</div>
 												</div>
 											</div>
-										</div>
-									)}
-									
+										)}
+
 									{/* Show loading state */}
 									{apiKeyStatus.loading && (
 										<div className="bg-gray-800 rounded-lg p-6 text-center">
 											<LoadingSpinner className="w-6 h-6 text-orange-400 mx-auto mb-2" />
-											<p className="text-gray-400 text-sm">Checking API key configuration...</p>
+											<p className="text-gray-400 text-sm">
+												Checking API key configuration...
+											</p>
 										</div>
 									)}
-									
+
 									{/* Show FileUpload when API key is configured */}
-									{apiKeyStatus.hasCustomKey && apiKeyStatus.keyStatus === 'valid' && !apiKeyStatus.loading && (
-										<>
-											<div className="bg-green-900/20 border border-green-700/30 rounded-lg p-4 mb-4">
-												<div className="flex items-center space-x-2">
-													<div className="w-5 h-5 bg-green-500/20 rounded-full flex items-center justify-center">
-														<svg className="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-														</svg>
+									{apiKeyStatus.hasCustomKey &&
+										apiKeyStatus.keyStatus === 'valid' &&
+										!apiKeyStatus.loading && (
+											<>
+												<div className="bg-green-900/20 border border-green-700/30 rounded-lg p-4 mb-4">
+													<div className="flex items-center space-x-2">
+														<div className="w-5 h-5 bg-green-500/20 rounded-full flex items-center justify-center">
+															<svg
+																className="w-3 h-3 text-green-400"
+																fill="none"
+																stroke="currentColor"
+																viewBox="0 0 24 24">
+																<path
+																	strokeLinecap="round"
+																	strokeLinejoin="round"
+																	strokeWidth={2}
+																	d="M5 13l4 4L19 7"
+																/>
+															</svg>
+														</div>
+														<p className="text-green-300 text-sm font-medium">
+															✓ API Key Configured - Ready for file uploads
+														</p>
 													</div>
-													<p className="text-green-300 text-sm font-medium">
-														✓ API Key Configured - Ready for file uploads
-													</p>
 												</div>
-											</div>
-											
-											<FileUpload
-												onFilesUploaded={handleFilesUploaded}
-												maxFiles={5}
-												disabled={uploading}
-												className="border-gray-700 bg-gray-800"
-											/>
-											{queuedFiles.length === 0 && (
-												<p className="text-sm text-gray-500 mt-2">
-													Files will be added to upload queue. Click "Start Upload" to process them.
-												</p>
-											)}
-										</>
-									)}
+
+												<FileUpload
+													onFilesUploaded={handleFilesUploaded}
+													maxFiles={5}
+													disabled={uploading}
+													className="border-gray-700 bg-gray-800"
+												/>
+												{queuedFiles.length === 0 && (
+													<p className="text-sm text-gray-500 mt-2">
+														Files will be added to upload queue. Click "Start
+														Upload" to process them.
+													</p>
+												)}
+											</>
+										)}
 								</div>
 							</div>
 
@@ -1072,39 +1165,58 @@ export default function BotDetail({ params }) {
 						<div className="lg:col-span-12 space-y-6">
 							<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
 								<div className="mb-4">
-									<h2 className="text-lg font-medium text-white mb-2">API Configuration</h2>
+									<h2 className="text-lg font-medium text-white mb-2">
+										API Configuration
+									</h2>
 									<p className="text-sm text-gray-400">
-										Configure your custom OpenAI API key to enable file uploads and ensure optimal performance.
+										Configure your custom OpenAI API key to enable file uploads
+										and ensure optimal performance.
 									</p>
 								</div>
-								<APIKeyManager botId={bot.id} onKeyUpdate={handleApiKeyUpdate} />
+								<APIKeyManager
+									botId={bot.id}
+									onKeyUpdate={handleApiKeyUpdate}
+								/>
 							</div>
-							
+
 							{/* Return to Files Helper */}
-							{apiKeyStatus.hasCustomKey && apiKeyStatus.keyStatus === 'valid' && (
-								<div className="bg-green-900/20 border border-green-700/30 rounded-lg p-6">
-									<div className="flex items-center justify-between">
-										<div className="flex items-center space-x-3">
-											<div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
-												<svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-												</svg>
+							{apiKeyStatus.hasCustomKey &&
+								apiKeyStatus.keyStatus === 'valid' && (
+									<div className="bg-green-900/20 border border-green-700/30 rounded-lg p-6">
+										<div className="flex items-center justify-between">
+											<div className="flex items-center space-x-3">
+												<div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
+													<svg
+														className="w-4 h-4 text-green-400"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24">
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth={2}
+															d="M5 13l4 4L19 7"
+														/>
+													</svg>
+												</div>
+												<div>
+													<h3 className="text-green-300 font-medium">
+														API Key Successfully Configured!
+													</h3>
+													<p className="text-green-200/80 text-sm mt-1">
+														You can now upload files and process content for
+														your bot.
+													</p>
+												</div>
 											</div>
-											<div>
-												<h3 className="text-green-300 font-medium">API Key Successfully Configured!</h3>
-												<p className="text-green-200/80 text-sm mt-1">
-													You can now upload files and process content for your bot.
-												</p>
-											</div>
+											<button
+												onClick={() => setActiveTab('overview')}
+												className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+												Upload Files →
+											</button>
 										</div>
-										<button
-											onClick={() => setActiveTab('overview')}
-											className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-											Upload Files →
-										</button>
 									</div>
-								</div>
-							)}
+								)}
 						</div>
 					)}
 
@@ -1117,30 +1229,42 @@ export default function BotDetail({ params }) {
 									<p className="text-sm text-gray-400 mt-1">
 										Test your bot's responses and functionality
 									</p>
-									
+
 									{/* API Key Warning */}
-									{(!apiKeyStatus.hasCustomKey || apiKeyStatus.keyStatus !== 'valid') && !apiKeyStatus.loading && (
-										<div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-3 mt-3">
-											<div className="flex items-center space-x-2">
-												<svg className="w-4 h-4 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L1.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-												</svg>
-												<div className="flex-1">
-													<p className="text-yellow-300 text-sm font-medium">
-														Limited functionality without API key
-													</p>
-													<p className="text-yellow-200/80 text-xs mt-1">
-														Chat will use global API limits. Configure your API key for full functionality.
-													</p>
+									{(!apiKeyStatus.hasCustomKey ||
+										apiKeyStatus.keyStatus !== 'valid') &&
+										!apiKeyStatus.loading && (
+											<div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-3 mt-3">
+												<div className="flex items-center space-x-2">
+													<svg
+														className="w-4 h-4 text-yellow-400 flex-shrink-0"
+														fill="none"
+														stroke="currentColor"
+														viewBox="0 0 24 24">
+														<path
+															strokeLinecap="round"
+															strokeLinejoin="round"
+															strokeWidth={2}
+															d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L1.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+														/>
+													</svg>
+													<div className="flex-1">
+														<p className="text-yellow-300 text-sm font-medium">
+															Limited functionality without API key
+														</p>
+														<p className="text-yellow-200/80 text-xs mt-1">
+															Chat will use global API limits. Configure your
+															API key for full functionality.
+														</p>
+													</div>
+													<button
+														onClick={() => setActiveTab('api-config')}
+														className="text-yellow-300 hover:text-yellow-200 text-xs font-medium">
+														Configure →
+													</button>
 												</div>
-												<button
-													onClick={() => setActiveTab('api-config')}
-													className="text-yellow-300 hover:text-yellow-200 text-xs font-medium">
-													Configure →
-												</button>
 											</div>
-										</div>
-									)}
+										)}
 								</div>
 								<div className="flex-1">
 									<ChatInterface botId={bot.id} botName={bot.name} />

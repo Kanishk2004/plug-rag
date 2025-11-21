@@ -78,17 +78,17 @@ const SourceDisplay = ({ sources = [] }) => {
 				maxScore: source.score || 0,
 			};
 		}
-		
+
 		// Add page number if it exists
 		if (source.pageNumber) {
 			acc[fileName].pageNumbers.add(source.pageNumber);
 		}
-		
+
 		// Keep track of the highest score for this file
 		if (source.score && source.score > acc[fileName].maxScore) {
 			acc[fileName].maxScore = source.score;
 		}
-		
+
 		return acc;
 	}, {});
 
@@ -102,15 +102,20 @@ const SourceDisplay = ({ sources = [] }) => {
 			<div className="text-xs text-gray-400 font-medium">Sources:</div>
 			<div className="space-y-1">
 				{deduplicatedSources.map((source, index) => {
-					const pageNumbers = Array.from(source.pageNumbers).sort((a, b) => a - b);
-					const pageText = pageNumbers.length > 0 
-						? pageNumbers.length === 1 
-							? ` (Page ${pageNumbers[0]})`
-							: pageNumbers.length <= 3
+					const pageNumbers = Array.from(source.pageNumbers).sort(
+						(a, b) => a - b
+					);
+					const pageText =
+						pageNumbers.length > 0
+							? pageNumbers.length === 1
+								? ` (Page ${pageNumbers[0]})`
+								: pageNumbers.length <= 3
 								? ` (Pages ${pageNumbers.join(', ')})`
-								: ` (Pages ${pageNumbers.slice(0, 2).join(', ')}, +${pageNumbers.length - 2} more)`
-						: '';
-					
+								: ` (Pages ${pageNumbers.slice(0, 2).join(', ')}, +${
+										pageNumbers.length - 2
+								  } more)`
+							: '';
+
 					return (
 						<div
 							key={index}
@@ -118,7 +123,8 @@ const SourceDisplay = ({ sources = [] }) => {
 							<div className="flex items-center space-x-2 flex-1 min-w-0">
 								<FileIcon className="w-3 h-3 text-gray-400 flex-shrink-0" />
 								<span className="text-gray-300 truncate">
-									{source.fileName}{pageText}
+									{source.fileName}
+									{pageText}
 								</span>
 							</div>
 							{source.maxScore > 0 && (
@@ -249,16 +255,17 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 				setChatSession(session);
 
 				const sessionInfo = session.getSessionInfo();
-				
+
 				// Validate session has required properties
 				if (!sessionInfo.sessionId || !sessionInfo.botId) {
-					throw new Error('Invalid session created - missing required properties');
+					throw new Error(
+						'Invalid session created - missing required properties'
+					);
 				}
 
 				// For fresh sessions, we don't need to load history since it will be empty
 				// Just set empty messages array
 				setMessages([]);
-
 			} catch (error) {
 				console.error('Error initializing chat:', error);
 				setError('Failed to initialize chat. Please refresh the page.');
@@ -308,7 +315,7 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 					sources: response.data.sources || [],
 					responseTime: response.data.responseTime,
 					tokensUsed: response.data.tokensUsed,
-					hasRelevantContext: response.data.hasRelevantContext
+					hasRelevantContext: response.data.hasRelevantContext,
 				};
 
 				setMessages((prev) => [...prev, assistantMessage]);
@@ -374,9 +381,9 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 
 	// Suggested questions for initial conversation
 	const suggestedQuestions = [
-		"What can you help me with?",
-		"Tell me about the uploaded documents",
-		"How does this bot work?",
+		'What can you help me with?',
+		'Tell me about the uploaded documents',
+		'How does this bot work?',
 	];
 
 	if (isInitialLoading) {
@@ -439,8 +446,8 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 						/>
 					</div>
 				) : (
-				<>
-					{messages.map((message) => (
+					<>
+						{messages.map((message) => (
 							<MessageBubble
 								key={message.id}
 								message={message.content}
@@ -448,7 +455,7 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 								sources={message.sources}
 							/>
 						))}
-				</>
+					</>
 				)}
 
 				{/* Loading indicator */}

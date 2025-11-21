@@ -135,7 +135,6 @@ export async function POST(request) {
 			// Initialize counters
 			fileCount: 0,
 			totalTokens: 0,
-			isEmbeddingComplete: true,
 		});
 
 		// Step 8: Save bot to database
@@ -291,13 +290,18 @@ export async function GET(request) {
 					botKey: 1,
 					status: 1,
 					fileCount: 1,
-					totalTokens: 1,
 					customization: 1,
 					createdAt: 1,
 					updatedAt: 1,
+					// Legacy fields (for fallback)
+					totalTokens: 1,
+					totalMessages: 1,
+					totalEmbeddings: 1,
+					// New analytics object
 					'analytics.totalMessages': 1,
 					'analytics.totalSessions': 1,
 					'analytics.totalTokensUsed': 1,
+					'analytics.totalEmbeddings': 1,
 					'analytics.lastActiveAt': 1,
 				})
 				.sort({ createdAt: -1 }) // Newest first
@@ -317,9 +321,24 @@ export async function GET(request) {
 			botKey: bot.botKey,
 			status: bot.status,
 			fileCount: bot.fileCount || 0,
+
+			// Standardized analytics object with legacy fallback
+			analytics: {
+				totalTokensUsed: bot.analytics?.totalTokensUsed || bot.totalTokens || 0,
+				totalMessages: bot.analytics?.totalMessages || bot.totalMessages || 0,
+				totalSessions: bot.analytics?.totalSessions || 0,
+				totalEmbeddings:
+					bot.analytics?.totalEmbeddings || bot.totalEmbeddings || 0,
+				lastActiveAt: bot.analytics?.lastActiveAt || bot.updatedAt,
+			},
+
+			// Legacy fields for backward compatibility
 			totalTokens: bot.analytics?.totalTokensUsed || bot.totalTokens || 0,
 			totalMessages: bot.analytics?.totalMessages || bot.totalMessages || 0,
+			totalEmbeddings:
+				bot.analytics?.totalEmbeddings || bot.totalEmbeddings || 0,
 			lastActiveAt: bot.analytics?.lastActiveAt || bot.lastActiveAt,
+
 			customization: bot.customization,
 			createdAt: bot.createdAt,
 			updatedAt: bot.updatedAt,

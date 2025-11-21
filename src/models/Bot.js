@@ -191,21 +191,7 @@ const botSchema = new mongoose.Schema(
 						enum: ['text-embedding-3-small', 'text-embedding-3-large']
 					}
 				},
-				// Cost tracking
-				costTracking: {
-					enabled: {
-						type: Boolean,
-						default: true
-					},
-					monthlyLimit: {
-						type: Number,
-						default: null // No limit by default
-					},
-					currentSpend: {
-						type: Number,
-						default: 0
-					}
-				}
+				
 			},
 			
 			// Fallback configuration
@@ -223,10 +209,6 @@ const botSchema = new mongoose.Schema(
 		totalTokens: {
 			type: Number,
 			default: 0,
-		},
-		isEmbeddingComplete: {
-			type: Boolean,
-			default: true,
 		},
 	},
 	{ timestamps: true }

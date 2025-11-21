@@ -173,11 +173,16 @@ export async function POST(request) {
 				{
 					$inc: {
 						fileCount: 1,
+						// Update analytics fields (new structure)
+						'analytics.totalEmbeddings': result.vectorsCreated || 0,
+						'analytics.totalTokensUsed': result.tokensUsed || 0,
+						// Update legacy fields for backward compatibility
 						totalTokens: result.tokensUsed || 0,
 						totalEmbeddings: result.vectorsCreated || 0,
 					},
 					$set: {
 						updatedAt: new Date(),
+						'analytics.lastActiveAt': new Date(),
 					},
 				}
 			);

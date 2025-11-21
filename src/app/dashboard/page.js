@@ -1,6 +1,6 @@
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
-import { checkUserExists, asyncSyncUser } from '@/lib/user';
+import { checkUserExists, syncUserWithDB } from '@/lib/user';
 import { currentUser } from '@clerk/nextjs/server';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -21,8 +21,8 @@ export default async function Dashboard() {
 	const userExists = await checkUserExists(user.id);
 
 	if (!userExists) {
-		// Create user in background without blocking UI
-		asyncSyncUser(user.id);
+		// Create user synchronously to ensure it exists
+		await syncUserWithDB(user.id);
 	}
 
 	// Fetch dashboard data

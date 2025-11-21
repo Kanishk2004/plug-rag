@@ -54,32 +54,35 @@ ASSISTANT RESPONSE:`);
 	async getOpenAIConfig(botId, userId) {
 		try {
 			const keyData = await apiKeyService.getApiKey(botId, userId);
-			
+
 			return {
 				apiKey: keyData.apiKey,
 				isCustom: keyData.isCustom,
 				source: keyData.source,
 				models: keyData.models || {
 					chat: 'gpt-4',
-					embeddings: 'text-embedding-3-small'
-				}
+					embeddings: 'text-embedding-3-small',
+				},
 			};
-			
 		} catch (error) {
 			// Fallback to global key if configured
 			if (process.env.OPENAI_API_KEY) {
-				console.warn(`[RAGService] Using global API key fallback for bot ${botId}: ${error.message}`);
+				console.warn(
+					`[RAGService] Using global API key fallback for bot ${botId}: ${error.message}`
+				);
 				return {
 					apiKey: process.env.OPENAI_API_KEY,
 					isCustom: false,
 					source: 'global_fallback',
 					models: {
 						chat: 'gpt-4',
-						embeddings: 'text-embedding-3-small'
-					}
+						embeddings: 'text-embedding-3-small',
+					},
 				};
 			}
-			throw new Error(`No OpenAI API key available for bot ${botId}: ${error.message}`);
+			throw new Error(
+				`No OpenAI API key available for bot ${botId}: ${error.message}`
+			);
 		}
 	}
 
@@ -91,13 +94,13 @@ ASSISTANT RESPONSE:`);
 	 */
 	async createLLM(botId, userId) {
 		const config = await this.getOpenAIConfig(botId, userId);
-		
+
 		return new ChatOpenAI({
 			model: config.models.chat,
 			temperature: 0.3,
 			maxTokens: 1000,
-			apiKey: config.apiKey,        // Try this parameter name
-			openAIApiKey: config.apiKey,  // And also this one
+			apiKey: config.apiKey, // Try this parameter name
+			openAIApiKey: config.apiKey, // And also this one
 		});
 	}
 
@@ -109,7 +112,7 @@ ASSISTANT RESPONSE:`);
 	 */
 	async createEmbeddings(botId, userId) {
 		const config = await this.getOpenAIConfig(botId, userId);
-		
+
 		return new OpenAIEmbeddings({
 			model: config.models.embeddings,
 			openAIApiKey: config.apiKey,
@@ -139,7 +142,7 @@ ASSISTANT RESPONSE:`);
 	 * @param {number} topK - Number of documents to retrieve
 	 * @returns {Promise<Array>} Relevant document chunks
 	 */
-	async getRelevantDocuments(botId, userId, query, topK = 4) {
+	async getRelevantDocuments(botId, userId, query, topK = 2) {
 		try {
 			// Check if collection exists
 			const exists = await this.collectionExists(botId);
@@ -235,7 +238,12 @@ ASSISTANT RESPONSE:`);
 			}
 
 			// Step 1: Retrieve relevant documents with dynamic embeddings
-			const relevantDocs = await this.getRelevantDocuments(botId, bot.ownerId, userQuery, 4);
+			const relevantDocs = await this.getRelevantDocuments(
+				botId,
+				bot.ownerId,
+				userQuery,
+				4
+			);
 
 			// Step 2: Format context and chat history
 			const context = this.formatDocumentsAsContext(relevantDocs);
@@ -244,10 +252,12 @@ ASSISTANT RESPONSE:`);
 			// Step 3: Check if we have relevant context
 			if (relevantDocs.length === 0) {
 				const fallbackResponse = this.generateFallbackResponse(botInfo.name);
+				const fallbackTokens = Math.ceil(fallbackResponse.length * 0.75);
 				return {
 					content: fallbackResponse,
 					sources: [],
 					responseTime: Date.now() - startTime,
+					tokensUsed: fallbackTokens,
 					model: 'fallback',
 					hasRelevantContext: false,
 				};
@@ -270,9 +280,11 @@ ASSISTANT RESPONSE:`);
 
 			// Step 6: Generate response
 			const response = await ragChain.invoke({ question: userQuery });
-			
+
 			// Step 6.1: Remove source citations from the response text
-			const cleanResponse = response.replace(/\s*\[Source \d+:[^\]]+\]\s*/g, '').trim();
+			const cleanResponse = response
+				.replace(/\s*\[Source \d+:[^\]]+\]\s*/g, '')
+				.trim();
 
 			// Step 7: Extract source information
 			const sources = relevantDocs.map((doc) => ({
@@ -286,11 +298,14 @@ ASSISTANT RESPONSE:`);
 			// Step 8: Calculate response time and prepare usage tracking
 			const responseTime = Date.now() - startTime;
 			
-			// Step 9: Track usage for cost management (async, don't block response)
+			// Step 9: Estimate token usage (rough estimation)
+			const estimatedTokens = Math.ceil(cleanResponse.length * 0.75); // Rough estimation: ~0.75 tokens per character
+
+			// Step 10: Track usage for cost management (async, don't block response)
 			this.trackUsage(botId, bot.ownerId, {
-				chatTokens: response.length, // Rough estimation - could be improved with tiktoken
-				totalTokens: response.length
-			}).catch(error => {
+				chatTokens: estimatedTokens,
+				totalTokens: estimatedTokens,
+			}).catch((error) => {
 				console.warn('Failed to track usage:', error);
 			});
 
@@ -298,21 +313,23 @@ ASSISTANT RESPONSE:`);
 				content: cleanResponse,
 				sources: sources,
 				responseTime: responseTime,
+				tokensUsed: estimatedTokens,
 				model: llm.modelName,
 				hasRelevantContext: true,
-				apiSource: (await this.getOpenAIConfig(botId, bot.ownerId)).source
+				apiSource: (await this.getOpenAIConfig(botId, bot.ownerId)).source,
 			};
-
 		} catch (error) {
 			console.error('RAG generation error:', error);
 
 			// Return error fallback
 			const fallbackResponse = `I apologize, but I encountered an error while processing your question. Please try again later.`;
+			const fallbackTokens = Math.ceil(fallbackResponse.length * 0.75);
 
 			return {
 				content: fallbackResponse,
 				sources: [],
 				responseTime: 1000,
+				tokensUsed: fallbackTokens,
 				model: 'error-fallback',
 				hasRelevantContext: false,
 				error: error.message,

@@ -25,23 +25,6 @@ const userSchema = new mongoose.Schema(
 			enum: ['free', 'pro', 'enterprise'],
 			default: 'free',
 		},
-		subscription: {
-			status: {
-				type: String,
-				enum: ['active', 'inactive', 'cancelled', 'past_due'],
-				default: 'inactive',
-			},
-			stripeCustomerId: {
-				type: String,
-				sparse: true,
-			},
-			stripeSubscriptionId: {
-				type: String,
-				sparse: true,
-			},
-			currentPeriodStart: Date,
-			currentPeriodEnd: Date,
-		},
 		usage: {
 			botsCreated: {
 				type: Number,

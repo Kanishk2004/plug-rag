@@ -110,18 +110,20 @@ export async function GET(request, { params }) {
       totalSize: stats.totalSize,
       totalChunks: stats.totalChunks,
       
-      // Use stored analytics for consistency
+      // Use stored analytics for consistency, with legacy fallback
       analytics: {
-        totalTokensUsed: bot.analytics?.totalTokensUsed || 0,
-        totalMessages: bot.analytics?.totalMessages || 0,
+        totalTokensUsed: bot.analytics?.totalTokensUsed || bot.totalTokens || 0,
+        totalMessages: bot.analytics?.totalMessages || bot.totalMessages || 0,
         totalSessions: bot.analytics?.totalSessions || 0,
-        totalEmbeddings: bot.analytics?.totalEmbeddings || 0,
+        totalEmbeddings: bot.analytics?.totalEmbeddings || bot.totalEmbeddings || 0,
         lastActiveAt: bot.analytics?.lastActiveAt || bot.updatedAt,
       },
       
       // Legacy fields for backward compatibility
-      totalTokens: bot.analytics?.totalTokensUsed || 0,
-      totalMessages: bot.analytics?.totalMessages || 0,
+      totalTokens: bot.analytics?.totalTokensUsed || bot.totalTokens || 0,
+      totalMessages: bot.analytics?.totalMessages || bot.totalMessages || 0,
+      totalEmbeddings: bot.analytics?.totalEmbeddings || bot.totalEmbeddings || 0,
+      lastActiveAt: bot.analytics?.lastActiveAt || bot.updatedAt,
       lastActiveAt: bot.analytics?.lastActiveAt || bot.updatedAt,
       
       customization: bot.customization || {},
@@ -130,6 +132,16 @@ export async function GET(request, { params }) {
       createdAt: bot.createdAt,
       updatedAt: bot.updatedAt
     };
+
+    // Debug: Log the final response data
+    console.log('📤 Final API response analytics:', {
+      analytics: botData.analytics,
+      legacyFields: {
+        totalTokens: botData.totalTokens,
+        totalMessages: botData.totalMessages,
+        totalEmbeddings: botData.totalEmbeddings
+      }
+    });
 
     return apiSuccess(botData, 'Bot details retrieved successfully');
 
