@@ -8,3 +8,7 @@ export { default as AnalyticsIcon } from './AnalyticsIcon';
 export { default as XIcon } from './XIcon';
 export { default as CodeIcon } from './CodeIcon';
 export { default as ActivityIcon } from './ActivityIcon';
+export { default as FileIcon } from './FileIcon';
+export { default as LoadingSpinner } from './LoadingSpinner';
+export { default as SearchIcon } from './SearchIcon';
+export { default as RefreshIcon } from './RefreshIcon';
