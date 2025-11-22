@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { validateOpenAIKey } from '@/lib/openaiValidator.js';
+import { validateOpenAIKey } from '@/lib/integrations/openai.js';
 import {
   apiSuccess,
   authError,
   validationError,
   serverError
-} from '@/lib/apiResponse';
+} from '@/lib/utils/apiResponse';
 
 /**
  * POST /api/bots/[id]/api-keys/validate - Validate API key without storing

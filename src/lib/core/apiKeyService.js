@@ -1,7 +1,7 @@
-import { encrypt, decrypt } from './encryption.js';
-import { validateOpenAIKey } from './openaiValidator.js';
+import { encrypt, decrypt } from '../utils/encryption.js';
+import { validateOpenAIKey } from '../integrations/openai.js';
 import Bot from '@/models/Bot.js';
-import connectDB from '@/lib/mongo.js';
+import connectDB from '../integrations/mongo.js';
 
 /**
  * API Key Management Service

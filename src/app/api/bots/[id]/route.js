@@ -1,8 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
-import connectDB from '@/lib/mongo';
+import connectDB from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
 import File from '@/models/File';
-import { getCurrentDBUser, syncUserWithDB } from '@/lib/user';
+import { getCurrentDBUser, syncUserWithDB } from '@/lib/integrations/clerk';
 import { 
   apiSuccess, 
   authError, 
@@ -10,7 +10,7 @@ import {
   forbiddenError,
   serverError,
   validationError
-} from '@/lib/apiResponse';
+} from '@/lib/utils/apiResponse';
 import mongoose from 'mongoose';
 
 /**

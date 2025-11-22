@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { botAPI, apiUtils } from '@/lib/api';
+import { botAPI, apiUtils } from '@/lib/clientAPI';
 
 export default function CreateBot() {
 	const router = useRouter();

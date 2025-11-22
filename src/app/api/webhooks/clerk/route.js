@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Webhook } from 'svix';
-import connectDB from '@/lib/mongo';
+import connectDB from '@/lib/integrations/mongo';
 import User from '@/models/User.js';
 import Bot from '@/models/Bot.js';
 import File from '@/models/File.js';

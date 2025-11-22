@@ -13,14 +13,15 @@
  */
 
 import { auth } from '@clerk/nextjs/server';
-import connectDB from '@/lib/mongo';
+import connectDB from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
+import { botService } from '@/lib/core/botService';
 import {
 	getCurrentDBUser,
 	syncUserWithDB,
 	updateUserUsage,
 	checkUserLimitsFromUser,
-} from '@/lib/user';
+} from '@/lib/integrations/clerk';
 import {
 	apiSuccess,
 	authError,
@@ -29,7 +30,7 @@ import {
 	validationError,
 	paginatedResponse,
 	forbiddenError,
-} from '@/lib/apiResponse';
+} from '@/lib/utils/apiResponse';
 
 /**
  * POST /api/bots - Create a new bot

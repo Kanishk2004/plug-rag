@@ -1,9 +1,24 @@
 import OpenAI from 'openai';
+import { logInfo, logError } from '../utils/logger.js';
 
 /**
- * OpenAI API Key Validator Service
- * Tests API key validity and capabilities before storage
+ * OpenAI API Integration Service
+ * Handles OpenAI API interactions, key validation, and model testing
  */
+
+/**
+ * Create OpenAI client instance
+ * @param {string} apiKey - OpenAI API key
+ * @param {Object} options - Client options
+ * @returns {OpenAI} OpenAI client instance
+ */
+export function createOpenAIClient(apiKey, options = {}) {
+  return new OpenAI({
+    apiKey,
+    timeout: options.timeout || 30000,
+    ...options
+  });
+}
 
 /**
  * Test OpenAI API key validity and supported features
@@ -14,10 +29,9 @@ import OpenAI from 'openai';
 export async function validateOpenAIKey(apiKey) {
 	try {
 		// Create OpenAI client with the provided key
-		const client = new OpenAI({
-			apiKey,
-			timeout: 10000, // 10 second timeout for validation
-		});
+		const client = createOpenAIClient(apiKey, { timeout: 10000 });
+
+		logInfo('Validating OpenAI API key', { keyHash: apiKey.substring(0, 7) + '...' });
 
 		// Test 1: List available models to verify key validity
 		const modelsResponse = await client.models.list();
@@ -67,6 +81,12 @@ export async function validateOpenAIKey(apiKey) {
 				: null,
 		};
 
+		logInfo('OpenAI key validation successful', {
+			modelsCount: availableModels.length,
+			chatModels: supportedModels.chat.length,
+			embeddingModels: supportedModels.embeddings.length
+		});
+
 		return {
 			isValid: true,
 			supportedModels,
@@ -81,6 +101,12 @@ export async function validateOpenAIKey(apiKey) {
 	} catch (error) {
 		// Parse OpenAI error responses for user-friendly messages
 		const validationError = parseOpenAIError(error);
+
+		logError('OpenAI key validation failed', {
+			error: validationError.message,
+			code: validationError.code,
+			status: error.status
+		});
 
 		return {
 			isValid: false,
@@ -164,7 +190,9 @@ function parseOpenAIError(error) {
  */
 export async function testModelAvailability(apiKey, modelName) {
 	try {
-		const client = new OpenAI({ apiKey });
+		const client = createOpenAIClient(apiKey);
+
+		logInfo('Testing model availability', { modelName });
 
 		// Test based on model type
 		if (modelName.includes('embedding')) {
@@ -183,7 +211,7 @@ export async function testModelAvailability(apiKey, modelName) {
 			return result.choices && result.choices.length > 0;
 		}
 	} catch (error) {
-		console.warn(`Model ${modelName} not available:`, error.message);
+		logError('Model availability test failed', { modelName, error: error.message });
 		return false;
 	}
 }
@@ -207,4 +235,64 @@ export function getModelPricing(modelName) {
 	};
 
 	return pricing[modelName] || { input: 0, output: 0, unknown: true };
+}
+
+/**
+ * Generate chat completion using OpenAI
+ * @param {string} apiKey - OpenAI API key
+ * @param {Object} params - Chat completion parameters
+ * @returns {Promise<Object>} Chat completion response
+ */
+export async function generateChatCompletion(apiKey, params) {
+	try {
+		const client = createOpenAIClient(apiKey);
+		
+		const completion = await client.chat.completions.create({
+			model: 'gpt-3.5-turbo',
+			max_tokens: 1500,
+			temperature: 0.7,
+			...params
+		});
+
+		logInfo('Chat completion generated', {
+			model: params.model || 'gpt-3.5-turbo',
+			tokensUsed: completion.usage?.total_tokens || 0
+		});
+
+		return completion;
+	} catch (error) {
+		logError('Chat completion failed', { error: error.message });
+		throw parseOpenAIError(error);
+	}
+}
+
+/**
+ * Generate embeddings using OpenAI
+ * @param {string} apiKey - OpenAI API key
+ * @param {string|Array} input - Text input(s) to embed
+ * @param {Object} options - Embedding options
+ * @returns {Promise<Array>} Array of embedding vectors
+ */
+export async function generateEmbeddings(apiKey, input, options = {}) {
+	try {
+		const client = createOpenAIClient(apiKey);
+		
+		const response = await client.embeddings.create({
+			model: 'text-embedding-3-small',
+			input,
+			encoding_format: 'float',
+			...options
+		});
+
+		logInfo('Embeddings generated', {
+			model: options.model || 'text-embedding-3-small',
+			inputCount: Array.isArray(input) ? input.length : 1,
+			tokensUsed: response.usage?.total_tokens || 0
+		});
+
+		return response.data.map(item => item.embedding);
+	} catch (error) {
+		logError('Embedding generation failed', { error: error.message });
+		throw parseOpenAIError(error);
+	}
 }

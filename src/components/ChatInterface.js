@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { ChatSession } from '@/lib/sessionUtils';
+import { ChatSession } from '@/lib/utils/sessionUtils';
 
 // Icons
 const SendIcon = ({ className }) => (

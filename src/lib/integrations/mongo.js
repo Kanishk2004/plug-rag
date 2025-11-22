@@ -48,3 +48,16 @@ const connect = async () => {
 };
 
 export default connect;
+
+/**
+ * Alternative export for database connection with error handling
+ * Returns both connection and database instance
+ * @returns {Promise<{conn: mongoose.Connection, db: mongoose.Connection.db}>}
+ */
+export async function connectToDatabase() {
+  const conn = await connect();
+  return {
+    conn,
+    db: conn.connection.db
+  };
+}

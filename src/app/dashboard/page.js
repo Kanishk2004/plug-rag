@@ -1,10 +1,10 @@
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
-import { checkUserExists, syncUserWithDB } from '@/lib/user';
+import { checkUserExists, syncUserWithDB } from '@/lib/integrations/clerk';
 import { currentUser } from '@clerk/nextjs/server';
 import Image from 'next/image';
 import Link from 'next/link';
-import connect from '@/lib/mongo';
+import connectDB from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
 import Conversation from '@/models/Conversation';
 
@@ -43,7 +43,7 @@ export default async function Dashboard() {
 	};
 
 	try {
-		await connect();
+		await connectDB();
 
 		// Get user's bots (using ownerId instead of userId)
 		const userBots = await Bot.find({ ownerId: user.id })

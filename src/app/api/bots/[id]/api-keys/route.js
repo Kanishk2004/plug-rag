@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { apiKeyService } from '@/lib/apiKeyService.js';
-import { validateOpenAIKey } from '@/lib/openaiValidator.js';
-import connectDB from '@/lib/mongo';
+import { apiKeyService } from '@/lib/core/apiKeyService.js';
+import { validateOpenAIKey } from '@/lib/integrations/openai.js';
+import connectDB from '@/lib/integrations/mongo';
 import {
   apiSuccess,
   authError,
   validationError,
   notFoundError,
   serverError
-} from '@/lib/apiResponse';
+} from '@/lib/utils/apiResponse';
 
 /**
  * API Key Management Endpoints

@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/mongo';
+import connectDB from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
 import Conversation from '@/models/Conversation';
-import { ragService } from '@/lib/ragService';
+import { chatService } from '@/lib/core/chatService';
 import {
 	apiSuccess,
 	validationError,
 	notFoundError,
 	serverError,
-} from '@/lib/apiResponse';
+} from '@/lib/utils/apiResponse';
 
 // Helper function to add CORS headers
 function addCorsHeaders(response) {
@@ -81,115 +81,24 @@ export async function POST(request, { params }) {
 			return notFoundError('Bot not found or inactive');
 		}
 
-		// Get or create conversation for this session
-		let conversation = await Conversation.findOne({
-			botId: botId,
-			sessionId: sessionId,
-		});
-
-		if (!conversation) {
-			// Create new conversation for this session
-			conversation = new Conversation({
-				botId: botId,
-				sessionId: sessionId,
-				userFingerprint: userFingerprint || '',
-				userAgent: request.headers.get('user-agent') || '',
-				ipAddress:
-					request.headers.get('x-forwarded-for') ||
-					request.headers.get('x-real-ip') ||
-					'unknown',
-				domain: domain || request.headers.get('origin') || 'unknown',
-				referrer: request.headers.get('referer') || '',
-				messages: [],
-				totalMessages: 0,
-				totalTokens: 0,
-				status: 'active',
-			});
-		}
-
-		// Add user message to conversation
-		const userMessage = {
-			role: 'user',
-			content: message,
-			timestamp: new Date(),
-			tokens: 0, // Will be calculated if needed
-		};
-
-		conversation.messages.push(userMessage);
-		conversation.totalMessages += 1;
-		conversation.lastMessageAt = new Date();
-
-		// Generate AI response using RAG service
-		const botInfo = {
-			name: bot.name,
-			description: bot.description,
-		};
-
-		// Get conversation history for context (excluding current message)
-		const conversationHistory = conversation.messages.slice(0, -1);
-
-		// Generate intelligent response using vector search
-		const aiResponse = await ragService.generateResponse(
+		// Use chat service to handle message processing
+		const aiResponse = await chatService.sendMessage(
 			botId,
 			message,
-			conversationHistory,
-			botInfo
+			sessionId
 		);
-
-		// Create assistant message with AI response
-		const assistantMessage = {
-			role: 'assistant',
-			content: aiResponse.content,
-			timestamp: new Date(),
-			tokens: aiResponse.tokensUsed,
-			responseTime: aiResponse.responseTime,
-			model: aiResponse.model,
-			sources: aiResponse.sources || [],
-			hasRelevantContext: aiResponse.hasRelevantContext,
-		};
-		conversation.messages.push(assistantMessage);
-		conversation.totalMessages += 1;
-		conversation.lastMessageAt = new Date();
-
-		// Calculate total tokens for conversation
-		const totalTokensInConversation = conversation.messages.reduce(
-			(sum, msg) => sum + (msg.tokens || 0),
-			0
-		);
-		conversation.totalTokens = totalTokensInConversation;
-
-		// Save conversation
-		await conversation.save();
-
-		// Determine if this is a new session (first time this sessionId is used)
-		const isNewSession = conversation.messages.length === 2; // Only user + assistant message means new session
-
-		// Prepare bot analytics updates
-		const botUpdates = {
-			$inc: {
-				'analytics.totalMessages': 2, // user + assistant message
-				'analytics.totalTokensUsed': assistantMessage.tokens || 0,
-				...(isNewSession && { 'analytics.totalSessions': 1 }),
-			},
-			$set: {
-				'analytics.lastActiveAt': new Date(),
-				updatedAt: new Date(),
-			},
-		};
-
-		// Update bot analytics efficiently
-		await Bot.updateOne({ _id: botId }, botUpdates);
 
 		const response = apiSuccess(
 			{
-				message: assistantMessage.content,
+				message: aiResponse.message,
 				sessionId: sessionId,
-				messageId: assistantMessage._id,
-				conversationId: conversation._id,
-				sources: assistantMessage.sources,
-				responseTime: assistantMessage.responseTime,
-				tokensUsed: assistantMessage.tokens,
-				hasRelevantContext: assistantMessage.hasRelevantContext,
+				messageId: aiResponse.metadata.messageId,
+				sources: aiResponse.sources,
+				responseTime: aiResponse.metadata.responseTime,
+				tokensUsed: aiResponse.metadata.tokensUsed,
+				hasRelevantContext: aiResponse.metadata.hasRelevantContext,
+				model: aiResponse.metadata.model,
+				processingTime: aiResponse.metadata.processingTime,
 			},
 			'Message sent successfully'
 		);
@@ -225,7 +134,6 @@ export async function GET(request, { params }) {
 					{
 						messages: [],
 						sessionId: null,
-						conversationId: null,
 						totalMessages: 0,
 					},
 					'No session ID provided - fresh conversation'
@@ -233,46 +141,22 @@ export async function GET(request, { params }) {
 			);
 		}
 
-		// Verify bot exists and is active
-		const bot = await Bot.findOne({
-			_id: botId,
-			status: 'active',
-		});
-
-		if (!bot) {
-			return notFoundError('Bot not found or inactive');
-		}
-
-		// Get conversation for this session
-		const conversation = await Conversation.findOne({
-			botId: botId,
-			sessionId: sessionId,
-		});
-
-		if (!conversation) {
-			return addCorsHeaders(
-				apiSuccess(
-					{
-						messages: [],
-						sessionId: sessionId,
-						conversationId: null,
-						totalMessages: 0,
-					},
-					'No conversation found for this session'
-				)
-			);
-		}
+		// Use chat service to get conversation history
+		const conversationHistory = await chatService.getConversationHistory(
+			botId,
+			sessionId
+		);
 
 		// Format messages for response
-		const messages = conversation.messages.map((msg) => ({
-			id: msg._id,
+		const messages = conversationHistory.messages.map((msg) => ({
+			id: msg._id || msg.timestamp?.toISOString(),
 			role: msg.role,
 			content: msg.content,
 			timestamp: msg.timestamp,
-			tokens: msg.tokens,
-			responseTime: msg.responseTime,
-			sources: msg.sources || [],
-			hasRelevantContext: msg.hasRelevantContext,
+			tokens: msg.metadata?.tokensUsed || msg.tokens,
+			responseTime: msg.metadata?.responseTime || msg.responseTime,
+			sources: msg.metadata?.sources || msg.sources || [],
+			hasRelevantContext: msg.metadata?.hasRelevantContext || msg.hasRelevantContext,
 		}));
 
 		return addCorsHeaders(
@@ -280,8 +164,7 @@ export async function GET(request, { params }) {
 				{
 					messages: messages,
 					sessionId: sessionId,
-					conversationId: conversation._id,
-					totalMessages: conversation.totalMessages,
+					totalMessages: conversationHistory.totalMessages,
 				},
 				`Retrieved ${messages.length} messages successfully`
 			)
@@ -316,7 +199,7 @@ export async function DELETE(request, { params }) {
 			return addCorsHeaders(
 				apiSuccess(
 					{
-						deletedCount: 0,
+						deleted: false,
 						sessionId: null,
 					},
 					'No session ID provided - nothing to clear'
@@ -324,19 +207,19 @@ export async function DELETE(request, { params }) {
 			);
 		}
 
-		// Delete conversation for this session
-		const result = await Conversation.deleteOne({
-			botId: botId,
-			sessionId: sessionId,
-		});
+		// Use chat service to clear conversation history
+		const success = await chatService.clearConversationHistory(
+			botId,
+			sessionId
+		);
 
 		return addCorsHeaders(
 			apiSuccess(
 				{
-					deletedCount: result.deletedCount,
+					deleted: success,
 					sessionId: sessionId,
 				},
-				result.deletedCount > 0
+				success
 					? 'Conversation history cleared successfully'
 					: 'No conversation found to clear'
 			)

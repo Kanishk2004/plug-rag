@@ -8,7 +8,7 @@ import ChatInterface from '@/components/ChatInterface';
 import APIKeyManager from '@/components/APIKeyManager';
 import { useBot } from '@/hooks/useBot';
 import { useBotFiles } from '@/hooks/useBotFiles';
-import { fileAPI } from '@/lib/api';
+import { fileAPI } from '@/lib/clientAPI';
 
 // Icons (you can replace with your preferred icon library)
 const FileIcon = ({ className }) => (

@@ -1,11 +1,10 @@
 import { auth } from '@clerk/nextjs/server';
-import { getCurrentDBUser, checkUserLimitsFromUser } from '@/lib/user';
+import { getCurrentDBUser, checkUserLimitsFromUser } from '@/lib/integrations/clerk';
 import mongoose from 'mongoose';
 import Bot from '@/models/Bot';
 import File from '@/models/File';
-import { processFile } from '@/lib/fileProcessor';
-import connectDB from '@/lib/mongo';
-import { apiKeyService } from '@/lib/apiKeyService';
+import fileService from '@/lib/core/fileService';
+import connectDB from '@/lib/integrations/mongo';
 import {
 	apiSuccess,
 	authError,
@@ -13,7 +12,7 @@ import {
 	forbiddenError,
 	serverError,
 	validationError,
-} from '@/lib/apiResponse';
+} from '@/lib/utils/apiResponse';
 
 // Configuration
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -160,11 +159,22 @@ export async function POST(request) {
 		console.log('[FILE-UPLOAD] File validation passed');
 		// At this point, the file is validated. Proceed to save the file and update usage.
 
-		const result = await processFile(file, buffer, botId, userId, {
-			generateEmbeddings,
-			maxChunkSize,
-			overlap,
-		});
+		// Process file using file service
+		const result = await fileService.processFile(
+			{
+				id: botId,
+				name: file.name,
+				data: buffer,
+				mimeType: file.type,
+				size: file.size
+			},
+			{
+				generateEmbeddings,
+				maxChunkSize,
+				overlap,
+				userId
+			}
+		);
 
 		// Update bot statistics efficiently using atomic operations
 		try {

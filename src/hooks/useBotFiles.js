@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { fileAPI } from '@/lib/clientAPI';
 
 /**
  * Custom hook for managing files for a specific bot
@@ -41,7 +42,7 @@ export function useBotFiles(botId) {
   }, [botId]);
 
   const uploadFile = useCallback(async (file, options = {}) => {
-    // This function is deprecated. Use fileAPI.uploadMultiple() from lib/api.js instead
+    // This function is deprecated. Use fileAPI.uploadMultiple() from clientAPI instead
     console.warn('useBotFiles.uploadFile is deprecated. Use fileAPI.uploadMultiple() instead.');
     
     if (!botId || !file) {
@@ -53,7 +54,7 @@ export function useBotFiles(botId) {
       setError(null);
 
       // Use the consolidated fileAPI instead
-      const { fileAPI } = await import('../lib/api.js');
+      const { fileAPI } = await import('@/lib/clientAPI');
       const result = await fileAPI.uploadMultiple([file], botId, {
         onProgress: () => {}, // No progress callback for single file
         maxChunkSize: options.maxChunkSize,

@@ -6,7 +6,7 @@ import React, {
 	forwardRef,
 	useImperativeHandle,
 } from 'react';
-import { apiUtils } from '@/lib/api';
+import { apiUtils } from '@/lib/clientAPI';
 
 const FileUpload = forwardRef(({ onFilesUploaded, maxFiles = 10 }, ref) => {
 	const [files, setFiles] = useState([]);

@@ -1,15 +1,15 @@
 import { auth } from '@clerk/nextjs/server';
-import connectDB from '@/lib/mongo';
+import connectDB from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
-import { getBotAnalytics } from '@/lib/analyticsSync';
-import { getCurrentDBUser, syncUserWithDB } from '@/lib/user';
+import { getBotAnalytics } from '@/lib/core/analyticsService';
+import { getCurrentDBUser, syncUserWithDB } from '@/lib/integrations/clerk';
 import { 
   apiSuccess,
   authError,
   notFoundError,
   serverError,
   validationError
-} from '@/lib/apiResponse';
+} from '@/lib/utils/apiResponse';
 import mongoose from 'mongoose';
 
 /**

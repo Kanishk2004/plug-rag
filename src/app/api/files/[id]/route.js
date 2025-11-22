@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import connectDB from '@/lib/mongo';
+import connectDB from '@/lib/integrations/mongo';
 import File from '@/models/File';
-import Chunk from '@/models/Chunk';
-import { processFile } from '@/lib/extractors';
-import { PerformanceMonitor } from '@/lib/performance';
+import fileService from '@/lib/core/fileService';
+import { createPerformanceTimer } from '@/lib/utils/performance';
 
 export async function POST(request, { params }) {
 	try {
@@ -54,7 +53,7 @@ export async function POST(request, { params }) {
 		};
 
 		// Create chunks from existing extracted text
-		const { chunkText } = await import('@/lib/extractors');
+		const { chunkText } = await import('@/lib/processors/chunker');
 		const chunks = chunkText(file.extractedText, {}, processingOptions);
 
 		// Update file record
