@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useBots } from '@/hooks/useAPI';
+import { useBots } from '@/hooks/useBots';
 
 // Component imports
 import BotCard from '@/components/dashboard/BotCard';

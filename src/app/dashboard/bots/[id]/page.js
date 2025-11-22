@@ -6,7 +6,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import FileUpload from '@/components/FileUpload';
 import ChatInterface from '@/components/ChatInterface';
 import APIKeyManager from '@/components/APIKeyManager';
-import { useBot, useBotFiles } from '@/hooks/useAPI';
+import { useBot } from '@/hooks/useBot';
+import { useBotFiles } from '@/hooks/useBotFiles';
 import { fileAPI } from '@/lib/api';
 
 // Icons (you can replace with your preferred icon library)
