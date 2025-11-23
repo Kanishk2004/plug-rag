@@ -3,15 +3,13 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/api/bots(.*)',
-  '/api/files(.*)',
-  '/api/vectors(.*)'
+  '/api/files(.*)'
 ]);
 
 const isPublicRoute = createRouteMatcher([
   '/', 
   '/sign-in(.*)', 
   '/sign-up(.*)',
-  '/api/test-auth(.*)',
   '/api/webhooks(.*)',
   '/api/chat(.*)'  // Allow public access to chat endpoints
 ]);

@@ -143,20 +143,6 @@ export const botAPI = {
 	async delete(botId) {
 		return apiClient.delete(`/bots/${botId}`);
 	},
-
-	/**
-	 * Toggle bot status (active/inactive)
-	 */
-	async toggleStatus(botId) {
-		return apiClient.post(`/bots/${botId}/toggle-status`);
-	},
-
-	/**
-	 * Get bot analytics
-	 */
-	async getAnalytics(botId) {
-		return apiClient.get(`/bots/${botId}/analytics`);
-	},
 };
 
 /**
