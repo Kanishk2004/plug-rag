@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
-import connectDB from '@/lib/integrations/mongo';
+import connect from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
 import File from '@/models/File';
 import { getCurrentDBUser, syncUserWithDB } from '@/lib/integrations/clerk';
@@ -43,7 +43,7 @@ export async function GET(request, { params }) {
     }
 
     // Step 3: Connect to database
-    await connectDB();
+    await connect();
 
     // Step 4: Ensure user exists in database
     let user = await getCurrentDBUser(userId);
@@ -256,7 +256,7 @@ export async function PATCH(request, { params }) {
     }
 
     // Step 5: Connect to database
-    await connectDB();
+    await connect();
 
     // Step 6: Ensure user exists in database
     let user = await getCurrentDBUser(userId);
@@ -331,7 +331,7 @@ export async function DELETE(request, { params }) {
     if (!botId) return validationError('Bot ID is required');
 
     // Step 3: Connect to database
-    await connectDB();
+    await connect();
 
     // Step 4: Ensure user exists in database
     let user = await getCurrentDBUser(userId);

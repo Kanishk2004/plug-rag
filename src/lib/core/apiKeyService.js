@@ -1,7 +1,7 @@
 import { encrypt, decrypt } from '../utils/encryption.js';
 import { validateOpenAIKey } from '../integrations/openai.js';
 import Bot from '@/models/Bot.js';
-import connectDB from '../integrations/mongo.js';
+import connect from '../integrations/mongo.js';
 
 /**
  * API Key Management Service
@@ -18,7 +18,7 @@ export class ApiKeyService {
 	 */
 	async storeApiKey(botId, apiKey, userId, options = {}) {
 		try {
-			await connectDB();
+			await connect();
 
 			// Step 1: Validate the API key first
 			console.log(`Validating API key for bot ${botId}...`);
@@ -103,7 +103,7 @@ export class ApiKeyService {
 	 */
 	async getApiKey(botId, userId) {
 		try {
-			await connectDB();
+			await connect();
 
 			console.log(
 				`[ApiKeyService] Getting API key for bot ${botId}, user ${userId}`
@@ -190,7 +190,7 @@ export class ApiKeyService {
 	 */
 	async removeApiKey(botId, userId) {
 		try {
-			await connectDB();
+			await connect();
 
 			const result = await Bot.findOneAndUpdate(
 				{ _id: botId, ownerId: userId },
@@ -266,7 +266,7 @@ export class ApiKeyService {
 	 */
 	async getKeyStatus(botId, userId) {
 		try {
-			await connectDB();
+			await connect();
 
 			const bot = await Bot.findOne(
 				{ _id: botId, ownerId: userId },

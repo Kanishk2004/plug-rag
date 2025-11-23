@@ -14,7 +14,7 @@ import { generateEmbeddings } from '../processors/embeddings.js';
 import { storeDocuments } from '../integrations/qdrant.js';
 import { createEmbeddingsInstance } from '../processors/embeddings.js';
 import { apiKeyService } from './apiKeyService.js';
-import connectDB from '../integrations/mongo.js';
+import connect from '../integrations/mongo.js';
 import File from '@/models/File.js';
 
 /**
@@ -76,7 +76,7 @@ export async function processFile(file, fileBuffer, botId, userId, options = {})
       }
     }
 
-    await connectDB();
+    await connect();
 
     // Step 2: Create file record in database
     logInfo('Creating file record', { fileName: file.name, botId });
@@ -371,7 +371,7 @@ export async function getBotFiles(botId, userId, options = {}) {
 
     logInfo('Fetching bot files', { botId, userId, status, page, limit });
 
-    await connectDB();
+    await connect();
 
     // Build query
     const query = { botId, userId };
@@ -437,7 +437,7 @@ export async function deleteFile(fileId, userId) {
   try {
     logInfo('Deleting file', { fileId, userId });
 
-    await connectDB();
+    await connect();
 
     // Get file record
     const file = await File.findOne({ _id: fileId, userId });

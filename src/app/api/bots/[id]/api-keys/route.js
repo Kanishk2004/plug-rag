@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { apiKeyService } from '@/lib/core/apiKeyService.js';
 import { validateOpenAIKey } from '@/lib/integrations/openai.js';
-import connectDB from '@/lib/integrations/mongo';
+import connect from '@/lib/integrations/mongo';
 import {
   apiSuccess,
   authError,
@@ -27,7 +27,7 @@ export async function GET(request, { params }) {
     }
 
     const { id: botId } = await params;
-    await connectDB();
+    await connect();
 
     const status = await apiKeyService.getKeyStatus(botId, userId);
 
@@ -69,7 +69,7 @@ export async function POST(request, { params }) {
       return validationError('Invalid API key format. OpenAI API keys start with "sk-"');
     }
 
-    await connectDB();
+    await connect();
 
     // Store the API key with validation
     const result = await apiKeyService.storeApiKey(botId, apiKey, userId, {
@@ -112,7 +112,7 @@ export async function DELETE(request, { params }) {
     }
 
     const { id: botId } = await params;
-    await connectDB();
+    await connect();
 
     await apiKeyService.removeApiKey(botId, userId);
 

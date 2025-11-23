@@ -1,7 +1,7 @@
 /**
  * Frontend API Layer
- * 
- * Provides a clean, consistent interface for frontend components to interact 
+ *
+ * Provides a clean, consistent interface for frontend components to interact
  * with backend services. This layer handles HTTP requests and response formatting.
  */
 
@@ -42,7 +42,9 @@ class APIClient {
 
 	async get(endpoint, params = {}) {
 		const searchParams = new URLSearchParams(params);
-		const url = searchParams.toString() ? `${endpoint}?${searchParams}` : endpoint;
+		const url = searchParams.toString()
+			? `${endpoint}?${searchParams}`
+			: endpoint;
 		return this.request(url, { method: 'GET' });
 	}
 
@@ -66,7 +68,7 @@ class APIClient {
 
 	async uploadFiles(endpoint, files, data = {}, onProgress = null) {
 		const formData = new FormData();
-		
+
 		// Add files
 		if (Array.isArray(files)) {
 			files.forEach((file, index) => {

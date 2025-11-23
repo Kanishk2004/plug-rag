@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Webhook } from 'svix';
-import connectDB from '@/lib/integrations/mongo';
+import connect from '@/lib/integrations/mongo';
 import User from '@/models/User.js';
 import Bot from '@/models/Bot.js';
 import File from '@/models/File.js';
@@ -41,7 +41,7 @@ export async function POST(request) {
     }
 
     // Connect to database
-    await connectDB();
+    await connect();
 
     console.log('[CLERK-WEBHOOK] Processing event:', event.type, 'for user:', event.data?.id);
 

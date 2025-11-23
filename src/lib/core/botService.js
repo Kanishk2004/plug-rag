@@ -7,7 +7,7 @@
 
 import { logInfo, logError } from '../utils/logger.js';
 import { createPerformanceTimer } from '../utils/performance.js';
-import connectDB from '../integrations/mongo.js';
+import connect from '../integrations/mongo.js';
 import Bot from '@/models/Bot.js';
 
 /**
@@ -42,7 +42,7 @@ export async function createBot(botData, userId) {
       hasApiKey: !!botData.openaiApiKey
     });
 
-    await connectDB();
+    await connect();
 
     // Check if user already has a bot with this name
     const existingBot = await Bot.findOne({ 
@@ -140,7 +140,7 @@ export async function getUserBots(userId, options = {}) {
       limit
     });
 
-    await connectDB();
+    await connect();
 
     // Build query
     const query = { userId };
@@ -217,7 +217,7 @@ export async function getBotById(botId, userId) {
 
     logInfo('Fetching bot by ID', { botId, userId });
 
-    await connectDB();
+    await connect();
 
     const bot = await Bot.findOne({ _id: botId, userId }).lean();
 
@@ -266,7 +266,7 @@ export async function updateBot(botId, userId, updates) {
       updatedFields: Object.keys(updates)
     });
 
-    await connectDB();
+    await connect();
 
     // Verify bot exists and user owns it
     const existingBot = await Bot.findOne({ _id: botId, userId });
@@ -372,7 +372,7 @@ export async function deleteBot(botId, userId) {
 
     logInfo('Deleting bot', { botId, userId });
 
-    await connectDB();
+    await connect();
 
     // Verify bot exists and user owns it
     const bot = await Bot.findOne({ _id: botId, userId });
@@ -439,7 +439,7 @@ export async function deleteBot(botId, userId) {
  */
 export async function updateBotStats(botId, statUpdates) {
   try {
-    await connectDB();
+    await connect();
 
     const bot = await Bot.findByIdAndUpdate(
       botId,

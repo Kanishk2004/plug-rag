@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/integrations/mongo';
+import connect from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
 import Conversation from '@/models/Conversation';
 import { chatService } from '@/lib/core/chatService';
@@ -61,7 +61,7 @@ export async function POST(request, { params }) {
 		}
 
 		// Connect to database
-		await connectDB();
+		await connect();
 
 		// Parse request body
 		const body = await request.json();
@@ -121,7 +121,7 @@ export async function GET(request, { params }) {
 		}
 
 		// Connect to database
-		await connectDB();
+		await connect();
 
 		// Get sessionId from query parameters
 		const { searchParams } = new URL(request.url);
@@ -188,7 +188,7 @@ export async function DELETE(request, { params }) {
 		}
 
 		// Connect to database
-		await connectDB();
+		await connect();
 
 		// Get sessionId from query parameters
 		const { searchParams } = new URL(request.url);

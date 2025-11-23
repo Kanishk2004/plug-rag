@@ -19,6 +19,7 @@ import {
   withErrorHandling,
   HTTP_STATUS
 } from '@/lib/apiResponse.js';
+import connect from '@/lib/integrations/mongo.js';
 
 // ========================================
 // BASIC USAGE EXAMPLES
@@ -81,9 +82,7 @@ export async function GET_BotsExample(request) {
   }
 
   try {
-    await connectDB();
-    
-    // Get query parameters
+    await connect(); query parameters
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 10;
@@ -122,7 +121,7 @@ export async function POST_BotsExample(request) {
       return validationError('Bot name is required', { name: 'Name cannot be empty' });
     }
     
-    await connectDB();
+    await connect();
     
     // Check if bot name already exists
     const existingBot = await Bot.findOne({ ownerId: userId, name });
@@ -162,7 +161,7 @@ export async function GET_BotByIdExample(request, { params }) {
       return validationError('Invalid bot ID format');
     }
     
-    await connectDB();
+    await connect();
     
     const bot = await Bot.findOne({ _id: id, ownerId: userId });
     
@@ -190,7 +189,7 @@ export async function DELETE_BotExample(request, { params }) {
   try {
     const { id } = params;
     
-    await connectDB();
+    await connect();
     
     const bot = await Bot.findOneAndDelete({ _id: id, ownerId: userId });
     
@@ -221,7 +220,7 @@ export const GET_WithErrorHandling = withErrorHandling(async (request) => {
   }
   
   // Any uncaught errors will be automatically handled
-  await connectDB();
+  await connect();
   const data = await SomeModel.find({ userId });
   
   return apiSuccess(data, 'Data retrieved successfully');

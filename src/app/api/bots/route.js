@@ -13,7 +13,7 @@
  */
 
 import { auth } from '@clerk/nextjs/server';
-import connectDB from '@/lib/integrations/mongo';
+import connect from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
 import { botService } from '@/lib/core/botService';
 import {
@@ -240,7 +240,7 @@ export async function GET(request) {
 		if (!userId) return authError();
 
 		// Step 2: Connect to database
-		await connectDB();
+		await connect();
 
 		// Step 3: Ensure user exists in database and sync if needed
 		// This handles cases where user exists in Clerk but not in our MongoDB

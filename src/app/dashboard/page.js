@@ -4,7 +4,7 @@ import { checkUserExists, syncUserWithDB } from '@/lib/integrations/clerk';
 import { currentUser } from '@clerk/nextjs/server';
 import Image from 'next/image';
 import Link from 'next/link';
-import connectDB from '@/lib/integrations/mongo';
+import connect from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
 import Conversation from '@/models/Conversation';
 
@@ -43,7 +43,7 @@ export default async function Dashboard() {
 	};
 
 	try {
-		await connectDB();
+		await connect();
 
 		// Get user's bots (using ownerId instead of userId)
 		const userBots = await Bot.find({ ownerId: user.id })

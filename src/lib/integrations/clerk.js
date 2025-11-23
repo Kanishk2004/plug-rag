@@ -7,7 +7,7 @@
 
 import { currentUser } from '@clerk/nextjs/server';
 import { logInfo, logError } from '../utils/logger.js';
-import connectDB from './mongo.js';
+import connect from './mongo.js';
 import User from '@/models/User.js';
 
 /**
@@ -47,7 +47,7 @@ export async function syncUserWithDB(clerkId = null) {
 			userId = user.id;
 		}
 
-		await connectDB();
+		await connect();
 
 		// Check if user exists in MongoDB (lightweight query)
 		let dbUser = await User.findOne({ clerkId: userId }).lean();
@@ -110,7 +110,7 @@ export async function syncUserWithDB(clerkId = null) {
  */
 export async function checkUserExists(clerkId) {
 	try {
-		await connectDB();
+		await connect();
 		const exists = await User.exists({ clerkId });
 		return !!exists;
 	} catch (error) {
@@ -138,7 +138,7 @@ export async function getCurrentDBUser(clerkId = null) {
 			userId = user.id;
 		}
 
-		await connectDB();
+		await connect();
 
 		const dbUser = await User.findOne({ clerkId: userId });
 		logInfo('Retrieved DB user', { userId, found: !!dbUser });
@@ -157,7 +157,7 @@ export async function getCurrentDBUser(clerkId = null) {
  */
 export async function updateUserUsage(clerkId, updates) {
 	try {
-		await connectDB();
+		await connect();
 
 		const user = await User.findOneAndUpdate(
 			{ clerkId },
@@ -181,7 +181,7 @@ export async function updateUserUsage(clerkId, updates) {
  */
 export async function updateUserProfile(clerkId, profileData) {
 	try {
-		await connectDB();
+		await connect();
 
 		const user = await User.findOneAndUpdate(
 			{ clerkId },
@@ -246,7 +246,7 @@ export async function checkUserLimits(clerkId) {
  */
 export async function resetMonthlyUsage(clerkId) {
 	try {
-		await connectDB();
+		await connect();
 
 		const user = await User.findOneAndUpdate(
 			{ clerkId },
@@ -276,7 +276,7 @@ export async function resetMonthlyUsage(clerkId) {
  */
 export async function upgradeUserPlan(clerkId, newPlan, newLimits) {
 	try {
-		await connectDB();
+		await connect();
 
 		const user = await User.findOneAndUpdate(
 			{ clerkId },

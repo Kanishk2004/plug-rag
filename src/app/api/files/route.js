@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import Bot from '@/models/Bot';
 import File from '@/models/File';
 import fileService from '@/lib/core/fileService';
-import connectDB from '@/lib/integrations/mongo';
+import connect from '@/lib/integrations/mongo';
 import {
 	apiSuccess,
 	authError,
@@ -252,7 +252,7 @@ export async function GET(request) {
 		}
 
 		// Step 3: Connect to database
-		await connectDB();
+		await connect();
 
 		// Step 4: Get user and verify existence
 		const user = await getCurrentDBUser(userId);

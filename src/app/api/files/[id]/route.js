@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import connectDB from '@/lib/integrations/mongo';
+import connect from '@/lib/integrations/mongo';
 import File from '@/models/File';
 import fileService from '@/lib/core/fileService';
 import { createPerformanceTimer } from '@/lib/utils/performance';
@@ -18,7 +18,7 @@ export async function POST(request, { params }) {
 		const body = await request.json();
 		const { options = {} } = body;
 
-		await connectDB();
+		await connect();
 
 		// Find and validate file
 		const file = await File.findOne({ _id: fileId, ownerId: userId });
@@ -128,7 +128,7 @@ export async function GET(request, { params }) {
 		const includeChunks = url.searchParams.get('includeChunks') === 'true';
 		const includeText = url.searchParams.get('includeText') === 'true';
 
-		await connectDB();
+		await connect();
 
 		// Find file
 		const file = await File.findOne({ _id: fileId, ownerId: userId });
@@ -204,7 +204,7 @@ export async function DELETE(request, { params }) {
 		}
 
 		const fileId = (await params).id;
-		await connectDB();
+		await connect();
 
 		// Find and validate file ownership
 		const file = await File.findOne({ _id: fileId, ownerId: userId });
