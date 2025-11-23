@@ -79,14 +79,14 @@ const BotCard = ({ bot, onRefresh }) => {
 						<p className="text-2xl font-bold text-white">
 							{bot.analytics?.totalMessages || bot.totalMessages || 0}
 						</p>
-						<div className="w-2 h-2 bg-green-400 rounded-full" title="Data synced across all pages"></div>
 					</div>
 					<p className="text-xs text-gray-300">Messages</p>
 				</div>
 				<div className="text-center">
 					<div className="flex items-center justify-center space-x-1 mb-1">
-						<p className="text-2xl font-bold text-white">{bot.fileCount || 0}</p>
-						<div className="w-2 h-2 bg-green-400 rounded-full" title="Data synced across all pages"></div>
+						<p className="text-2xl font-bold text-white">
+							{bot.fileCount || 0}
+						</p>
 					</div>
 					<p className="text-xs text-gray-300">Files</p>
 				</div>
@@ -98,7 +98,8 @@ const BotCard = ({ bot, onRefresh }) => {
 					<div className="flex items-center justify-center space-x-1 mb-1">
 						<p className="text-lg font-semibold text-orange-400">
 							{(() => {
-								const tokens = bot.analytics?.totalTokensUsed || bot.totalTokens || 0;
+								const tokens =
+									bot.analytics?.totalTokensUsed || bot.totalTokens || 0;
 								if (tokens >= 1000) {
 									return Math.floor(tokens / 1000) + 'K';
 								} else {
@@ -106,16 +107,16 @@ const BotCard = ({ bot, onRefresh }) => {
 								}
 							})()}
 						</p>
-						<div className="w-2 h-2 bg-green-400 rounded-full" title="Data synced across all pages"></div>
 					</div>
 					<p className="text-xs text-gray-300">Tokens</p>
 				</div>
 				<div>
 					<div className="flex items-center justify-center space-x-1 mb-1">
 						<p className="text-lg font-semibold text-blue-400">
-							{bot.analytics?.lastActiveAt || bot.lastActiveAt ? 'Active' : 'Inactive'}
+							{bot.analytics?.lastActiveAt || bot.lastActiveAt
+								? 'Active'
+								: 'Inactive'}
 						</p>
-						<div className="w-2 h-2 bg-green-400 rounded-full" title="Data synced across all pages"></div>
 					</div>
 					<p className="text-xs text-gray-300">Status</p>
 				</div>

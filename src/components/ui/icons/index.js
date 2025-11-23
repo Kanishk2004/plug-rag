@@ -12,3 +12,6 @@ export { default as FileIcon } from './FileIcon';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as SearchIcon } from './SearchIcon';
 export { default as RefreshIcon } from './RefreshIcon';
+export { default as SettingsIcon } from './SettingsIcon';
+export { default as CheckIcon } from './CheckIcon';
+export { default as WarningIcon } from './WarningIcon';

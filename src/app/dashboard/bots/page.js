@@ -10,7 +10,12 @@ import BotCard from '@/components/dashboard/BotCard';
 import BotCardSkeleton from '@/components/ui/BotCardSkeleton';
 
 // Icon imports
-import { PlusIcon, SearchIcon, RefreshIcon, BotsIcon } from '@/components/ui/icons';
+import {
+	PlusIcon,
+	SearchIcon,
+	RefreshIcon,
+	BotsIcon,
+} from '@/components/ui/icons';
 
 export default function MyBots() {
 	const [searchTerm, setSearchTerm] = useState('');
@@ -198,9 +203,3 @@ export default function MyBots() {
 		</DashboardLayout>
 	);
 }
-
-
-
-
-
-

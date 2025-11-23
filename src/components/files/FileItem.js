@@ -4,9 +4,10 @@ const FileItem = ({ file, isProcessing, onDelete }) => {
 	const getStatusColor = (status) => {
 		switch (status) {
 			case 'processed':
+			case 'completed':
 				return 'text-green-400';
 			case 'processing':
-				return 'text-yellow-400';
+				return 'text-orange-400';
 			case 'failed':
 				return 'text-red-400';
 			default:
@@ -18,12 +19,14 @@ const FileItem = ({ file, isProcessing, onDelete }) => {
 		switch (status) {
 			case 'processed':
 				return 'Processed';
+			case 'completed':
+				return 'Completed';
 			case 'processing':
 				return 'Processing...';
 			case 'failed':
 				return 'Failed';
 			default:
-				return 'Unknown';
+				return 'Pending';
 		}
 	};
 
