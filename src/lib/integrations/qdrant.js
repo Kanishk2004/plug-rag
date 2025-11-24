@@ -8,6 +8,7 @@
 import { QdrantVectorStore } from '@langchain/qdrant';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { logInfo, logError } from '../utils/logger.js';
+import { randomUUID } from 'crypto';
 
 /**
  * Cache for vector store instances to avoid recreation
@@ -74,7 +75,7 @@ export async function getVectorStore(collectionName, embeddings, config = {}) {
 }
 
 /**
- * Store documents in vector collection
+ * Store documents in vector collection with conflict resolution
  * @param {string} collectionName - Collection name
  * @param {OpenAIEmbeddings} embeddings - Embeddings instance
  * @param {Array} documents - Documents to store
@@ -94,34 +95,92 @@ export async function storeDocuments(collectionName, embeddings, documents, meta
 
     const vectorStore = await getVectorStore(collectionName, embeddings);
 
-    // Enrich documents with metadata
-    const enrichedDocuments = documents.map((doc) => {
+    // Generate unique IDs for documents to avoid conflicts
+    console.log('🔑 [QDRANT] Generating UUID-based point IDs for documents...');
+    const enrichedDocuments = documents.map((doc, index) => {
+      // Create a valid UUID for Qdrant point ID
+      const uniqueId = randomUUID();
+      console.log(`🔑 [QDRANT] Generated UUID for chunk ${index}: ${uniqueId}`);
+      
       const enrichedMetadata = { 
         ...doc.metadata,
         ...metadata,
-        storedAt: new Date().toISOString()
+        storedAt: new Date().toISOString(),
+        documentId: uniqueId,
+        // Store original identifiers in metadata for reference
+        originalFileId: metadata.fileId,
+        chunkIndex: doc.metadata.chunk || index,
+        timestamp: Date.now()
       };
 
       return {
         ...doc,
         metadata: enrichedMetadata,
+        id: uniqueId // Use UUID as point ID
       };
     });
 
-    // Store documents in the vector store
-    const ids = await vectorStore.addDocuments(enrichedDocuments);
-
-    logInfo('Documents stored successfully', { 
-      collectionName,
-      documentCount: documents.length,
-      storedIds: ids.length
+    console.log('✅ [QDRANT] All UUIDs generated successfully', {
+      totalDocuments: enrichedDocuments.length,
+      sampleId: enrichedDocuments[0]?.id
     });
 
-    return {
-      success: true,
-      storedCount: ids.length,
-      documentIds: ids
-    };
+    try {
+      // Attempt to store documents with unique IDs
+      const ids = await vectorStore.addDocuments(enrichedDocuments);
+
+      logInfo('Documents stored successfully', { 
+        collectionName,
+        documentCount: documents.length,
+        storedIds: ids.length
+      });
+
+      return {
+        success: true,
+        storedCount: ids.length,
+        documentIds: ids
+      };
+    } catch (storageError) {
+      if (storageError.message.includes('Conflict') || storageError.message.includes('already exists')) {
+        logInfo('Conflict detected, attempting to store with new IDs', {
+          collectionName,
+          documentCount: documents.length
+        });
+
+        // If conflict, regenerate IDs with additional randomness
+        const reconflictedDocuments = enrichedDocuments.map((doc) => {
+          const newUniqueId = randomUUID(); // Generate new UUID
+          
+          return {
+            ...doc,
+            metadata: {
+              ...doc.metadata,
+              documentId: newUniqueId,
+              retryAttempt: true
+            },
+            id: newUniqueId
+          };
+        });
+
+        // Try storing again with new IDs
+        const retryIds = await vectorStore.addDocuments(reconflictedDocuments);
+
+        logInfo('Documents stored successfully after retry', { 
+          collectionName,
+          documentCount: documents.length,
+          storedIds: retryIds.length
+        });
+
+        return {
+          success: true,
+          storedCount: retryIds.length,
+          documentIds: retryIds
+        };
+      } else {
+        // If it's not a conflict error, rethrow
+        throw storageError;
+      }
+    }
   } catch (error) {
     logError('Failed to store documents', { 
       collectionName, 

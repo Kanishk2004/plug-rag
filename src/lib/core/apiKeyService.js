@@ -161,6 +161,12 @@ export class ApiKeyService {
 				}`
 			);
 
+			// Additional validation for API key format
+			if (!decryptedKey || !decryptedKey.startsWith('sk-') || decryptedKey.length < 20) {
+				console.error('[ApiKeyService] Invalid API key format after decryption');
+				throw new Error('Invalid API key format');
+			}
+
 			return {
 				apiKey: decryptedKey,
 				source: 'custom',

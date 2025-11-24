@@ -5,6 +5,7 @@ import Bot from '@/models/Bot';
 import File from '@/models/File';
 import fileService from '@/lib/core/fileService';
 import connect from '@/lib/integrations/mongo';
+import apiKeyService from '@/lib/core/apiKeyService';
 import {
 	apiSuccess,
 	authError,
@@ -161,18 +162,14 @@ export async function POST(request) {
 
 		// Process file using file service
 		const result = await fileService.processFile(
-			{
-				id: botId,
-				name: file.name,
-				data: buffer,
-				mimeType: file.type,
-				size: file.size
-			},
+			file, // File object with name, type, etc.
+			buffer, // File buffer data
+			botId, // Bot ID as ObjectId
+			userId, // User ID string
 			{
 				generateEmbeddings,
 				maxChunkSize,
-				overlap,
-				userId
+				overlap
 			}
 		);
 

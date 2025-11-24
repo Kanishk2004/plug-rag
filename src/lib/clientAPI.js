@@ -69,18 +69,27 @@ class APIClient {
 	async uploadFiles(endpoint, files, data = {}, onProgress = null) {
 		const formData = new FormData();
 
-		// Add files
+		// Add files - handle both single file and array of files
 		if (Array.isArray(files)) {
+			// For multiple files, append each with individual field names
 			files.forEach((file, index) => {
-				formData.append('files', file);
+				if (file && file instanceof File) {
+					formData.append('file', file); // Backend expects 'file' field name
+				}
 			});
-		} else {
+		} else if (files && files instanceof File) {
+			// Single file upload
 			formData.append('file', files);
+		} else {
+			console.error('Invalid file data provided:', files);
+			throw new Error('Invalid file data provided');
 		}
 
 		// Add other data
 		Object.entries(data).forEach(([key, value]) => {
-			formData.append(key, value);
+			if (value !== undefined && value !== null) {
+				formData.append(key, String(value));
+			}
 		});
 
 		try {
@@ -150,9 +159,9 @@ export const botAPI = {
  */
 export const fileAPI = {
 	/**
-	 * Upload multiple files to a bot
+	 * Upload a single file to a bot
 	 */
-	async uploadMultiple(files, botId, options = {}, onProgress = null) {
+	async upload(file, botId, options = {}) {
 		const data = {
 			botId,
 			generateEmbeddings: options.generateEmbeddings ?? true,
@@ -161,7 +170,96 @@ export const fileAPI = {
 			...options,
 		};
 
-		return apiClient.uploadFiles('/files', files, data, onProgress);
+		return apiClient.uploadFiles('/files', file, data);
+	},
+
+	/**
+	 * Upload multiple files to a bot (uploads them one by one)
+	 */
+	async uploadMultiple(files, botId, options = {}, onProgress = null) {
+		if (!Array.isArray(files)) {
+			files = [files];
+		}
+
+		const results = [];
+		let totalTokensUsed = 0;
+		let totalEstimatedCost = 0;
+		let uploadedCount = 0;
+		let errorCount = 0;
+
+		for (let i = 0; i < files.length; i++) {
+			const file = files[i];
+
+			try {
+				// Call progress callback if provided
+				if (onProgress) {
+					onProgress({
+						fileName: file.name,
+						progress: i,
+						total: files.length,
+						status: 'uploading',
+					});
+				}
+
+				const result = await this.upload(file, botId, options);
+
+				if (result.success) {
+					uploadedCount++;
+					totalTokensUsed += result.data.tokensUsed || 0;
+					totalEstimatedCost += result.data.estimatedCost || 0;
+
+					results.push({
+						file: file.name,
+						success: true,
+						data: result.data,
+					});
+
+					if (onProgress) {
+						onProgress({
+							fileName: file.name,
+							progress: i + 1,
+							total: files.length,
+							status: 'completed',
+						});
+					}
+				} else {
+					errorCount++;
+					results.push({
+						file: file.name,
+						success: false,
+						error: 'Upload failed',
+					});
+				}
+			} catch (error) {
+				errorCount++;
+				console.error(`Failed to upload ${file.name}:`, error);
+
+				results.push({
+					file: file.name,
+					success: false,
+					error:
+						error.response?.data?.error || error.message || 'Upload failed',
+				});
+
+				if (onProgress) {
+					onProgress({
+						fileName: file.name,
+						progress: i + 1,
+						total: files.length,
+						status: 'error',
+					});
+				}
+			}
+		}
+
+		return {
+			success: errorCount === 0,
+			results,
+			uploadedCount,
+			errorCount,
+			totalTokensUsed,
+			totalEstimatedCost,
+		};
 	},
 
 	/**

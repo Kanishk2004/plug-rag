@@ -77,7 +77,9 @@ ASSISTANT RESPONSE:`);
 		} catch (error) {
 			// Fallback to global key if configured
 			if (process.env.OPENAI_API_KEY) {
-				console.warn(`[ChatService] Using global API key fallback for bot ${botId}: ${error.message}`);
+				console.warn(
+					`[ChatService] Using global API key fallback for bot ${botId}: ${error.message}`
+				);
 				return {
 					apiKey: process.env.OPENAI_API_KEY,
 					isCustom: false,
@@ -88,7 +90,9 @@ ASSISTANT RESPONSE:`);
 					},
 				};
 			}
-			throw new Error(`No OpenAI API key available for bot ${botId}: ${error.message}`);
+			throw new Error(
+				`No OpenAI API key available for bot ${botId}: ${error.message}`
+			);
 		}
 	}
 
@@ -101,7 +105,7 @@ ASSISTANT RESPONSE:`);
 			model: config.models.chat,
 			temperature: 0.3,
 			maxTokens: 1000,
-			openAIApiKey: config.apiKey,
+			apiKey: config.apiKey,
 		});
 	}
 
@@ -181,8 +185,12 @@ ASSISTANT RESPONSE:`);
 			.map((doc, index) => {
 				const metadata = doc.metadata || {};
 				const fileName = metadata.fileName || metadata.source || 'Unknown file';
-				const pageNumber = metadata.pageNumber ? ` (Page ${metadata.pageNumber})` : '';
-				return `[Source ${index + 1}: ${fileName}${pageNumber}]\n${doc.pageContent}`;
+				const pageNumber = metadata.pageNumber
+					? ` (Page ${metadata.pageNumber})`
+					: '';
+				return `[Source ${index + 1}: ${fileName}${pageNumber}]\n${
+					doc.pageContent
+				}`;
 			})
 			.join('\n\n');
 	}
@@ -210,7 +218,12 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 	/**
 	 * Generate AI response using RAG
 	 */
-	async generateRAGResponse(botId, userQuery, conversationHistory = [], botInfo = {}) {
+	async generateRAGResponse(
+		botId,
+		userQuery,
+		conversationHistory = [],
+		botInfo = {}
+	) {
 		try {
 			const startTime = Date.now();
 			const bot = await Bot.findById(botId, 'ownerId');
@@ -219,7 +232,12 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			}
 
 			// Retrieve relevant documents
-			const relevantDocs = await this.getRelevantDocuments(botId, bot.ownerId, userQuery, 4);
+			const relevantDocs = await this.getRelevantDocuments(
+				botId,
+				bot.ownerId,
+				userQuery,
+				4
+			);
 
 			// Format context and chat history
 			const context = this.formatDocumentsAsContext(relevantDocs);
@@ -258,11 +276,14 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			const response = await ragChain.invoke({ question: userQuery });
 
 			// Clean response
-			const cleanResponse = response.replace(/\s*\[Source \d+:[^\]]+\]\s*/g, '').trim();
+			const cleanResponse = response
+				.replace(/\s*\[Source \d+:[^\]]+\]\s*/g, '')
+				.trim();
 
 			// Extract source information
 			const sources = relevantDocs.map((doc) => ({
-				fileName: doc.metadata?.fileName || doc.metadata?.source || 'Unknown file',
+				fileName:
+					doc.metadata?.fileName || doc.metadata?.source || 'Unknown file',
 				pageNumber: doc.metadata?.pageNumber,
 				chunkIndex: doc.metadata?.chunkIndex,
 				score: doc.metadata?.score,
@@ -305,12 +326,12 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 	 */
 	async sendMessage(botId, userMessage, sessionId) {
 		const timer = createPerformanceTimer();
-		
+
 		try {
 			logInfo('Sending message to chat service', {
 				botId,
 				sessionId,
-				messageLength: userMessage?.length || 0
+				messageLength: userMessage?.length || 0,
 			});
 
 			// Validate inputs
@@ -325,11 +346,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			// Verify bot exists
 			const bot = await Bot.findById(botId);
 			if (!bot) {
-				throw new ChatError(
-					'Bot not found',
-					'BOT_NOT_FOUND',
-					404
-				);
+				throw new ChatError('Bot not found', 'BOT_NOT_FOUND', 404);
 			}
 
 			// Get conversation history
@@ -340,9 +357,9 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			const userMessageObj = {
 				role: 'user',
 				content: userMessage,
-				timestamp: new Date()
+				timestamp: new Date(),
 			};
-			
+
 			conversationHistory.push(userMessageObj);
 
 			// Generate AI response using internal RAG
@@ -352,7 +369,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 				conversationHistory,
 				{
 					name: bot.name,
-					description: bot.description
+					description: bot.description,
 				}
 			);
 
@@ -367,8 +384,8 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 					tokensUsed: ragResponse.tokensUsed,
 					model: ragResponse.model,
 					hasRelevantContext: ragResponse.hasRelevantContext,
-					apiSource: ragResponse.apiSource
-				}
+					apiSource: ragResponse.apiSource,
+				},
 			};
 
 			// Add assistant message to conversation
@@ -381,18 +398,18 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			await this.updateBotAnalytics(botId, {
 				messageCount: 1,
 				tokensUsed: ragResponse.tokensUsed,
-				hasRelevantContext: ragResponse.hasRelevantContext
+				hasRelevantContext: ragResponse.hasRelevantContext,
 			});
 
-			const duration = timer.stop();
-			
+			// const duration = timer.stop();
+
 			logInfo('Message processed successfully', {
 				botId,
 				sessionId,
-				duration,
+				// duration,
 				responseLength: ragResponse.content?.length || 0,
 				tokensUsed: ragResponse.tokensUsed,
-				hasRelevantContext: ragResponse.hasRelevantContext
+				hasRelevantContext: ragResponse.hasRelevantContext,
 			});
 
 			return {
@@ -405,18 +422,17 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 					model: ragResponse.model,
 					hasRelevantContext: ragResponse.hasRelevantContext,
 					apiSource: ragResponse.apiSource,
-					processingTime: duration
-				}
+					// processingTime: duration,
+				},
 			};
-
 		} catch (error) {
-			const duration = timer.stop();
-			
+			// const duration = timer.stop();
+
 			logError('Error sending message', error, {
 				botId,
 				sessionId,
-				duration,
-				errorType: error.constructor.name
+				// duration,
+				errorType: error.constructor.name,
 			});
 
 			if (error instanceof ChatError) {
@@ -445,7 +461,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			logInfo('Fetching conversation history', {
 				botId,
 				sessionId,
-				limit
+				limit,
 			});
 
 			// Validate inputs
@@ -460,7 +476,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			// Get conversation
 			const conversation = await Conversation.findOne({
 				botId,
-				sessionId
+				sessionId,
 			});
 
 			if (!conversation) {
@@ -468,7 +484,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 					messages: [],
 					totalMessages: 0,
 					sessionId,
-					botId
+					botId,
 				};
 			}
 
@@ -476,13 +492,13 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			const messages = conversation.messages || [];
 			const limitedMessages = limit ? messages.slice(-limit) : messages;
 
-			const duration = timer.stop();
+			// const duration = timer.stop();
 
 			logInfo('Conversation history fetched successfully', {
 				botId,
 				sessionId,
 				messageCount: limitedMessages.length,
-				duration
+				// duration,
 			});
 
 			return {
@@ -491,16 +507,15 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 				sessionId: conversation.sessionId,
 				botId: conversation.botId,
 				createdAt: conversation.createdAt,
-				updatedAt: conversation.updatedAt
+				updatedAt: conversation.updatedAt,
 			};
-
 		} catch (error) {
-			const duration = timer.stop();
-			
+			// const duration = timer.stop();
+
 			logError('Error fetching conversation history', error, {
 				botId,
 				sessionId,
-				duration
+				// duration,
 			});
 
 			if (error instanceof ChatError) {
@@ -527,7 +542,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 		try {
 			logInfo('Clearing conversation history', {
 				botId,
-				sessionId
+				sessionId,
 			});
 
 			// Validate inputs
@@ -542,10 +557,10 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			// Delete conversation
 			const result = await Conversation.deleteOne({
 				botId,
-				sessionId
+				sessionId,
 			});
 
-			const duration = timer.stop();
+			// const duration = timer.stop();
 
 			const success = result.deletedCount > 0;
 
@@ -554,18 +569,17 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 				sessionId,
 				success,
 				deletedCount: result.deletedCount,
-				duration
+				// duration,
 			});
 
 			return success;
-
 		} catch (error) {
-			const duration = timer.stop();
-			
+			// const duration = timer.stop();
+
 			logError('Error clearing conversation history', error, {
 				botId,
 				sessionId,
-				duration
+				// duration,
 			});
 
 			if (error instanceof ChatError) {
@@ -590,29 +604,28 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 		try {
 			let conversation = await Conversation.findOne({
 				botId,
-				sessionId
+				sessionId,
 			});
 
 			if (!conversation) {
 				conversation = new Conversation({
 					botId,
 					sessionId,
-					messages: []
+					messages: [],
 				});
 				await conversation.save();
-				
+
 				logInfo('New conversation created', {
 					botId,
-					sessionId
+					sessionId,
 				});
 			}
 
 			return conversation;
-
 		} catch (error) {
 			logError('Error getting or creating conversation', error, {
 				botId,
-				sessionId
+				sessionId,
 			});
 			throw error;
 		}
@@ -629,27 +642,26 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 		try {
 			await Conversation.findOneAndUpdate(
 				{ botId, sessionId },
-				{ 
+				{
 					messages,
-					updatedAt: new Date()
+					updatedAt: new Date(),
 				},
-				{ 
+				{
 					upsert: true,
-					new: true
+					new: true,
 				}
 			);
 
 			logInfo('Conversation saved', {
 				botId,
 				sessionId,
-				messageCount: messages.length
+				messageCount: messages.length,
 			});
-
 		} catch (error) {
 			logError('Error saving conversation', error, {
 				botId,
 				sessionId,
-				messageCount: messages?.length || 0
+				messageCount: messages?.length || 0,
 			});
 			throw error;
 		}
@@ -664,19 +676,19 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 	async updateBotAnalytics(botId, analytics) {
 		try {
 			const updateData = {};
-			
+
 			if (analytics.messageCount) {
 				updateData.$inc = {
 					'analytics.totalMessages': analytics.messageCount,
-					'analytics.totalTokensUsed': analytics.tokensUsed || 0
+					'analytics.totalTokensUsed': analytics.tokensUsed || 0,
 				};
 			}
 
 			if (analytics.hasRelevantContext !== undefined) {
 				updateData.$inc = updateData.$inc || {};
-				updateData.$inc['analytics.relevantResponses'] = 
+				updateData.$inc['analytics.relevantResponses'] =
 					analytics.hasRelevantContext ? 1 : 0;
-				updateData.$inc['analytics.fallbackResponses'] = 
+				updateData.$inc['analytics.fallbackResponses'] =
 					analytics.hasRelevantContext ? 0 : 1;
 			}
 
@@ -686,14 +698,13 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 
 			logInfo('Bot analytics updated', {
 				botId,
-				analytics
+				analytics,
 			});
-
 		} catch (error) {
 			// Don't throw - analytics shouldn't break main functionality
 			logError('Error updating bot analytics', error, {
 				botId,
-				analytics
+				analytics,
 			});
 		}
 	}
@@ -710,11 +721,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			// Get bot with analytics
 			const bot = await Bot.findById(botId, 'analytics');
 			if (!bot) {
-				throw new ChatError(
-					'Bot not found',
-					'BOT_NOT_FOUND',
-					404
-				);
+				throw new ChatError('Bot not found', 'BOT_NOT_FOUND', 404);
 			}
 
 			// Count total conversations
@@ -726,8 +733,8 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 				{
 					$project: {
 						messageCount: { $size: '$messages' },
-						lastActivity: '$updatedAt'
-					}
+						lastActivity: '$updatedAt',
+					},
 				},
 				{
 					$group: {
@@ -735,33 +742,34 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 						totalConversations: { $sum: 1 },
 						totalMessages: { $sum: '$messageCount' },
 						avgMessagesPerConversation: { $avg: '$messageCount' },
-						lastActivity: { $max: '$lastActivity' }
-					}
-				}
+						lastActivity: { $max: '$lastActivity' },
+					},
+				},
 			]);
 
 			const stats = conversationStats[0] || {
 				totalConversations: 0,
 				totalMessages: 0,
 				avgMessagesPerConversation: 0,
-				lastActivity: null
+				lastActivity: null,
 			};
 
 			const result = {
 				totalConversations: stats.totalConversations,
 				totalMessages: stats.totalMessages,
-				avgMessagesPerConversation: Math.round(stats.avgMessagesPerConversation || 0),
+				avgMessagesPerConversation: Math.round(
+					stats.avgMessagesPerConversation || 0
+				),
 				lastActivity: stats.lastActivity,
-				botAnalytics: bot.analytics || {}
+				botAnalytics: bot.analytics || {},
 			};
 
 			logInfo('Chat statistics fetched successfully', {
 				botId,
-				statistics: result
+				statistics: result,
 			});
 
 			return result;
-
 		} catch (error) {
 			logError('Error fetching chat statistics', error, { botId });
 
@@ -789,11 +797,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			// Validate bot exists
 			const bot = await Bot.findById(botId);
 			if (!bot) {
-				throw new ChatError(
-					'Bot not found',
-					'BOT_NOT_FOUND',
-					404
-				);
+				throw new ChatError('Bot not found', 'BOT_NOT_FOUND', 404);
 			}
 
 			// Get topics from RAG service
@@ -801,16 +805,17 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 
 			logInfo('Available topics fetched successfully', {
 				botId,
-				topicCount: Array.isArray(topics) ? topics.length : 0
+				topicCount: Array.isArray(topics) ? topics.length : 0,
 			});
 
 			return {
 				botId,
 				botName: bot.name,
 				topics,
-				hasKnowledgeBase: Array.isArray(topics) ? topics.length > 0 : !!topics.totalDocuments
+				hasKnowledgeBase: Array.isArray(topics)
+					? topics.length > 0
+					: !!topics.totalDocuments,
 			};
-
 		} catch (error) {
 			logError('Error fetching available topics', error, { botId });
 

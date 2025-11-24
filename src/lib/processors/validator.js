@@ -114,8 +114,8 @@ export function validateFile(file, fileBuffer, options = {}) {
       errors.push(`File extension .${fileExtension} is not allowed for security reasons`);
     }
 
-    // Content validation for text files
-    if (file.type?.startsWith('text/') || file.type === 'application/pdf') {
+    // Content validation for text files only (not binary formats like PDF/DOCX)
+    if (file.type?.startsWith('text/')) {
       const contentValidation = validateTextContent(fileBuffer.toString('utf-8'));
       if (!contentValidation.isValid) {
         warnings.push(...contentValidation.warnings);
