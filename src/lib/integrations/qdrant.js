@@ -129,16 +129,22 @@ export async function storeDocuments(collectionName, embeddings, documents, meta
       // Attempt to store documents with unique IDs
       const ids = await vectorStore.addDocuments(enrichedDocuments);
 
+      // Handle case where addDocuments returns undefined (but storage still succeeds)
+      const storedCount = Array.isArray(ids) ? ids.length : enrichedDocuments.length;
+      const documentIds = Array.isArray(ids) ? ids : [];
+
       logInfo('Documents stored successfully', { 
         collectionName,
         documentCount: documents.length,
-        storedIds: ids.length
+        storedIds: storedCount,
+        returnedIds: Array.isArray(ids),
+        idsType: typeof ids
       });
 
       return {
         success: true,
-        storedCount: ids.length,
-        documentIds: ids
+        storedCount: storedCount,
+        documentIds: documentIds
       };
     } catch (storageError) {
       if (storageError.message.includes('Conflict') || storageError.message.includes('already exists')) {
@@ -165,16 +171,22 @@ export async function storeDocuments(collectionName, embeddings, documents, meta
         // Try storing again with new IDs
         const retryIds = await vectorStore.addDocuments(reconflictedDocuments);
 
+        // Handle case where addDocuments returns undefined (but storage still succeeds)
+        const retryStoredCount = Array.isArray(retryIds) ? retryIds.length : reconflictedDocuments.length;
+        const retryDocumentIds = Array.isArray(retryIds) ? retryIds : [];
+
         logInfo('Documents stored successfully after retry', { 
           collectionName,
           documentCount: documents.length,
-          storedIds: retryIds.length
+          storedIds: retryStoredCount,
+          returnedIds: Array.isArray(retryIds),
+          retryAttempt: true
         });
 
         return {
           success: true,
-          storedCount: retryIds.length,
-          documentIds: retryIds
+          storedCount: retryStoredCount,
+          documentIds: retryDocumentIds
         };
       } else {
         // If it's not a conflict error, rethrow
