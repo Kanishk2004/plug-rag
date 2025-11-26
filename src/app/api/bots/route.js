@@ -275,8 +275,6 @@ export async function GET(request) {
 		]);
 
 		// Step 8: Format bot data for consistent API response
-		// For now, use stored analytics instead of real-time sync due to model import issues
-		// TODO: Fix dynamic model imports in analytics sync utility
 		const formattedBots = bots.map((bot) => ({
 			id: bot._id, // Convert _id to id for frontend consistency
 			name: bot.name,
@@ -295,13 +293,6 @@ export async function GET(request) {
 				storageUsed: bot.analytics?.storageUsed || bot.storageUsed || 0,
 				lastActiveAt: bot.analytics?.lastActiveAt || bot.updatedAt,
 			},
-
-			// Legacy fields for backward compatibility
-			totalTokens: bot.analytics?.totalTokensUsed || bot.totalTokens || 0,
-			totalMessages: bot.analytics?.totalMessages || bot.totalMessages || 0,
-			totalEmbeddings:
-				bot.analytics?.totalEmbeddings || bot.totalEmbeddings || 0,
-			lastActiveAt: bot.analytics?.lastActiveAt || bot.lastActiveAt,
 
 			customization: bot.customization,
 			createdAt: bot.createdAt,
