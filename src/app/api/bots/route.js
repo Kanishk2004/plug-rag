@@ -30,17 +30,11 @@ import {
 	validationError,
 	paginatedResponse,
 	forbiddenError,
+	createdResponse,
 } from '@/lib/utils/apiResponse';
 
 /**
  * POST /api/bots - Create a new bot
- *
- * Creates a new chatbot for the authenticated user with the following features:
- * - Validates user authentication and plan limits
- * - Creates bot with customization options
- * - Sets up vector storage configuration
- * - Initializes analytics and limits
- * - Updates user usage statistics
  *
  * Request Body:
  * {
@@ -54,14 +48,6 @@ import {
  *     title?: string (max 50 chars)
  *   }
  * }
- *
- * Response:
- * - 201: Bot created successfully with bot data
- * - 400: Validation error (invalid input)
- * - 401: Authentication required
- * - 403: Plan limits reached
- * - 409: Bot key conflict (rare)
- * - 500: Internal server error
  */
 export async function POST(request) {
 	try {
@@ -110,32 +96,11 @@ export async function POST(request) {
 			name: name.trim(),
 			description: description.trim(),
 			botKey,
-			customization: validatedCustomization,
 			status: 'active',
-			// Vector storage configuration for Qdrant
-			vectorStorage: {
-				enabled: true,
-				provider: 'qdrant',
-				dimensions: 1536, // OpenAI embedding dimensions
-				model: 'text-embedding-3-small',
-			},
-			// Initialize analytics tracking
+			customization: validatedCustomization,
 			analytics: {
-				totalMessages: 0,
-				totalSessions: 0,
-				totalEmbeddings: 0,
-				totalTokensUsed: 0,
 				lastActiveAt: new Date(),
 			},
-			// Set bot-specific limits based on user's plan
-			limits: {
-				maxFilesPerBot: user.plan?.maxFilesPerBot || 10,
-				maxFileSize: user.plan?.maxFileSize || 10485760, // 10MB default
-				messagesPerMonth: user.plan?.messagesPerMonth || 1000,
-			},
-			// Initialize counters
-			fileCount: 0,
-			totalTokens: 0,
 		});
 
 		// Step 8: Save bot to database
@@ -160,7 +125,7 @@ export async function POST(request) {
 			limits: bot.limits,
 		};
 
-		return apiSuccess(responseData, 'Bot created successfully', 201);
+		return createdResponse(responseData, 'Bot created successfully');
 	} catch (error) {
 		console.error('Bot creation API error:', error);
 
@@ -294,15 +259,12 @@ export async function GET(request) {
 					customization: 1,
 					createdAt: 1,
 					updatedAt: 1,
-					// Legacy fields (for fallback)
-					totalTokens: 1,
-					totalMessages: 1,
-					totalEmbeddings: 1,
 					// New analytics object
 					'analytics.totalMessages': 1,
 					'analytics.totalSessions': 1,
 					'analytics.totalTokensUsed': 1,
 					'analytics.totalEmbeddings': 1,
+					'analytics.storageUsed': 1,
 					'analytics.lastActiveAt': 1,
 				})
 				.sort({ createdAt: -1 }) // Newest first
@@ -330,6 +292,7 @@ export async function GET(request) {
 				totalSessions: bot.analytics?.totalSessions || 0,
 				totalEmbeddings:
 					bot.analytics?.totalEmbeddings || bot.totalEmbeddings || 0,
+				storageUsed: bot.analytics?.storageUsed || bot.storageUsed || 0,
 				lastActiveAt: bot.analytics?.lastActiveAt || bot.updatedAt,
 			},
 

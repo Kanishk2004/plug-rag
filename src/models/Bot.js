@@ -75,7 +75,7 @@ const botSchema = new mongoose.Schema(
 		vectorStorage: {
 			enabled: {
 				type: Boolean,
-				default: false,
+				default: true,
 			},
 			provider: {
 				type: String,
@@ -119,6 +119,10 @@ const botSchema = new mongoose.Schema(
 				type: Number,
 				default: 0,
 			},
+			storageUsed: {
+				type: Number,
+				default: 0, // in bytes
+			},
 			lastActiveAt: {
 				type: Date,
 				default: Date.now,
@@ -133,80 +137,53 @@ const botSchema = new mongoose.Schema(
 				type: Number,
 				default: 10485760, // 10MB in bytes
 			},
-			messagesPerMonth: {
+			maxTotalStorage: {
 				type: Number,
-				default: 1000,
+				default: 52428800, // 50MB in bytes
 			},
 		},
 		// API Configuration for custom OpenAI keys
-		apiConfiguration: {
-			// Custom OpenAI API Key Configuration
-			openaiConfig: {
-				// Encrypted API key storage
-				apiKeyEncrypted: {
-					type: String,
-					default: null,
-					select: false, // Don't return in queries by default for security
-				},
-				// Key status tracking
-				keyStatus: {
-					type: String,
-					enum: ['none', 'valid', 'invalid', 'expired', 'quota_exceeded'],
-					default: 'none'
-				},
-				// Last validation check
-				lastValidated: {
-					type: Date,
-					default: null
-				},
-				// Usage tracking for this bot's API key
-				usage: {
-					totalTokens: {
-						type: Number,
-						default: 0
-					},
-					embedTokens: {
-						type: Number,
-						default: 0
-					},
-					chatTokens: {
-						type: Number,
-						default: 0
-					},
-					lastResetDate: {
-						type: Date,
-						default: Date.now
-					}
-				},
-				// Model preferences for this bot
-				models: {
-					chat: {
-						type: String,
-						default: 'gpt-4',
-						enum: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo']
-					},
-					embeddings: {
-						type: String,
-						default: 'text-embedding-3-small',
-						enum: ['text-embedding-3-small', 'text-embedding-3-large']
-					}
-				},
-				
+		openaiApiConfig: {
+			// Encrypted API key storage
+			apiKeyEncrypted: {
+				type: String,
+				default: null,
+				select: false, // Don't return in queries by default for security
 			},
-			
-			// Fallback configuration
-			fallbackToGlobal: {
-				type: Boolean,
-				default: true
-			}
+			// Key status tracking
+			keyStatus: {
+				type: String,
+				enum: ['none', 'valid', 'invalid', 'expired', 'quota_exceeded'],
+				default: 'none',
+			},
+			// Last validation check
+			lastValidated: {
+				type: Date,
+				default: null,
+			},
+			// Model preferences for this bot
+			models: {
+				chat: {
+					type: String,
+					default: 'gpt-4',
+					enum: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+				},
+				embeddings: {
+					type: String,
+					default: 'text-embedding-3-small',
+					enum: ['text-embedding-3-small', 'text-embedding-3-large'],
+				},
+			},
+		},
+
+		// Fallback configuration
+		fallbackToGlobal: {
+			type: Boolean,
+			default: true,
 		},
 
 		// File management
 		fileCount: {
-			type: Number,
-			default: 0,
-		},
-		totalTokens: {
 			type: Number,
 			default: 0,
 		},

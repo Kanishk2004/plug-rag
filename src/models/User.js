@@ -20,28 +20,15 @@ const userSchema = new mongoose.Schema(
 			type: String,
 			trim: true,
 		},
-		plan: {
-			type: String,
-			enum: ['free', 'pro', 'enterprise'],
-			default: 'free',
-		},
 		usage: {
 			botsCreated: {
-				type: Number,
-				default: 0,
-			},
-			messagesThisMonth: {
 				type: Number,
 				default: 0,
 			},
 			storageUsed: {
 				type: Number,
 				default: 0, // in bytes
-			},
-			lastResetDate: {
-				type: Date,
-				default: Date.now,
-			},
+			}
 		},
 		limits: {
 			maxBots: {

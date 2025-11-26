@@ -1,6 +1,6 @@
 /**
  * Clerk Authentication Integration
- * 
+ *
  * Handles Clerk authentication integration, user synchronization,
  * and user management operations with MongoDB.
  */
@@ -15,16 +15,16 @@ import User from '@/models/User.js';
  * @returns {Promise<Object|null>} Current user or null if not authenticated
  */
 export async function getCurrentClerkUser() {
-  try {
-    const user = await currentUser();
-    if (user) {
-      logInfo('Retrieved current Clerk user', { userId: user.id });
-    }
-    return user;
-  } catch (error) {
-    logError('Failed to get current Clerk user', { error: error.message });
-    return null;
-  }
+	try {
+		const user = await currentUser();
+		if (user) {
+			logInfo('Retrieved current Clerk user', { userId: user.id });
+		}
+		return user;
+	} catch (error) {
+		logError('Failed to get current Clerk user', { error: error.message });
+		return null;
+	}
 }
 
 /**
@@ -72,21 +72,8 @@ export async function syncUserWithDB(clerkId = null) {
 				email: primaryEmail?.emailAddress || '',
 				firstName: user.firstName || '',
 				lastName: user.lastName || '',
-				plan: 'free',
-				usage: {
-					botsCreated: 0,
-					messagesThisMonth: 0,
-					storageUsed: 0,
-					lastResetDate: new Date(),
-				},
 				limits: {
 					maxBots: 10,
-					maxMessages: 100,
-					maxStorage: 50 * 1024 * 1024, // 50MB
-				},
-				preferences: {
-					emailNotifications: true,
-					marketingEmails: false,
 				},
 			};
 
@@ -114,7 +101,10 @@ export async function checkUserExists(clerkId) {
 		const exists = await User.exists({ clerkId });
 		return !!exists;
 	} catch (error) {
-		logError('Error checking user existence', { clerkId, error: error.message });
+		logError('Error checking user existence', {
+			clerkId,
+			error: error.message,
+		});
 		return false;
 	}
 }
@@ -240,65 +230,6 @@ export async function checkUserLimits(clerkId) {
 }
 
 /**
- * Reset monthly usage for a user (called on plan reset)
- * @param {string} clerkId - Clerk user ID
- * @returns {Promise<Object>} Updated user document
- */
-export async function resetMonthlyUsage(clerkId) {
-	try {
-		await connect();
-
-		const user = await User.findOneAndUpdate(
-			{ clerkId },
-			{ 
-				$set: { 
-					'usage.messagesThisMonth': 0,
-					'usage.lastResetDate': new Date()
-				}
-			},
-			{ new: true }
-		);
-
-		logInfo('Reset monthly usage', { clerkId });
-		return user;
-	} catch (error) {
-		logError('Error resetting monthly usage', { clerkId, error: error.message });
-		throw error;
-	}
-}
-
-/**
- * Upgrade user plan
- * @param {string} clerkId - Clerk user ID
- * @param {string} newPlan - New plan name
- * @param {Object} newLimits - New plan limits
- * @returns {Promise<Object>} Updated user document
- */
-export async function upgradeUserPlan(clerkId, newPlan, newLimits) {
-	try {
-		await connect();
-
-		const user = await User.findOneAndUpdate(
-			{ clerkId },
-			{ 
-				$set: { 
-					plan: newPlan,
-					limits: newLimits,
-					'usage.lastResetDate': new Date()
-				}
-			},
-			{ new: true }
-		);
-
-		logInfo('Upgraded user plan', { clerkId, newPlan });
-		return user;
-	} catch (error) {
-		logError('Error upgrading user plan', { clerkId, error: error.message });
-		throw error;
-	}
-}
-
-/**
  * Get user statistics for analytics
  * @param {string} clerkId - Clerk user ID
  * @returns {Promise<Object>} User statistics
@@ -311,16 +242,13 @@ export async function getUserStats(clerkId) {
 		}
 
 		return {
-			plan: user.plan,
 			usage: user.usage,
 			limits: user.limits,
 			utilizationPercentage: {
 				bots: (user.usage.botsCreated / user.limits.maxBots) * 100,
-				messages: (user.usage.messagesThisMonth / user.limits.maxMessages) * 100,
-				storage: (user.usage.storageUsed / user.limits.maxStorage) * 100
+				storage: (user.usage.storageUsed / user.limits.maxStorage) * 100,
 			},
 			joinedAt: user.createdAt,
-			lastResetDate: user.usage.lastResetDate
 		};
 	} catch (error) {
 		logError('Error getting user stats', { clerkId, error: error.message });
