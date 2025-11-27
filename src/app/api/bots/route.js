@@ -15,7 +15,6 @@
 import { auth } from '@clerk/nextjs/server';
 import connect from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
-import { botService } from '@/lib/core/botService';
 import {
 	getCurrentDBUser,
 	syncUserWithDB,
