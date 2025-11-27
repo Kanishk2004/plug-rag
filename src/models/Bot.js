@@ -179,7 +179,7 @@ const botSchema = new mongoose.Schema(
 		// Fallback configuration
 		fallbackToGlobal: {
 			type: Boolean,
-			default: true,
+			default: false,
 		},
 
 		// File management

@@ -1,17 +1,22 @@
-import { NextResponse } from 'next/server';
 import connect from '@/lib/integrations/mongo';
 import Conversation from '@/models/Conversation';
 import Bot from '@/models/Bot';
 import { getAuth } from '@clerk/nextjs/server';
-import { apiSuccess, apiError, authError, notFoundError, forbiddenError } from '@/lib/utils/apiResponse';
+import {
+	apiSuccess,
+	apiError,
+	authError,
+	notFoundError,
+	forbiddenError,
+} from '@/lib/utils/apiResponse';
 import { logInfo, logError } from '@/lib/utils/logger';
 import mongoose from 'mongoose';
 
 /**
  * GET /api/bots/[id]/conversations
- * 
+ *
  * Retrieves conversations for a specific bot with pagination and filtering options
- * 
+ *
  * Query Parameters:
  * - page: Page number (default: 1)
  * - limit: Number of conversations per page (default: 20, max: 100)
@@ -37,7 +42,10 @@ export async function GET(request, { params }) {
 
 		// Extract query parameters
 		const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-		const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+		const limit = Math.min(
+			100,
+			Math.max(1, parseInt(searchParams.get('limit') || '20'))
+		);
 		const status = searchParams.get('status') || 'all';
 		const dateFrom = searchParams.get('dateFrom');
 		const dateTo = searchParams.get('dateTo');
@@ -61,7 +69,7 @@ export async function GET(request, { params }) {
 			limit,
 			status,
 			search: search ? 'present' : 'none',
-			domain
+			domain,
 		});
 
 		// Build query filters
@@ -98,8 +106,8 @@ export async function GET(request, { params }) {
 				{ $match: query },
 				{
 					$match: {
-						'messages.content': { $regex: search, $options: 'i' }
-					}
+						'messages.content': { $regex: search, $options: 'i' },
+					},
 				},
 				{
 					$addFields: {
@@ -111,11 +119,11 @@ export async function GET(request, { params }) {
 								$map: {
 									input: '$messages',
 									as: 'msg',
-									in: { $ifNull: ['$$msg.tokens', 0] }
-								}
-							}
-						}
-					}
+									in: { $ifNull: ['$$msg.tokens', 0] },
+								},
+							},
+						},
+					},
 				},
 				{
 					$project: {
@@ -133,12 +141,12 @@ export async function GET(request, { params }) {
 						updatedAt: 1,
 						// Only include first and last messages for preview
 						firstMessage: { $arrayElemAt: ['$messages', 0] },
-						lastMessage: { $arrayElemAt: ['$messages', -1] }
-					}
+						lastMessage: { $arrayElemAt: ['$messages', -1] },
+					},
 				},
 				{ $sort: { lastMessageAt: -1, createdAt: -1 } },
 				{ $skip: (page - 1) * limit },
-				{ $limit: limit }
+				{ $limit: limit },
 			];
 
 			conversations = await Conversation.aggregate(searchPipeline);
@@ -148,15 +156,14 @@ export async function GET(request, { params }) {
 				{ $match: query },
 				{
 					$match: {
-						'messages.content': { $regex: search, $options: 'i' }
-					}
+						'messages.content': { $regex: search, $options: 'i' },
+					},
 				},
-				{ $count: 'total' }
+				{ $count: 'total' },
 			];
 
 			const countResult = await Conversation.aggregate(countPipeline);
 			totalCount = countResult[0]?.total || 0;
-
 		} else {
 			// Standard query without text search
 			const aggregatePipeline = [
@@ -170,11 +177,11 @@ export async function GET(request, { params }) {
 								$map: {
 									input: '$messages',
 									as: 'msg',
-									in: { $ifNull: ['$$msg.tokens', 0] }
-								}
-							}
-						}
-					}
+									in: { $ifNull: ['$$msg.tokens', 0] },
+								},
+							},
+						},
+					},
 				},
 				{
 					$project: {
@@ -191,12 +198,12 @@ export async function GET(request, { params }) {
 						createdAt: 1,
 						updatedAt: 1,
 						firstMessage: { $arrayElemAt: ['$messages', 0] },
-						lastMessage: { $arrayElemAt: ['$messages', -1] }
-					}
+						lastMessage: { $arrayElemAt: ['$messages', -1] },
+					},
 				},
 				{ $sort: { lastMessageAt: -1, createdAt: -1 } },
 				{ $skip: (page - 1) * limit },
-				{ $limit: limit }
+				{ $limit: limit },
 			];
 
 			conversations = await Conversation.aggregate(aggregatePipeline);
@@ -216,10 +223,10 @@ export async function GET(request, { params }) {
 					_id: null,
 					totalConversations: { $sum: 1 },
 					activeConversations: {
-						$sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] }
+						$sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] },
 					},
 					totalMessages: {
-						$sum: { $size: '$messages' }
+						$sum: { $size: '$messages' },
 					},
 					totalTokens: {
 						$sum: {
@@ -227,17 +234,17 @@ export async function GET(request, { params }) {
 								$map: {
 									input: '$messages',
 									as: 'msg',
-									in: { $ifNull: ['$$msg.tokens', 0] }
-								}
-							}
-						}
+									in: { $ifNull: ['$$msg.tokens', 0] },
+								},
+							},
+						},
 					},
 					avgMessagesPerConversation: {
-						$avg: { $size: '$messages' }
+						$avg: { $size: '$messages' },
 					},
-					lastActivity: { $max: '$updatedAt' }
-				}
-			}
+					lastActivity: { $max: '$updatedAt' },
+				},
+			},
 		];
 
 		const statsResult = await Conversation.aggregate(statsQuery);
@@ -247,7 +254,7 @@ export async function GET(request, { params }) {
 			totalMessages: 0,
 			totalTokens: 0,
 			avgMessagesPerConversation: 0,
-			lastActivity: null
+			lastActivity: null,
 		};
 
 		logInfo('Conversations fetched successfully', {
@@ -256,7 +263,7 @@ export async function GET(request, { params }) {
 			conversationsCount: conversations.length,
 			totalCount,
 			page,
-			limit
+			limit,
 		});
 
 		return apiSuccess({
@@ -267,30 +274,31 @@ export async function GET(request, { params }) {
 				totalCount,
 				limit,
 				hasNextPage,
-				hasPrevPage
+				hasPrevPage,
 			},
 			filters: {
 				status,
 				dateFrom,
 				dateTo,
 				search,
-				domain
+				domain,
 			},
 			statistics: {
 				...stats,
-				avgMessagesPerConversation: Math.round(stats.avgMessagesPerConversation || 0)
+				avgMessagesPerConversation: Math.round(
+					stats.avgMessagesPerConversation || 0
+				),
 			},
 			botInfo: {
 				id: bot._id,
 				name: bot.name,
-				status: bot.status
-			}
+				status: bot.status,
+			},
 		});
-
 	} catch (error) {
 		logError('Error fetching conversations', error, {
 			botId: params?.id,
-			userId: getAuth(request)?.userId
+			userId: getAuth(request)?.userId,
 		});
 
 		return apiError(

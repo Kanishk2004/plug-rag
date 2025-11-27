@@ -33,40 +33,14 @@ export class ApiKeyService {
 
 			// Step 3: Prepare update data
 			const updateData = {
-				'apiConfiguration.openaiConfig.apiKeyEncrypted': encryptedKey,
-				'apiConfiguration.openaiConfig.keyStatus': 'valid',
-				'apiConfiguration.openaiConfig.lastValidated': new Date(),
+				'openaiApiConfig.apiKeyEncrypted': encryptedKey,
+				'openaiApiConfig.keyStatus': 'valid',
+				'openaiApiConfig.lastValidated': new Date(),
 			};
-
-			// Set model preferences if provided
-			if (options.models) {
-				if (options.models.chat) {
-					updateData['apiConfiguration.openaiConfig.models.chat'] =
-						options.models.chat;
-				}
-				if (options.models.embeddings) {
-					updateData['apiConfiguration.openaiConfig.models.embeddings'] =
-						options.models.embeddings;
-				}
-			}
 
 			// Set fallback preference if provided
 			if (options.fallbackToGlobal !== undefined) {
-				updateData['apiConfiguration.fallbackToGlobal'] =
-					options.fallbackToGlobal;
-			}
-
-			// Set cost tracking options if provided
-			if (options.costTracking) {
-				if (options.costTracking.enabled !== undefined) {
-					updateData['apiConfiguration.openaiConfig.costTracking.enabled'] =
-						options.costTracking.enabled;
-				}
-				if (options.costTracking.monthlyLimit !== undefined) {
-					updateData[
-						'apiConfiguration.openaiConfig.costTracking.monthlyLimit'
-					] = options.costTracking.monthlyLimit;
-				}
+				updateData['fallbackToGlobal'] = options.fallbackToGlobal;
 			}
 
 			// Step 4: Update bot configuration
@@ -87,7 +61,6 @@ export class ApiKeyService {
 				status: 'valid',
 				supportedModels: validation.supportedModels,
 				capabilities: validation.capabilities,
-				validationCosts: validation.validationCosts,
 			};
 		} catch (error) {
 			console.error(`Error storing API key for bot ${botId}:`, error);
@@ -111,7 +84,7 @@ export class ApiKeyService {
 
 			// Query bot with API configuration (including encrypted key)
 			const bot = await Bot.findOne({ _id: botId, ownerId: userId }).select(
-				'+apiConfiguration.openaiConfig.apiKeyEncrypted'
+				'+openaiApiConfig.apiKeyEncrypted'
 			);
 
 			if (!bot) {
@@ -121,8 +94,8 @@ export class ApiKeyService {
 				throw new Error('Bot not found or unauthorized');
 			}
 
-			const apiConfig = bot.apiConfiguration?.openaiConfig;
-			const fallbackEnabled = bot.apiConfiguration?.fallbackToGlobal;
+			const apiConfig = bot.openaiApiConfig;
+			const fallbackEnabled = bot.fallbackToGlobal;
 
 			console.log(
 				`[ApiKeyService] Bot found. Has custom key: ${!!apiConfig?.apiKeyEncrypted}, Fallback enabled: ${fallbackEnabled}`
@@ -162,8 +135,14 @@ export class ApiKeyService {
 			);
 
 			// Additional validation for API key format
-			if (!decryptedKey || !decryptedKey.startsWith('sk-') || decryptedKey.length < 20) {
-				console.error('[ApiKeyService] Invalid API key format after decryption');
+			if (
+				!decryptedKey ||
+				!decryptedKey.startsWith('sk-') ||
+				decryptedKey.length < 20
+			) {
+				console.error(
+					'[ApiKeyService] Invalid API key format after decryption'
+				);
 				throw new Error('Invalid API key format');
 			}
 
@@ -202,11 +181,11 @@ export class ApiKeyService {
 				{ _id: botId, ownerId: userId },
 				{
 					$unset: {
-						'apiConfiguration.openaiConfig.apiKeyEncrypted': 1,
+						'openaiApiConfig.apiKeyEncrypted': 1,
 					},
 					$set: {
-						'apiConfiguration.openaiConfig.keyStatus': 'none',
-						'apiConfiguration.openaiConfig.lastValidated': null,
+						'openaiApiConfig.keyStatus': 'none',
+						'openaiApiConfig.lastValidated': null,
 					},
 				}
 			);
@@ -247,10 +226,8 @@ export class ApiKeyService {
 			await Bot.findOneAndUpdate(
 				{ _id: botId, ownerId: userId },
 				{
-					'apiConfiguration.openaiConfig.keyStatus': validation.isValid
-						? 'valid'
-						: 'invalid',
-					'apiConfiguration.openaiConfig.lastValidated': new Date(),
+					'openaiApiConfig.keyStatus': validation.isValid ? 'valid' : 'invalid',
+					'openaiApiConfig.lastValidated': new Date(),
 				}
 			);
 
@@ -276,64 +253,25 @@ export class ApiKeyService {
 
 			const bot = await Bot.findOne(
 				{ _id: botId, ownerId: userId },
-				'apiConfiguration'
+				'openaiApiConfig'
 			);
 
 			if (!bot) {
 				throw new Error('Bot not found or unauthorized');
 			}
 
-			const config = bot.apiConfiguration?.openaiConfig;
+			const config = bot.openaiApiConfig;
 
 			return {
 				hasCustomKey: !!config?.apiKeyEncrypted,
 				keyStatus: config?.keyStatus || 'none',
 				lastValidated: config?.lastValidated,
 				models: config?.models,
-				usage: config?.usage,
-				costTracking: config?.costTracking,
-				fallbackToGlobal: bot.apiConfiguration?.fallbackToGlobal,
+				fallbackToGlobal: bot?.fallbackToGlobal,
 			};
 		} catch (error) {
 			console.error(`Error getting key status for bot ${botId}:`, error);
 			throw error;
-		}
-	}
-
-	/**
-	 * Track usage for a bot's API key
-	 * @param {string} botId - The bot ID
-	 * @param {string} userId - The user ID
-	 * @param {Object} usage - Usage data {chatTokens, embedTokens, totalTokens}
-	 * @returns {Promise<void>}
-	 */
-	async trackUsage(botId, userId, usage) {
-		try {
-			if (!usage || !usage.totalTokens) {
-				return; // No usage to track
-			}
-
-			const updateData = {
-				$inc: {},
-			};
-
-			if (usage.totalTokens) {
-				updateData.$inc['apiConfiguration.openaiConfig.usage.totalTokens'] =
-					usage.totalTokens;
-			}
-			if (usage.chatTokens) {
-				updateData.$inc['apiConfiguration.openaiConfig.usage.chatTokens'] =
-					usage.chatTokens;
-			}
-			if (usage.embedTokens) {
-				updateData.$inc['apiConfiguration.openaiConfig.usage.embedTokens'] =
-					usage.embedTokens;
-			}
-
-			await Bot.findOneAndUpdate({ _id: botId, ownerId: userId }, updateData);
-		} catch (error) {
-			console.error(`Error tracking usage for bot ${botId}:`, error);
-			// Don't throw - usage tracking shouldn't break main functionality
 		}
 	}
 }

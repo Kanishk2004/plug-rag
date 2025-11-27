@@ -1,9 +1,14 @@
-import { NextResponse } from 'next/server';
 import connect from '@/lib/integrations/mongo';
 import Conversation from '@/models/Conversation';
 import Bot from '@/models/Bot';
-import { getAuth } from '@clerk/nextjs/server';
-import { apiSuccess, apiError, authError, notFoundError, forbiddenError } from '@/lib/utils/apiResponse';
+import { auth } from '@clerk/nextjs/server';
+import {
+	apiSuccess,
+	apiError,
+	authError,
+	notFoundError,
+	forbiddenError,
+} from '@/lib/utils/apiResponse';
 import { logInfo, logError } from '@/lib/utils/logger';
 import mongoose from 'mongoose';
 
@@ -20,7 +25,7 @@ import mongoose from 'mongoose';
 export async function GET(request, { params }) {
 	try {
 		await connect();
-		const { userId } = getAuth(request);
+		const { userId } = await auth();
 
 		// Authentication check
 		if (!userId) {
@@ -123,8 +128,6 @@ export async function GET(request, { params }) {
 								pageNumber: source.pageNumber,
 								chunkIndex: source.chunkIndex,
 								score: source.score,
-								// For legacy support
-								content: source.content,
 							})
 						);
 					}
@@ -224,7 +227,7 @@ export async function GET(request, { params }) {
 		logError('Error fetching conversation detail', error, {
 			botId: params?.id,
 			sessionId: params?.sessionId,
-			userId: getAuth(request)?.userId,
+			userId,
 		});
 
 		return apiError(
@@ -244,7 +247,7 @@ export async function GET(request, { params }) {
 export async function DELETE(request, { params }) {
 	try {
 		await connect();
-		const { userId } = getAuth(request);
+		const { userId } = await auth();
 
 		// Authentication check
 		if (!userId) {
@@ -294,7 +297,7 @@ export async function DELETE(request, { params }) {
 		logError('Error deleting conversation', error, {
 			botId: params?.id,
 			sessionId: params?.sessionId,
-			userId: getAuth(request)?.userId,
+			userId,
 		});
 
 		return apiError(

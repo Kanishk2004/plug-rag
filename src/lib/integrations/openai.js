@@ -13,11 +13,11 @@ import { logInfo, logError } from '../utils/logger.js';
  * @returns {OpenAI} OpenAI client instance
  */
 export function createOpenAIClient(apiKey, options = {}) {
-  return new OpenAI({
-    apiKey,
-    timeout: options.timeout || 30000,
-    ...options
-  });
+	return new OpenAI({
+		apiKey,
+		timeout: options.timeout || 30000,
+		...options,
+	});
 }
 
 /**
@@ -31,11 +31,14 @@ export async function validateOpenAIKey(apiKey) {
 		// Create OpenAI client with the provided key
 		const client = createOpenAIClient(apiKey, { timeout: 10000 });
 
-		logInfo('Validating OpenAI API key', { keyHash: apiKey.substring(0, 7) + '...' });
+		logInfo('Validating OpenAI API key', {
+			keyHash: apiKey.substring(0, 7) + '...',
+		});
 
 		// Test 1: List available models to verify key validity
 		const modelsResponse = await client.models.list();
 		const availableModels = modelsResponse.data.map((model) => model.id);
+		console.log('Models available: ', availableModels);
 
 		// Test 2: Perform a minimal embedding test (very low cost)
 		const embeddingTest = await client.embeddings.create({
@@ -65,26 +68,10 @@ export async function validateOpenAIKey(apiKey) {
 			),
 		};
 
-		// Calculate estimated costs for the validation tests
-		const validationCosts = {
-			embedding: embeddingTest.usage
-				? {
-						tokens: embeddingTest.usage.total_tokens,
-						estimatedCost: (embeddingTest.usage.total_tokens / 1000) * 0.00002, // $0.00002 per 1K tokens
-				  }
-				: null,
-			chat: chatTest.usage
-				? {
-						tokens: chatTest.usage.total_tokens,
-						estimatedCost: (chatTest.usage.total_tokens / 1000) * 0.0005, // Rough estimate for GPT-3.5
-				  }
-				: null,
-		};
-
 		logInfo('OpenAI key validation successful', {
 			modelsCount: availableModels.length,
 			chatModels: supportedModels.chat.length,
-			embeddingModels: supportedModels.embeddings.length
+			embeddingModels: supportedModels.embeddings.length,
 		});
 
 		return {
@@ -95,7 +82,6 @@ export async function validateOpenAIKey(apiKey) {
 				embeddings: embeddingTest.data?.length > 0,
 				modelsCount: availableModels.length,
 			},
-			validationCosts,
 			testedAt: new Date().toISOString(),
 		};
 	} catch (error) {
@@ -105,7 +91,7 @@ export async function validateOpenAIKey(apiKey) {
 		logError('OpenAI key validation failed', {
 			error: validationError.message,
 			code: validationError.code,
-			status: error.status
+			status: error.status,
 		});
 
 		return {
@@ -211,30 +197,12 @@ export async function testModelAvailability(apiKey, modelName) {
 			return result.choices && result.choices.length > 0;
 		}
 	} catch (error) {
-		logError('Model availability test failed', { modelName, error: error.message });
+		logError('Model availability test failed', {
+			modelName,
+			error: error.message,
+		});
 		return false;
 	}
-}
-
-/**
- * Get estimated pricing for different models (as of 2024)
- * These prices may change - consider fetching from OpenAI pricing API in production
- * @param {string} modelName - The model name
- * @returns {Object} Pricing information
- */
-export function getModelPricing(modelName) {
-	const pricing = {
-		// Chat models (per 1K tokens)
-		'gpt-4': { input: 0.03, output: 0.06 },
-		'gpt-4-turbo': { input: 0.01, output: 0.03 },
-		'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 },
-
-		// Embedding models (per 1K tokens)
-		'text-embedding-3-small': { input: 0.00002, output: 0 },
-		'text-embedding-3-large': { input: 0.00013, output: 0 },
-	};
-
-	return pricing[modelName] || { input: 0, output: 0, unknown: true };
 }
 
 /**
@@ -246,17 +214,17 @@ export function getModelPricing(modelName) {
 export async function generateChatCompletion(apiKey, params) {
 	try {
 		const client = createOpenAIClient(apiKey);
-		
+
 		const completion = await client.chat.completions.create({
 			model: 'gpt-3.5-turbo',
 			max_tokens: 1500,
 			temperature: 0.7,
-			...params
+			...params,
 		});
 
 		logInfo('Chat completion generated', {
 			model: params.model || 'gpt-3.5-turbo',
-			tokensUsed: completion.usage?.total_tokens || 0
+			tokensUsed: completion.usage?.total_tokens || 0,
 		});
 
 		return completion;
@@ -276,21 +244,21 @@ export async function generateChatCompletion(apiKey, params) {
 export async function generateEmbeddings(apiKey, input, options = {}) {
 	try {
 		const client = createOpenAIClient(apiKey);
-		
+
 		const response = await client.embeddings.create({
 			model: 'text-embedding-3-small',
 			input,
 			encoding_format: 'float',
-			...options
+			...options,
 		});
 
 		logInfo('Embeddings generated', {
 			model: options.model || 'text-embedding-3-small',
 			inputCount: Array.isArray(input) ? input.length : 1,
-			tokensUsed: response.usage?.total_tokens || 0
+			tokensUsed: response.usage?.total_tokens || 0,
 		});
 
-		return response.data.map(item => item.embedding);
+		return response.data.map((item) => item.embedding);
 	} catch (error) {
 		logError('Embedding generation failed', { error: error.message });
 		throw parseOpenAIError(error);
