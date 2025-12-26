@@ -21,9 +21,23 @@ const botSchema = new mongoose.Schema(
 			default: [],
 			validate: {
 				validator: function (domains) {
-					return domains.every((domain) =>
-						/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain)
-					);
+					return domains.every((domain) => {
+						const trimmed = domain.trim();
+						// Allow URLs with protocols or just domain names
+						if (
+							trimmed.startsWith('http://') ||
+							trimmed.startsWith('https://')
+						) {
+							try {
+								new URL(trimmed);
+								return true;
+							} catch {
+								return false;
+							}
+						}
+						// Basic domain validation for domain-only format
+						return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmed);
+					});
 				},
 				message: 'Invalid domain format',
 			},

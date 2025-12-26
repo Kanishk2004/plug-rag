@@ -3,6 +3,7 @@ import connect from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
 import File from '@/models/File';
 import { getCurrentDBUser, syncUserWithDB } from '@/lib/integrations/clerk';
+import { deleteCollection } from '@/lib/integrations/qdrant';
 import {
 	apiSuccess,
 	authError,
@@ -208,18 +209,35 @@ export async function PATCH(request, { params }) {
 				return validationError('Domain whitelist must be an array');
 			}
 
-			// Validate each domain
-			const domainRegex = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+			// Simple domain validation - just check basic format
 			for (const domain of updateData.domainWhitelist) {
-				if (typeof domain !== 'string' || !domainRegex.test(domain)) {
-					return validationError(`Invalid domain format: ${domain}`);
+				if (typeof domain !== 'string') {
+					return validationError(`Domain must be a string: ${domain}`);
+				}
+
+				const trimmedDomain = domain.trim();
+
+				// Check for empty domain
+				if (trimmedDomain.length === 0) {
+					return validationError('Domain cannot be empty');
+				}
+
+				// Very basic checks - just prevent obvious invalid formats
+				if (trimmedDomain.includes(' ')) {
+					return validationError(`Domain cannot contain spaces: ${domain}`);
+				}
+
+				if (trimmedDomain.length > 253) {
+					return validationError(`Domain too long (max 253 chars): ${domain}`);
 				}
 			}
 
 			// Remove duplicates and normalize
 			updateData.domainWhitelist = [
-				...new Set(updateData.domainWhitelist.map((d) => d.toLowerCase())),
-			];
+				...new Set(
+					updateData.domainWhitelist.map((d) => d.trim().toLowerCase())
+				),
+			].filter((d) => d.length > 0);
 		}
 
 		// Step 7: Find bot and verify ownership (using ownerId which stores Clerk ID)
@@ -246,6 +264,7 @@ export async function PATCH(request, { params }) {
 			botKey: existingBot.botKey,
 			status: existingBot.status,
 			customization: existingBot.customization,
+			domainWhitelist: existingBot.domainWhitelist || [],
 			vectorStorage: existingBot.vectorStorage,
 			limits: existingBot.limits,
 			analytics: existingBot.analytics,
@@ -313,7 +332,6 @@ export async function DELETE(request, { params }) {
 		let vectorCollectionDeleted = false;
 		try {
 			// Import vector store functions
-			const { deleteCollection } = require('@/lib/integrations/qdrant');
 			await deleteCollection(botId.toString());
 			vectorCollectionDeleted = true;
 			console.log(`Deleted vector collection for bot ${botId}`);

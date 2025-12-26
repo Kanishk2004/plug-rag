@@ -84,7 +84,9 @@ export async function POST(request) {
 			return validationError('Description cannot exceed 500 characters');
 
 		// Step 5: Validate and sanitize customization options
+		console.log("Customisations: ", customization);
 		const validatedCustomization = validateCustomization(customization);
+		console.log('Validated Customizations: ', validatedCustomization);
 
 		// Step 6: Generate unique bot identifier
 		const botKey = generateBotKey();
@@ -337,6 +339,7 @@ function validateCustomization(customization) {
 
 	// Validate bubble color: Must be 6-digit hex color
 	if (
+		customization.hasOwnProperty('bubbleColor') &&
 		customization.bubbleColor &&
 		/^#[0-9A-F]{6}$/i.test(customization.bubbleColor)
 	) {
@@ -351,6 +354,7 @@ function validateCustomization(customization) {
 		'top-left',
 	];
 	if (
+		customization.hasOwnProperty('position') &&
 		customization.position &&
 		validPositions.includes(customization.position)
 	) {
@@ -358,16 +362,26 @@ function validateCustomization(customization) {
 	}
 
 	// Validate text fields with length limits and trimming
-	if (customization.greeting && customization.greeting.length <= 200) {
-		validated.greeting = customization.greeting.trim();
+	// Use hasOwnProperty to check if field was provided, then validate
+	if (customization.hasOwnProperty('greeting')) {
+		const greeting = customization.greeting?.trim() || '';
+		if (greeting.length <= 200) {
+			validated.greeting = greeting;
+		}
 	}
 
-	if (customization.placeholder && customization.placeholder.length <= 100) {
-		validated.placeholder = customization.placeholder.trim();
+	if (customization.hasOwnProperty('placeholder')) {
+		const placeholder = customization.placeholder?.trim() || '';
+		if (placeholder.length <= 100) {
+			validated.placeholder = placeholder;
+		}
 	}
 
-	if (customization.title && customization.title.length <= 50) {
-		validated.title = customization.title.trim();
+	if (customization.hasOwnProperty('title')) {
+		const title = customization.title?.trim() || '';
+		if (title.length <= 50) {
+			validated.title = title;
+		}
 	}
 
 	return validated;

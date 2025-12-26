@@ -11,6 +11,8 @@
     "test:vectors": "node test/simple-vector-test.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.958.0",
+    "@aws-sdk/s3-request-presigner": "^3.958.0",
     "@clerk/nextjs": "^6.33.6",
     "@heroicons/react": "^2.2.0",
     "@langchain/community": "^1.0.0",

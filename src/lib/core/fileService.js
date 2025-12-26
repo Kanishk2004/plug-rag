@@ -45,13 +45,6 @@ export async function processFile(
 	userId,
 	options = {}
 ) {
-	const {
-		generateEmbeddings = true,
-		maxChunkSize = 700,
-		overlap = 100,
-		skipValidation = false,
-	} = options;
-
 	let fileRecord = null;
 	let documents = [];
 
@@ -207,11 +200,11 @@ export async function processFile(
 
 		// Update file record with error status
 		if (fileRecord) {
-				await updateFileRecord(fileRecord._id, {
-					status: 'failed',
-					embeddingStatus: 'failed',
-					processingError: error.message,
-				}).catch((dbError) => {
+			await updateFileRecord(fileRecord._id, {
+				status: 'failed',
+				embeddingStatus: 'failed',
+				processingError: error.message,
+			}).catch((dbError) => {
 				logError('Failed to update file record with error status', {
 					fileId: fileRecord._id,
 					dbError: dbError.message,
@@ -369,7 +362,7 @@ async function generateAndStoreEmbeddings(documents, botId, userId, fileId) {
 			botId: botId.toString(),
 			userId,
 			fileId: fileId.toString(),
-			documentCount: documents.length
+			documentCount: documents.length,
 		});
 
 		// Get bot-specific API key
@@ -377,7 +370,7 @@ async function generateAndStoreEmbeddings(documents, botId, userId, fileId) {
 		console.log('✅ [FILE-SERVICE] API key retrieved successfully', {
 			isCustom: keyData.isCustom,
 			source: keyData.source,
-			hasApiKey: !!keyData.apiKey
+			hasApiKey: !!keyData.apiKey,
 		});
 
 		// Extract text content from documents
@@ -403,10 +396,10 @@ async function generateAndStoreEmbeddings(documents, botId, userId, fileId) {
 		// Store using RAG service for better error handling and debugging
 		try {
 			console.log('💾 [FILE-SERVICE] Storing documents in vector database...');
-			
+
 			// Import RAG service dynamically to avoid circular imports
 			const { ragService } = await import('./ragService.js');
-			
+
 			// Clean up any potential failed uploads from this file
 			await cleanupPreviousAttempts(botId, fileId);
 
@@ -418,28 +411,37 @@ async function generateAndStoreEmbeddings(documents, botId, userId, fileId) {
 				{
 					fileId: fileId.toString(),
 					userId,
-					embeddingModel: keyData.models?.embeddings || 'text-embedding-3-small',
+					embeddingModel:
+						keyData.models?.embeddings || 'text-embedding-3-small',
 					tokenCount: totalTokens,
-					estimatedCost
+					estimatedCost,
 				}
 			);
 
-			console.log('✅ [FILE-SERVICE] Documents stored successfully in vector database', {
-				storedCount: storeResults.storedCount,
-				collectionStatus: storeResults.collectionStatus
-			});
+			console.log(
+				'✅ [FILE-SERVICE] Documents stored successfully in vector database',
+				{
+					storedCount: storeResults.storedCount,
+					collectionStatus: storeResults.collectionStatus,
+				}
+			);
 
 			return {
 				vectorsCreated: storeResults.storedCount,
 				tokensUsed: totalTokens,
 				estimatedCost: estimatedCost,
 				embeddingModel: keyData.models?.embeddings || 'text-embedding-3-small',
-				collectionStatus: storeResults.collectionStatus
+				collectionStatus: storeResults.collectionStatus,
 			};
-
 		} catch (storeError) {
-			console.error('💥 [FILE-SERVICE] Vector storage failed:', storeError.message);
-			console.error('💥 [FILE-SERVICE] Store error stack:', storeError.stack?.split('\n').slice(0, 3));
+			console.error(
+				'💥 [FILE-SERVICE] Vector storage failed:',
+				storeError.message
+			);
+			console.error(
+				'💥 [FILE-SERVICE] Store error stack:',
+				storeError.stack?.split('\n').slice(0, 3)
+			);
 
 			logError('Vector storage failed, but continuing', {
 				botId: botId.toString(),
@@ -458,9 +460,15 @@ async function generateAndStoreEmbeddings(documents, botId, userId, fileId) {
 			};
 		}
 	} catch (error) {
-		console.error('💥 [FILE-SERVICE] Failed to generate and store embeddings:', error.message);
-		console.error('💥 [FILE-SERVICE] Error stack:', error.stack?.split('\n').slice(0, 5));
-		
+		console.error(
+			'💥 [FILE-SERVICE] Failed to generate and store embeddings:',
+			error.message
+		);
+		console.error(
+			'💥 [FILE-SERVICE] Error stack:',
+			error.stack?.split('\n').slice(0, 5)
+		);
+
 		logError('Failed to generate and store embeddings', {
 			botId: botId.toString(),
 			userId,
@@ -570,7 +578,6 @@ export async function deleteFile(fileId, userId) {
 
 		// Delete file record
 		await File.findByIdAndDelete(fileId);
-
 
 		logInfo('File deleted successfully', {
 			fileId,

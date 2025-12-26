@@ -1,5 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
-import { getCurrentDBUser, checkUserLimitsFromUser } from '@/lib/integrations/clerk';
+import {
+	getCurrentDBUser,
+	checkUserLimitsFromUser,
+} from '@/lib/integrations/clerk';
 import mongoose from 'mongoose';
 import Bot from '@/models/Bot';
 import File from '@/models/File';
@@ -113,18 +116,24 @@ export async function POST(request) {
 		// CRITICAL: Validate that bot has a custom API key configured
 		// This prevents file processing without proper API key setup
 		try {
-			const keyStatus = await apiKeyService.getKeyStatus(botId.toString(), userId);
+			const keyStatus = await apiKeyService.getKeyStatus(
+				botId.toString(),
+				userId
+			);
 			if (!keyStatus.hasCustomKey || keyStatus.keyStatus !== 'valid') {
 				return forbiddenError(
 					'Custom OpenAI API key required for file processing. Please configure your API key first.',
 					{
 						hasCustomKey: keyStatus.hasCustomKey,
 						keyStatus: keyStatus.keyStatus,
-						requiredAction: 'Configure custom API key in bot settings'
+						requiredAction: 'Configure custom API key in bot settings',
 					}
 				);
 			}
-			console.log('[FILE-UPLOAD] API key validation passed for bot:', botId.toString());
+			console.log(
+				'[FILE-UPLOAD] API key validation passed for bot:',
+				botId.toString()
+			);
 		} catch (keyError) {
 			console.error('[FILE-UPLOAD] API key validation failed:', keyError);
 			return forbiddenError(
@@ -169,7 +178,7 @@ export async function POST(request) {
 			{
 				generateEmbeddings,
 				maxChunkSize,
-				overlap
+				overlap,
 			}
 		);
 
@@ -183,9 +192,6 @@ export async function POST(request) {
 						// Update analytics fields (new structure)
 						'analytics.totalEmbeddings': result.vectorsCreated || 0,
 						'analytics.totalTokensUsed': result.tokensUsed || 0,
-						// Update legacy fields for backward compatibility
-						totalTokens: result.tokensUsed || 0,
-						totalEmbeddings: result.vectorsCreated || 0,
 					},
 					$set: {
 						updatedAt: new Date(),
