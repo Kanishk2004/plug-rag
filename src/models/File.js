@@ -34,8 +34,24 @@ const fileSchema = new mongoose.Schema(
 			type: Number,
 			required: true, // in bytes
 		},
-		
+
 		// Processing status
+		s3Key: {
+			type: String,
+			required: true,
+		},
+		s3Bucket: {
+			type: String,
+			required: true,
+		},
+		s3Region: {
+			type: String,
+			required: true,
+		},
+		storageUrl: {
+			type: String,
+			required: true,
+		},
 		status: {
 			type: String,
 			enum: ['uploaded', 'processing', 'completed', 'failed', 'deleted'],
@@ -45,7 +61,7 @@ const fileSchema = new mongoose.Schema(
 			type: String,
 			default: '',
 		},
-		
+
 		// Vector embeddings info
 		embeddingStatus: {
 			type: String,
@@ -53,10 +69,6 @@ const fileSchema = new mongoose.Schema(
 			default: 'pending',
 		},
 		totalChunks: {
-			type: Number,
-			default: 0,
-		},
-		vectorCount: {
 			type: Number,
 			default: 0,
 		},

@@ -1,0 +1,1 @@
+// Cancel pending file upload and delete the File record from the database
