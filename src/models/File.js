@@ -65,7 +65,15 @@ const fileSchema = new mongoose.Schema(
 		// Vector embeddings info
 		embeddingStatus: {
 			type: String,
-			enum: ['pending', 'processing', 'completed', 'failed', 'deleted'],
+			enum: [
+				'pending',
+				'processing',
+				'completed',
+				'failed',
+				'deleted',
+				'queued',
+				'retrying',
+			],
 			default: 'pending',
 		},
 		totalChunks: {
@@ -85,6 +93,16 @@ const fileSchema = new mongoose.Schema(
 		},
 		processedAt: {
 			type: Date,
+		},
+		processingJobId: {
+			type: String,
+		},
+		processingStartedAt: {
+			type: Date,
+		},
+		processingCheckpoints: {
+			type: [String],
+			default: [],
 		},
 	},
 	{ timestamps: true }

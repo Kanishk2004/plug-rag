@@ -1,6 +1,6 @@
 /**
  * Qdrant Vector Database Integration
- * 
+ *
  * Handles vector database operations including collection management,
  * vector storage, search operations, and connection management.
  */
@@ -21,11 +21,11 @@ const vectorStoreCache = new Map();
  * @returns {QdrantClient} Qdrant client instance
  */
 export function createQdrantClient(config = {}) {
-  return new QdrantClient({
-    url: config.url || process.env.QDRANT_URL || 'http://localhost:6333',
-    apiKey: config.apiKey || process.env.QDRANT_API_KEY,
-    ...config
-  });
+	return new QdrantClient({
+		url: config.url || process.env.QDRANT_URL || 'http://localhost:6333',
+		apiKey: config.apiKey || process.env.QDRANT_API_KEY,
+		...config,
+	});
 }
 
 /**
@@ -36,42 +36,42 @@ export function createQdrantClient(config = {}) {
  * @returns {Promise<QdrantVectorStore>} Vector store instance
  */
 export async function getVectorStore(collectionName, embeddings, config = {}) {
-  const cacheKey = `${collectionName}-${config.userId || 'default'}`;
+	const cacheKey = `${collectionName}-${config.userId || 'default'}`;
 
-  // Check if we have a cached instance
-  if (vectorStoreCache.has(cacheKey)) {
-    return vectorStoreCache.get(cacheKey);
-  }
+	// Check if we have a cached instance
+	if (vectorStoreCache.has(cacheKey)) {
+		return vectorStoreCache.get(cacheKey);
+	}
 
-  let vectorStore = null;
+	let vectorStore = null;
 
-  try {
-    logInfo('Connecting to vector store', { collectionName });
+	try {
+		logInfo('Connecting to vector store', { collectionName });
 
-    // Try to connect to existing collection first
-    vectorStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
-      url: process.env.QDRANT_URL || 'http://localhost:6333',
-      collectionName,
-      ...config
-    });
+		// Try to connect to existing collection first
+		vectorStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
+			url: process.env.QDRANT_URL || 'http://localhost:6333',
+			collectionName,
+			...config,
+		});
 
-    logInfo('Connected to existing collection', { collectionName });
-  } catch (error) {
-    logInfo('Collection does not exist, creating new one', { collectionName });
-    
-    // If collection doesn't exist, create a new vector store
-    vectorStore = new QdrantVectorStore(embeddings, {
-      url: process.env.QDRANT_URL || 'http://localhost:6333',
-      collectionName,
-      ...config
-    });
+		logInfo('Connected to existing collection', { collectionName });
+	} catch (error) {
+		logInfo('Collection does not exist, creating new one', { collectionName });
 
-    logInfo('Created new collection', { collectionName });
-  }
+		// If collection doesn't exist, create a new vector store
+		vectorStore = new QdrantVectorStore(embeddings, {
+			url: process.env.QDRANT_URL || 'http://localhost:6333',
+			collectionName,
+			...config,
+		});
 
-  // Cache the vector store instance
-  vectorStoreCache.set(cacheKey, vectorStore);
-  return vectorStore;
+		logInfo('Created new collection', { collectionName });
+	}
+
+	// Cache the vector store instance
+	vectorStoreCache.set(cacheKey, vectorStore);
+	return vectorStore;
 }
 
 /**
@@ -82,124 +82,137 @@ export async function getVectorStore(collectionName, embeddings, config = {}) {
  * @param {Object} metadata - Additional metadata
  * @returns {Promise<Object>} Storage results
  */
-export async function storeDocuments(collectionName, embeddings, documents, metadata = {}) {
-  try {
-    if (!documents || !Array.isArray(documents) || documents.length === 0) {
-      throw new Error('documents array is required and must not be empty');
-    }
+export async function storeDocuments(
+	collectionName,
+	embeddings,
+	documents,
+	metadata = {}
+) {
+	try {
+		if (!documents || !Array.isArray(documents) || documents.length === 0) {
+			throw new Error('documents array is required and must not be empty');
+		}
 
-    logInfo('Storing documents in vector store', { 
-      collectionName, 
-      documentCount: documents.length 
-    });
+		logInfo('Storing documents in vector store', {
+			collectionName,
+			documentCount: documents.length,
+		});
 
-    const vectorStore = await getVectorStore(collectionName, embeddings);
+		const vectorStore = await getVectorStore(collectionName, embeddings);
 
-    // Generate unique IDs for documents to avoid conflicts
-    console.log('🔑 [QDRANT] Generating UUID-based point IDs for documents...');
-    const enrichedDocuments = documents.map((doc, index) => {
-      // Create a valid UUID for Qdrant point ID
-      const uniqueId = randomUUID();
-      console.log(`🔑 [QDRANT] Generated UUID for chunk ${index}: ${uniqueId}`);
-      
-      const enrichedMetadata = { 
-        ...doc.metadata,
-        ...metadata,
-        storedAt: new Date().toISOString(),
-        documentId: uniqueId,
-        // Store original identifiers in metadata for reference
-        originalFileId: metadata.fileId,
-        chunkIndex: doc.metadata.chunk || index,
-        timestamp: Date.now()
-      };
+		// Generate unique IDs for documents to avoid conflicts
+		console.log('🔑 [QDRANT] Generating UUID-based point IDs for documents...');
 
-      return {
-        ...doc,
-        metadata: enrichedMetadata,
-        id: uniqueId // Use UUID as point ID
-      };
-    });
+		const enrichedDocuments = documents.map((doc, index) => {
+			// Create a valid UUID for Qdrant point ID
+			const uniqueId = randomUUID();
+			console.log(`🔑 [QDRANT] Generated UUID for chunk ${index}: ${uniqueId}`);
 
-    console.log('✅ [QDRANT] All UUIDs generated successfully', {
-      totalDocuments: enrichedDocuments.length,
-      sampleId: enrichedDocuments[0]?.id
-    });
+			const enrichedMetadata = {
+				...doc.metadata,
+				...metadata,
+				storedAt: new Date().toISOString(),
+				documentId: uniqueId,
+				// Store original identifiers in metadata for reference
+				originalFileId: metadata.fileId,
+				chunkIndex: doc.metadata.chunk || index,
+				timestamp: Date.now(),
+			};
 
-    try {
-      // Attempt to store documents with unique IDs
-      const ids = await vectorStore.addDocuments(enrichedDocuments);
+			return {
+				...doc,
+				metadata: enrichedMetadata,
+				id: uniqueId, // Use UUID as point ID
+			};
+		});
 
-      // Handle case where addDocuments returns undefined (but storage still succeeds)
-      const storedCount = Array.isArray(ids) ? ids.length : enrichedDocuments.length;
-      const documentIds = Array.isArray(ids) ? ids : [];
+		console.log('✅ [QDRANT] All UUIDs generated successfully', {
+			totalDocuments: enrichedDocuments.length,
+			sampleId: enrichedDocuments[0]?.id,
+		});
 
-      logInfo('Documents stored successfully', { 
-        collectionName,
-        documentCount: documents.length,
-        storedIds: storedCount,
-        returnedIds: Array.isArray(ids),
-        idsType: typeof ids
-      });
+		try {
+			// Attempt to store documents with unique IDs
+			const ids = await vectorStore.addDocuments(enrichedDocuments);
 
-      return {
-        success: true,
-        storedCount: storedCount,
-        documentIds: documentIds
-      };
-    } catch (storageError) {
-      if (storageError.message.includes('Conflict') || storageError.message.includes('already exists')) {
-        logInfo('Conflict detected, attempting to store with new IDs', {
-          collectionName,
-          documentCount: documents.length
-        });
+			// Handle case where addDocuments returns undefined (but storage still succeeds)
+			const storedCount = Array.isArray(ids)
+				? ids.length
+				: enrichedDocuments.length;
+			const documentIds = Array.isArray(ids) ? ids : [];
 
-        // If conflict, regenerate IDs with additional randomness
-        const reconflictedDocuments = enrichedDocuments.map((doc) => {
-          const newUniqueId = randomUUID(); // Generate new UUID
-          
-          return {
-            ...doc,
-            metadata: {
-              ...doc.metadata,
-              documentId: newUniqueId,
-              retryAttempt: true
-            },
-            id: newUniqueId
-          };
-        });
+			logInfo('Documents stored successfully', {
+				collectionName,
+				documentCount: documents.length,
+				storedIds: storedCount,
+				returnedIds: Array.isArray(ids),
+				idsType: typeof ids,
+			});
 
-        // Try storing again with new IDs
-        const retryIds = await vectorStore.addDocuments(reconflictedDocuments);
+			return {
+				success: true,
+				storedCount: storedCount,
+				documentIds: documentIds,
+			};
+		} catch (storageError) {
+			if (
+				storageError.message.includes('Conflict') ||
+				storageError.message.includes('already exists')
+			) {
+				logInfo('Conflict detected, attempting to store with new IDs', {
+					collectionName,
+					documentCount: documents.length,
+				});
 
-        // Handle case where addDocuments returns undefined (but storage still succeeds)
-        const retryStoredCount = Array.isArray(retryIds) ? retryIds.length : reconflictedDocuments.length;
-        const retryDocumentIds = Array.isArray(retryIds) ? retryIds : [];
+				// If conflict, regenerate IDs with additional randomness
+				const reconflictedDocuments = enrichedDocuments.map((doc) => {
+					const newUniqueId = randomUUID(); // Generate new UUID
 
-        logInfo('Documents stored successfully after retry', { 
-          collectionName,
-          documentCount: documents.length,
-          storedIds: retryStoredCount,
-          returnedIds: Array.isArray(retryIds),
-          retryAttempt: true
-        });
+					return {
+						...doc,
+						metadata: {
+							...doc.metadata,
+							documentId: newUniqueId,
+							retryAttempt: true,
+						},
+						id: newUniqueId,
+					};
+				});
 
-        return {
-          success: true,
-          storedCount: retryStoredCount,
-          documentIds: retryDocumentIds
-        };
-      } else {
-        // If it's not a conflict error, rethrow
-        throw storageError;
-      }
-    }
-  } catch (error) {
-    logError('Failed to store documents', { 
-      collectionName, 
-      error: error.message 
-    });
-    throw error;
-  }
+				// Try storing again with new IDs
+				const retryIds = await vectorStore.addDocuments(reconflictedDocuments);
+
+				// Handle case where addDocuments returns undefined (but storage still succeeds)
+				const retryStoredCount = Array.isArray(retryIds)
+					? retryIds.length
+					: reconflictedDocuments.length;
+				const retryDocumentIds = Array.isArray(retryIds) ? retryIds : [];
+
+				logInfo('Documents stored successfully after retry', {
+					collectionName,
+					documentCount: documents.length,
+					storedIds: retryStoredCount,
+					returnedIds: Array.isArray(retryIds),
+					retryAttempt: true,
+				});
+
+				return {
+					success: true,
+					storedCount: retryStoredCount,
+					documentIds: retryDocumentIds,
+				};
+			} else {
+				// If it's not a conflict error, rethrow
+				throw storageError;
+			}
+		}
+	} catch (error) {
+		logError('Failed to store documents', {
+			collectionName,
+			error: error.message,
+		});
+		throw error;
+	}
 }
 
 /**
@@ -210,49 +223,54 @@ export async function storeDocuments(collectionName, embeddings, documents, meta
  * @param {Object} options - Search options
  * @returns {Promise<Array>} Search results
  */
-export async function searchVectors(collectionName, embeddings, query, options = {}) {
-  try {
-    const {
-      k = 5,
-      filter = {},
-      scoreThreshold = 0.5
-    } = options;
+export async function searchVectors(
+	collectionName,
+	embeddings,
+	query,
+	options = {}
+) {
+	try {
+		const { k = 5, filter = {}, scoreThreshold = 0.5 } = options;
 
-    logInfo('Searching vectors', { 
-      collectionName, 
-      queryLength: query.length,
-      k,
-      scoreThreshold
-    });
+		logInfo('Searching vectors', {
+			collectionName,
+			queryLength: query.length,
+			k,
+			scoreThreshold,
+		});
 
-    const vectorStore = await getVectorStore(collectionName, embeddings);
+		const vectorStore = await getVectorStore(collectionName, embeddings);
 
-    // Perform similarity search
-    const results = await vectorStore.similaritySearchWithScore(query, k, filter);
+		// Perform similarity search
+		const results = await vectorStore.similaritySearchWithScore(
+			query,
+			k,
+			filter
+		);
 
-    // Filter results by score threshold
-    const filteredResults = results
-      .filter(([doc, score]) => score >= scoreThreshold)
-      .map(([doc, score]) => ({
-        document: doc,
-        score,
-        metadata: doc.metadata
-      }));
+		// Filter results by score threshold
+		const filteredResults = results
+			.filter(([doc, score]) => score >= scoreThreshold)
+			.map(([doc, score]) => ({
+				document: doc,
+				score,
+				metadata: doc.metadata,
+			}));
 
-    logInfo('Vector search completed', { 
-      collectionName,
-      totalResults: results.length,
-      filteredResults: filteredResults.length
-    });
+		logInfo('Vector search completed', {
+			collectionName,
+			totalResults: results.length,
+			filteredResults: filteredResults.length,
+		});
 
-    return filteredResults;
-  } catch (error) {
-    logError('Vector search failed', { 
-      collectionName, 
-      error: error.message 
-    });
-    throw error;
-  }
+		return filteredResults;
+	} catch (error) {
+		logError('Vector search failed', {
+			collectionName,
+			error: error.message,
+		});
+		throw error;
+	}
 }
 
 /**
@@ -262,34 +280,34 @@ export async function searchVectors(collectionName, embeddings, query, options =
  * @returns {Promise<number>} Number of deleted documents
  */
 export async function deleteDocuments(collectionName, filter) {
-  try {
-    logInfo('Deleting documents from collection', { collectionName, filter });
+	try {
+		logInfo('Deleting documents from collection', { collectionName, filter });
 
-    const client = createQdrantClient();
-    
-    // Delete by filter
-    const result = await client.delete(collectionName, {
-      filter: {
-        must: Object.entries(filter).map(([key, value]) => ({
-          key: `metadata.${key}`,
-          match: { value }
-        }))
-      }
-    });
+		const client = createQdrantClient();
 
-    logInfo('Documents deleted', { 
-      collectionName, 
-      deletedCount: result.operation_id 
-    });
+		// Delete by filter
+		const result = await client.delete(collectionName, {
+			filter: {
+				must: Object.entries(filter).map(([key, value]) => ({
+					key: `metadata.${key}`,
+					match: { value },
+				})),
+			},
+		});
 
-    return result.operation_id || 0;
-  } catch (error) {
-    logError('Failed to delete documents', { 
-      collectionName, 
-      error: error.message 
-    });
-    throw error;
-  }
+		logInfo('Documents deleted', {
+			collectionName,
+			deletedCount: result.operation_id,
+		});
+
+		return result.operation_id || 0;
+	} catch (error) {
+		logError('Failed to delete documents', {
+			collectionName,
+			error: error.message,
+		});
+		throw error;
+	}
 }
 
 /**
@@ -298,30 +316,30 @@ export async function deleteDocuments(collectionName, filter) {
  * @returns {Promise<Object>} Collection info
  */
 export async function getCollectionInfo(collectionName) {
-  try {
-    const client = createQdrantClient();
-    const info = await client.getCollection(collectionName);
-    
-    logInfo('Retrieved collection info', { 
-      collectionName,
-      pointsCount: info.points_count,
-      vectorsCount: info.vectors_count
-    });
+	try {
+		const client = createQdrantClient();
+		const info = await client.getCollection(collectionName);
 
-    return {
-      name: collectionName,
-      pointsCount: info.points_count,
-      vectorsCount: info.vectors_count,
-      config: info.config,
-      status: info.status
-    };
-  } catch (error) {
-    logError('Failed to get collection info', { 
-      collectionName, 
-      error: error.message 
-    });
-    throw error;
-  }
+		logInfo('Retrieved collection info', {
+			collectionName,
+			pointsCount: info.points_count,
+			vectorsCount: info.vectors_count,
+		});
+
+		return {
+			name: collectionName,
+			pointsCount: info.points_count,
+			vectorsCount: info.vectors_count,
+			config: info.config,
+			status: info.status,
+		};
+	} catch (error) {
+		logError('Failed to get collection info', {
+			collectionName,
+			error: error.message,
+		});
+		throw error;
+	}
 }
 
 /**
@@ -330,27 +348,28 @@ export async function getCollectionInfo(collectionName) {
  * @returns {Promise<boolean>} Success status
  */
 export async function deleteCollection(collectionName) {
-  try {
-    logInfo('Deleting collection', { collectionName });
+	try {
+		logInfo('Deleting collection', { collectionName });
 
-    const client = createQdrantClient();
-    await client.deleteCollection(collectionName);
+		const client = createQdrantClient();
+		await client.deleteCollection(collectionName);
 
-    // Remove from cache
-    const keysToRemove = Array.from(vectorStoreCache.keys())
-      .filter(key => key.startsWith(`${collectionName}-`));
-    
-    keysToRemove.forEach(key => vectorStoreCache.delete(key));
+		// Remove from cache
+		const keysToRemove = Array.from(vectorStoreCache.keys()).filter((key) =>
+			key.startsWith(`${collectionName}-`)
+		);
 
-    logInfo('Collection deleted successfully', { collectionName });
-    return true;
-  } catch (error) {
-    logError('Failed to delete collection', { 
-      collectionName, 
-      error: error.message 
-    });
-    throw error;
-  }
+		keysToRemove.forEach((key) => vectorStoreCache.delete(key));
+
+		logInfo('Collection deleted successfully', { collectionName });
+		return true;
+	} catch (error) {
+		logError('Failed to delete collection', {
+			collectionName,
+			error: error.message,
+		});
+		throw error;
+	}
 }
 
 /**
@@ -358,18 +377,18 @@ export async function deleteCollection(collectionName) {
  * @returns {Promise<Array>} List of collection names
  */
 export async function listCollections() {
-  try {
-    const client = createQdrantClient();
-    const response = await client.getCollections();
-    
-    const collections = response.collections.map(col => col.name);
-    
-    logInfo('Listed collections', { count: collections.length });
-    return collections;
-  } catch (error) {
-    logError('Failed to list collections', { error: error.message });
-    throw error;
-  }
+	try {
+		const client = createQdrantClient();
+		const response = await client.getCollections();
+
+		const collections = response.collections.map((col) => col.name);
+
+		logInfo('Listed collections', { count: collections.length });
+		return collections;
+	} catch (error) {
+		logError('Failed to list collections', { error: error.message });
+		throw error;
+	}
 }
 
 /**
@@ -379,32 +398,32 @@ export async function listCollections() {
  * @returns {Promise<boolean>} Success status
  */
 export async function createCollection(collectionName, config = {}) {
-  try {
-    logInfo('Creating collection', { collectionName, config });
+	try {
+		logInfo('Creating collection', { collectionName, config });
 
-    const client = createQdrantClient();
-    
-    const defaultConfig = {
-      vectors: {
-        size: 1536, // OpenAI text-embedding-3-small dimension
-        distance: 'Cosine'
-      }
-    };
+		const client = createQdrantClient();
 
-    await client.createCollection(collectionName, {
-      ...defaultConfig,
-      ...config
-    });
+		const defaultConfig = {
+			vectors: {
+				size: 1536, // OpenAI text-embedding-3-small dimension
+				distance: 'Cosine',
+			},
+		};
 
-    logInfo('Collection created successfully', { collectionName });
-    return true;
-  } catch (error) {
-    logError('Failed to create collection', { 
-      collectionName, 
-      error: error.message 
-    });
-    throw error;
-  }
+		await client.createCollection(collectionName, {
+			...defaultConfig,
+			...config,
+		});
+
+		logInfo('Collection created successfully', { collectionName });
+		return true;
+	} catch (error) {
+		logError('Failed to create collection', {
+			collectionName,
+			error: error.message,
+		});
+		throw error;
+	}
 }
 
 /**
@@ -412,14 +431,15 @@ export async function createCollection(collectionName, config = {}) {
  * @param {string} collectionName - Optional collection name to clear from cache
  */
 export function clearCache(collectionName = null) {
-  if (collectionName) {
-    const keysToRemove = Array.from(vectorStoreCache.keys())
-      .filter(key => key.startsWith(`${collectionName}-`));
-    
-    keysToRemove.forEach(key => vectorStoreCache.delete(key));
-    logInfo('Cleared vector store cache', { collectionName });
-  } else {
-    vectorStoreCache.clear();
-    logInfo('Cleared all vector store cache');
-  }
+	if (collectionName) {
+		const keysToRemove = Array.from(vectorStoreCache.keys()).filter((key) =>
+			key.startsWith(`${collectionName}-`)
+		);
+
+		keysToRemove.forEach((key) => vectorStoreCache.delete(key));
+		logInfo('Cleared vector store cache', { collectionName });
+	} else {
+		vectorStoreCache.clear();
+		logInfo('Cleared all vector store cache');
+	}
 }
