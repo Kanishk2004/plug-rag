@@ -54,7 +54,14 @@ const fileSchema = new mongoose.Schema(
 		},
 		status: {
 			type: String,
-			enum: ['uploaded', 'processing', 'completed', 'failed', 'deleted'],
+			enum: [
+				'uploaded',
+				'processing',
+				'completed',
+				'failed',
+				'deleted',
+				'canceled',
+			],
 			default: 'uploaded',
 		},
 		processingError: {
@@ -73,6 +80,7 @@ const fileSchema = new mongoose.Schema(
 				'deleted',
 				'queued',
 				'retrying',
+				'canceled',
 			],
 			default: 'pending',
 		},

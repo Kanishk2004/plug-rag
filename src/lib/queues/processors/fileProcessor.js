@@ -19,6 +19,11 @@ export async function processFileJob(job) {
 	await connect();
 
 	try {
+		await File.findByIdAndUpdate(fileId, {
+			processingStartedAt: new Date(),
+			embeddingStatus: 'processing',
+		});
+
 		// Step 1: Download file from S3 (10%)
 		await job.updateProgress(10);
 		console.log(`[PROCESSOR] Downloading file from S3: ${s3Key}`);
