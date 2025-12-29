@@ -301,11 +301,6 @@ export async function GET(request, { params }) {
 			userId: getAuth(request)?.userId,
 		});
 
-		return apiError(
-			'Failed to fetch conversations',
-			500,
-			'SERVER_ERROR',
-			process.env.NODE_ENV === 'development' ? error.message : undefined
-		);
+		return apiError('Failed to fetch conversations', 500, 'SERVER_ERROR');
 	}
 }

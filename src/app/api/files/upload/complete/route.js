@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import File from '@/models/File';
 import connect from '@/lib/integrations/mongo';
 import { addFileProcessingJob } from '@/lib/queues/fileProcessingQueue';
+import { fileExistsInS3 } from '@/lib/integrations/s3.js';
 import {
 	apiSuccess,
 	authError,
@@ -50,12 +51,35 @@ export async function POST(request) {
 			);
 		}
 
-		// Step 4: Update file status to uploaded
+		// Step 4: Verify file exists in S3
+		const fileExists = await fileExistsInS3(file.s3Bucket, file.s3Key);
+
+		if (!fileExists) {
+			// Update file status to failed
+			await File.findByIdAndUpdate(fileId, {
+				status: 'failed',
+				embeddingStatus: 'failed',
+				processingError: 'File not found in S3. Upload may have failed.',
+			});
+
+			return validationError(
+				'File not found in S3. Please ensure the file was uploaded successfully to the presigned URL.',
+				{
+					s3Key: file.s3Key,
+					s3Bucket: file.s3Bucket,
+					suggestion: 'Retry the upload process from /api/files/upload/init',
+				}
+			);
+		}
+
+		console.log('[FILE-UPLOAD-COMPLETE] S3 upload verified:', file.s3Key);
+7
+		// Step 5: Update file status to uploaded
 		await File.findByIdAndUpdate(fileId, {
 			status: 'uploaded',
 		});
 
-		// Step 5: Add file to processing queue
+		// Step 6: Add file to processing queue
 		await addFileProcessingJob({
 			fileId: file._id.toString(),
 			botId: file.botId.toString(),

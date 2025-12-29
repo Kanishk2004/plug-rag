@@ -1,11 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import connect from '@/lib/integrations/mongo';
 import File from '@/models/File';
 import fileService from '@/lib/core/fileService';
-import { createPerformanceTimer } from '@/lib/utils/performance';
-import { apiSuccess, serverError } from '@/lib/utils/apiResponse';
-import api from '@/lib/clientAPI';
+import { apiSuccess, authError, serverError } from '@/lib/utils/apiResponse';
 
 /**
  * GET /api/files/[id] - Get file details
@@ -14,7 +11,7 @@ export async function GET(request, { params }) {
 	try {
 		const { userId } = await auth();
 		if (!userId) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+			return authError();
 		}
 
 		const fileId = (await params).id;
@@ -26,10 +23,7 @@ export async function GET(request, { params }) {
 		// Find file
 		const file = await File.findOne({ _id: fileId, ownerId: userId });
 		if (!file) {
-			return NextResponse.json(
-				{ error: 'File not found or access denied' },
-				{ status: 404 }
-			);
+			return notFoundError('File not found or access denied');
 		}
 
 		const responseData = {
@@ -73,7 +67,7 @@ export async function DELETE(request, { params }) {
 	try {
 		const { userId } = await auth();
 		if (!userId) {
-			return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+			return authError();
 		}
 
 		const fileId = (await params).id;
@@ -87,9 +81,6 @@ export async function DELETE(request, { params }) {
 		return apiSuccess(deletedFile.data, 'File deleted successfully');
 	} catch (error) {
 		console.error('Delete file error:', error);
-		return NextResponse.json(
-			{ error: 'Internal server error' },
-			{ status: 500 }
-		);
+		return serverError('Internal server error');
 	}
 }

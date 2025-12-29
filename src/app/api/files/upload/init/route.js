@@ -17,6 +17,7 @@ import {
 	serverError,
 	validationError,
 } from '@/lib/utils/apiResponse';
+import { S3_BUCKET, S3_REGION } from '@/lib/utils/envConfig';
 
 // File validation constants
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -149,9 +150,9 @@ export async function POST(request) {
 			fileType,
 			size: fileSize,
 			s3Key,
-			s3Bucket: process.env.AWS_S3_BUCKET_NAME,
-			s3Region: process.env.AWS_REGION,
-			storageUrl: `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`,
+			s3Bucket: S3_BUCKET,
+			s3Region: S3_REGION,
+			storageUrl: `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${s3Key}`,
 			status: 'processing',
 			embeddingStatus: 'pending',
 		});

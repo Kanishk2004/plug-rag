@@ -230,12 +230,7 @@ export async function GET(request, { params }) {
 			userId,
 		});
 
-		return apiError(
-			'Failed to fetch conversation detail',
-			500,
-			'SERVER_ERROR',
-			process.env.NODE_ENV === 'development' ? error.message : undefined
-		);
+		return apiError('Failed to fetch conversation detail', 500, 'SERVER_ERROR');
 	}
 }
 
@@ -300,12 +295,7 @@ export async function DELETE(request, { params }) {
 			userId,
 		});
 
-		return apiError(
-			'Failed to delete conversation',
-			500,
-			'SERVER_ERROR',
-			process.env.NODE_ENV === 'development' ? error.message : undefined
-		);
+		return apiError('Failed to delete conversation', 500, 'SERVER_ERROR');
 	}
 }
 

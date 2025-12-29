@@ -3,23 +3,31 @@
 // downloadFile()
 // deleteFile()
 // generatePresignedDownloadUrl()
+// fileExistsInS3()
 
 import {
 	S3Client,
 	PutObjectCommand,
 	GetObjectCommand,
 	DeleteObjectCommand,
+	HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import {
+	AWS_ACCESS_KEY_ID,
+	AWS_SECRET_ACCESS_KEY,
+	S3_BUCKET,
+	S3_REGION,
+} from '../utils/envConfig.js';
 
 const s3Client = new S3Client({
-	region: process.env.AWS_REGION,
+	region: S3_REGION,
 	credentials: {
-		accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+		accessKeyId: AWS_ACCESS_KEY_ID,
+		secretAccessKey: AWS_SECRET_ACCESS_KEY,
 	},
 });
-const bucket = process.env.AWS_S3_BUCKET_NAME;
+const bucket = S3_BUCKET;
 const expiresIn = 3600; // 1 hour
 
 export const generatePresignedUploadUrl = async (
@@ -109,3 +117,21 @@ export const generatePresignedDownloadUrl = async (
 		);
 	}
 };
+
+export async function fileExistsInS3(bucket, key) {
+	try {
+		const command = new HeadObjectCommand({
+			Bucket: bucket,
+			Key: key,
+		});
+
+		await s3Client.send(command);
+		return true; // File exists
+	} catch (error) {
+		if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+			return false; // File doesn't exist
+		}
+		// Other errors (permissions, etc.)
+		throw error;
+	}
+}
