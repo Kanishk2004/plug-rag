@@ -153,7 +153,7 @@ export async function POST(request) {
 			s3Bucket: S3_BUCKET,
 			s3Region: S3_REGION,
 			storageUrl: `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${s3Key}`,
-			status: 'processing',
+			status: 'initialized',
 			embeddingStatus: 'pending',
 		});
 

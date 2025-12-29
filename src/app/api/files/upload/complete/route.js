@@ -45,9 +45,9 @@ export async function POST(request) {
 		}
 
 		// Check if file is in the correct state
-		if (file.status !== 'processing') {
+		if (file.status !== 'initialized') {
 			return validationError(
-				`File is in ${file.status} state. Expected "processing" state.`
+				`File is in ${file.status} state. Expected "initialized" state.`
 			);
 		}
 
@@ -58,7 +58,6 @@ export async function POST(request) {
 			// Update file status to failed
 			await File.findByIdAndUpdate(fileId, {
 				status: 'failed',
-				embeddingStatus: 'failed',
 				processingError: 'File not found in S3. Upload may have failed.',
 			});
 
@@ -73,7 +72,7 @@ export async function POST(request) {
 		}
 
 		console.log('[FILE-UPLOAD-COMPLETE] S3 upload verified:', file.s3Key);
-7
+		7;
 		// Step 5: Update file status to uploaded
 		await File.findByIdAndUpdate(fileId, {
 			status: 'uploaded',
@@ -88,6 +87,10 @@ export async function POST(request) {
 			filename: file.filename,
 			mimeType: file.mimeType,
 			size: file.size,
+		});
+
+		await File.findByIdAndUpdate(fileId, {
+			embeddingStatus: 'queued',
 		});
 
 		console.log('[FILE-UPLOAD-COMPLETE] File queued for processing', {

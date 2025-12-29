@@ -91,7 +91,6 @@ export async function processFileJob(job) {
 		// Step 7: Update file record (95%)
 		await job.updateProgress(95);
 		await File.findByIdAndUpdate(fileId, {
-			status: 'completed',
 			embeddingStatus: 'completed',
 			totalChunks: chunks.length,
 			embeddingTokens: totalTokens,
@@ -124,7 +123,6 @@ export async function processFileJob(job) {
 
 		// Update file status to failed
 		await File.findByIdAndUpdate(fileId, {
-			status: 'failed',
 			embeddingStatus: 'failed',
 			processingError: error.message,
 		});

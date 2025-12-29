@@ -45,7 +45,7 @@ export async function POST(request) {
 		}
 
 		// Step 4: Check if file is already completed
-		if (file.status === 'completed' && file.embeddingStatus === 'completed') {
+		if (file.embeddingStatus === 'completed') {
 			return forbiddenError(
 				'File has already been processed successfully. Use /api/files/[id] DELETE route to delete the file permanently.',
 				{
@@ -88,9 +88,8 @@ export async function POST(request) {
 
 		// Step 7: Update file status to cancelled
 		await File.findByIdAndUpdate(fileId, {
-			status: 'cancelled',
 			embeddingStatus: 'cancelled',
-			processingError: 'Upload cancelled by user',
+			processingError: 'Processing cancelled by user',
 		});
 
 		console.log('[FILE-UPLOAD-CANCEL] File cancelled successfully', {
