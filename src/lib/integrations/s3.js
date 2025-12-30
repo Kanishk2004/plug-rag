@@ -54,26 +54,119 @@ export const generatePresignedUploadUrl = async (
 	}
 };
 
-export const downloadFile = async (key) => {
-	try {
-		const command = new GetObjectCommand({
-			Bucket: bucket,
-			Key: key,
-		});
+export const downloadFile = async (key, maxRetries = 3) => {
+	let lastError;
 
-		const response = await s3Client.send(command);
+	for (let attempt = 1; attempt <= maxRetries; attempt++) {
+		try {
+			console.log(
+				`[S3-DOWNLOAD] Attempt ${attempt}/${maxRetries} - Downloading: ${key}`
+			);
 
-		// Convert stream to buffer
-		const chunks = [];
-		for await (const chunk of response.Body) {
-			chunks.push(chunk);
+			const command = new GetObjectCommand({
+				Bucket: bucket,
+				Key: key,
+			});
+
+			const response = await s3Client.send(command);
+
+			// Log response metadata
+			const contentLength = response.ContentLength || 0;
+			console.log(`[S3-DOWNLOAD] Response received:`, {
+				key,
+				contentType: response.ContentType,
+				contentLength,
+				etag: response.ETag,
+			});
+
+			// Convert stream to buffer
+			const chunks = [];
+			let receivedBytes = 0;
+
+			for await (const chunk of response.Body) {
+				chunks.push(chunk);
+				receivedBytes += chunk.length;
+			}
+
+			const buffer = Buffer.concat(chunks);
+
+			console.log(`[S3-DOWNLOAD] Buffer created:`, {
+				key,
+				expectedSize: contentLength,
+				actualSize: buffer.length,
+				receivedBytes,
+				chunksCount: chunks.length,
+			});
+
+			// Validate buffer is not empty
+			if (buffer.length === 0) {
+				const emptyError = new Error(
+					`Downloaded buffer is empty for S3 key: ${key}. ContentLength: ${contentLength}, Chunks: ${chunks.length}`
+				);
+				console.error(`[S3-DOWNLOAD] Empty buffer on attempt ${attempt}:`, {
+					key,
+					contentLength,
+					chunksCount: chunks.length,
+					attempt,
+				});
+
+				// Retry if not last attempt
+				if (attempt < maxRetries) {
+					lastError = emptyError;
+					const delayMs = Math.pow(2, attempt) * 1000; // Exponential backoff
+					console.log(`[S3-DOWNLOAD] Retrying after ${delayMs}ms...`);
+					await new Promise((resolve) => setTimeout(resolve, delayMs));
+					continue;
+				}
+
+				throw emptyError;
+			}
+
+			// Validate buffer size matches ContentLength (if available)
+			if (contentLength > 0 && buffer.length !== contentLength) {
+				console.warn(`[S3-DOWNLOAD] Size mismatch:`, {
+					key,
+					expected: contentLength,
+					received: buffer.length,
+					difference: contentLength - buffer.length,
+				});
+			}
+
+			console.log(
+				`[S3-DOWNLOAD] Successfully downloaded ${buffer.length} bytes from ${key}`
+			);
+			return buffer;
+		} catch (error) {
+			lastError = error;
+			console.error(`[S3-DOWNLOAD] Attempt ${attempt}/${maxRetries} failed:`, {
+				key,
+				error: error.message,
+				name: error.name,
+			});
+
+			// Don't retry on certain errors
+			if (
+				error.name === 'NoSuchKey' ||
+				error.name === 'NotFound' ||
+				error.$metadata?.httpStatusCode === 404
+			) {
+				throw new Error(`File not found in S3: ${key}`);
+			}
+
+			// Retry on other errors
+			if (attempt < maxRetries) {
+				const delayMs = Math.pow(2, attempt) * 1000; // Exponential backoff
+				console.log(`[S3-DOWNLOAD] Retrying after ${delayMs}ms...`);
+				await new Promise((resolve) => setTimeout(resolve, delayMs));
+			} else {
+				throw new Error(
+					`Failed to download file from S3 after ${maxRetries} attempts: ${error.message}`
+				);
+			}
 		}
-		const buffer = Buffer.concat(chunks);
-
-		return buffer;
-	} catch (error) {
-		throw new Error(`Failed to download file from S3: ${error.message}`);
 	}
+
+	throw lastError || new Error(`Failed to download file from S3: ${key}`);
 };
 
 export const deleteFile = async (key) => {

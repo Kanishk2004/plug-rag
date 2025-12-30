@@ -4,7 +4,10 @@ import mongoose from 'mongoose';
 import File from '@/models/File';
 import connect from '@/lib/integrations/mongo';
 import { fileExistsInS3 } from '@/lib/integrations/s3';
-import { addFileProcessingJob } from '@/lib/queues/fileProcessingQueue';
+import {
+	addFileProcessingJob,
+	removeFileProcessingJob,
+} from '@/lib/queues/fileProcessingQueue';
 import {
 	apiSuccess,
 	authError,
@@ -45,22 +48,33 @@ export async function POST(request) {
 			return notFoundError('File not found or access denied');
 		}
 
-		// Step 4: Validate file upload status
-		if (file.status !== 'uploaded') {
+		console.log('[FILE-UPLOAD-RETRY] File found:', {
+			fileId: file._id,
+			filename: file.filename,
+			status: file.status,
+			embeddingStatus: file.embeddingStatus,
+		});
+
+		// Step 4: Validate file is in a retriable state
+		// Allow retry for: uploaded, completed, or failed status
+		const validStatusForRetry = ['uploaded', 'completed', 'failed'];
+
+		if (!validStatusForRetry.includes(file.status)) {
 			return forbiddenError(
-				`File upload is not complete. Current status: ${file.status}. File must be uploaded to S3 before retrying embedding.`,
+				`File cannot be retried in current status: ${file.status}. Only uploaded, completed, or failed files can be retried.`,
 				{
 					currentStatus: file.status,
 					currentEmbeddingStatus: file.embeddingStatus,
+					validStatuses: validStatusForRetry,
 					suggestion:
-						file.status === 'initialized'
+						file.status === 'processing'
 							? 'Complete the S3 upload first using /api/files/upload/complete'
 							: 'File is in an invalid state for retry',
 				}
 			);
 		}
 
-		// Step 5: Check if file is already completed
+		// Step 5: Check if file embedding is already completed
 		if (file.embeddingStatus === 'completed') {
 			return forbiddenError(
 				'File has already been processed successfully. No retry needed.',
@@ -91,7 +105,7 @@ export async function POST(request) {
 			);
 		}
 
-		// Step 7: Verify file exists in S3
+		// Step 7: Verify file exists in S3 and validate metadata
 		const fileExists = await fileExistsInS3(file.s3Bucket, file.s3Key);
 
 		if (!fileExists) {
@@ -113,13 +127,86 @@ export async function POST(request) {
 
 		console.log('[FILE-UPLOAD-RETRY] S3 file verified:', file.s3Key);
 
-		// Step 8: Update file status to retrying
-		await File.findByIdAndUpdate(fileId, {
-			embeddingStatus: 'retrying',
-			processingError: '',
-		});
+		// Step 7a: Validate S3 file metadata to ensure file is not corrupt
+		try {
+			const { HeadObjectCommand } = await import('@aws-sdk/client-s3');
+			const { default: s3Client } = await import('@/lib/integrations/s3');
+			const { S3Client } = await import('@aws-sdk/client-s3');
+			const { S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } =
+				await import('@/lib/utils/envConfig');
 
-		// Step 9: Add file to processing queue
+			const client = new S3Client({
+				region: S3_REGION,
+				credentials: {
+					accessKeyId: AWS_ACCESS_KEY_ID,
+					secretAccessKey: AWS_SECRET_ACCESS_KEY,
+				},
+			});
+
+			const headCommand = new HeadObjectCommand({
+				Bucket: file.s3Bucket,
+				Key: file.s3Key,
+			});
+
+			const metadata = await client.send(headCommand);
+			const s3FileSize = metadata.ContentLength || 0;
+
+			console.log('[FILE-UPLOAD-RETRY] S3 file metadata:', {
+				s3Key: file.s3Key,
+				contentLength: s3FileSize,
+				contentType: metadata.ContentType,
+				etag: metadata.ETag,
+				lastModified: metadata.LastModified,
+				expectedSize: file.size,
+			});
+
+			// Validate file is not empty in S3
+			if (s3FileSize === 0) {
+				await File.findByIdAndUpdate(fileId, {
+					status: 'failed',
+					embeddingStatus: 'failed',
+					processingError:
+						'File in S3 has 0 bytes. File is corrupt or incomplete.',
+				});
+
+				return validationError(
+					'File in S3 is empty (0 bytes). Please re-upload the file.',
+					{
+						s3Key: file.s3Key,
+						s3Bucket: file.s3Bucket,
+						s3FileSize,
+						suggestion:
+							'The file appears to be corrupt. Start a new upload process.',
+					}
+				);
+			}
+
+			// Warn if size mismatch (but allow retry to proceed)
+			if (file.size && s3FileSize !== file.size) {
+				console.warn('[FILE-UPLOAD-RETRY] File size mismatch detected:', {
+					expectedSize: file.size,
+					actualS3Size: s3FileSize,
+					difference: Math.abs(file.size - s3FileSize),
+				});
+			}
+		} catch (metadataError) {
+			console.error(
+				'[FILE-UPLOAD-RETRY] Failed to get S3 metadata:',
+				metadataError
+			);
+			// Continue anyway - downloadFile will handle errors
+		}
+
+		// Step 8: Remove old failed job from queue (if exists)
+		try {
+			await removeFileProcessingJob(fileId);
+			console.log('[FILE-UPLOAD-RETRY] Old job removed from queue');
+		} catch (removeError) {
+			// Job might not exist, that's okay
+			console.log(
+				'[FILE-UPLOAD-RETRY] No old job to remove or already removed'
+			);
+		}
 		await addFileProcessingJob({
 			fileId: file._id.toString(),
 			botId: file.botId.toString(),
@@ -130,7 +217,7 @@ export async function POST(request) {
 			size: file.size,
 		});
 
-		// Step 10: Update embedding status to queued
+		// Step 11: Update embedding status to queued
 		await File.findByIdAndUpdate(fileId, {
 			embeddingStatus: 'queued',
 		});
@@ -142,7 +229,7 @@ export async function POST(request) {
 			previousEmbeddingStatus: file.embeddingStatus,
 		});
 
-		// Step 11: Return success response
+		// Step 12: Return success response
 		return apiSuccess(
 			{
 				fileId: file._id,

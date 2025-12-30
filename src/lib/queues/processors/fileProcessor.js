@@ -29,6 +29,25 @@ export async function processFileJob(job) {
 		console.log(`[PROCESSOR] Downloading file from S3: ${s3Key}`);
 		const fileBuffer = await downloadFile(s3Key);
 
+		// Validate buffer after download
+		if (!fileBuffer || fileBuffer.length === 0) {
+			throw new Error(
+				`Downloaded file buffer is empty or null. S3 Key: ${s3Key}, Buffer length: ${fileBuffer?.length || 0}`
+			);
+		}
+
+		console.log(`[PROCESSOR] Downloaded buffer size: ${(fileBuffer.length / 1024).toFixed(2)} KB (${fileBuffer.length} bytes)`);
+
+		// Validate buffer size matches expected size (if available)
+		if (size && fileBuffer.length !== size) {
+			console.warn(`[PROCESSOR] Buffer size mismatch:`, {
+				filename,
+				expectedSize: size,
+				actualSize: fileBuffer.length,
+				difference: size - fileBuffer.length,
+			});
+		}
+
 		// Step 2: Extract text from file (30%)
 		await job.updateProgress(30);
 		console.log(`[PROCESSOR] Extracting text from file: ${filename}`);
