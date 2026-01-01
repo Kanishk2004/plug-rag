@@ -14,27 +14,12 @@ const messageSchema = new mongoose.Schema({
 		type: Date,
 		default: Date.now,
 	},
-	// For assistant responses - legacy field (keeping for backward compatibility)
-	retrievedChunks: [
-		{
-			chunkId: {
-				type: mongoose.Schema.Types.ObjectId,
-				ref: 'Chunk',
-			},
-			score: Number,
-			content: String,
-		},
-	],
 	// New RAG-specific fields
 	sources: [
 		{
 			fileName: String,
-			// Support both old format (single pageNumber) and new format (pageNumbers array)
-			pageNumber: Number, // Legacy field for backward compatibility
 			pageNumbers: [Number], // New field for multiple page numbers
-			chunkIndex: Number, // Legacy field
 			chunkIndices: [Number], // New field for multiple chunk indices
-			score: Number, // Legacy field for single score
 			maxScore: Number, // Highest relevance score across chunks
 			avgScore: Number, // Average relevance score across chunks
 			chunkCount: { type: Number, default: 1 }, // Number of chunks used from this file

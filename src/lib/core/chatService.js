@@ -1,13 +1,7 @@
 import Conversation from '@/models/Conversation.js';
 import Bot from '@/models/Bot.js';
-import { QdrantVectorStore } from '@langchain/qdrant';
-import { OpenAIEmbeddings } from '@langchain/openai';
-import { ChatOpenAI } from '@langchain/openai';
-import { PromptTemplate } from '@langchain/core/prompts';
-import { RunnableSequence } from '@langchain/core/runnables';
-import { StringOutputParser } from '@langchain/core/output_parsers';
-import { QdrantClient } from '@qdrant/js-client-rest';
 import { apiKeyService } from './apiKeyService.js';
+import { ragService } from './ragService.js';
 import { logInfo, logError } from '../utils/logger.js';
 import { createPerformanceTimer } from '../utils/performance.js';
 
@@ -28,37 +22,6 @@ export class ChatError extends Error {
  * Handles chat conversations, message processing, and RAG integration
  */
 class ChatService {
-	constructor() {
-		// Initialize Qdrant client
-		this.qdrantClient = new QdrantClient({
-			host: process.env.QDRANT_HOST || 'localhost',
-			port: process.env.QDRANT_PORT || 6333,
-			apiKey: process.env.QDRANT_API_KEY,
-		});
-
-		// System prompt template for RAG
-		this.systemPromptTemplate = PromptTemplate.fromTemplate(`
-You are an AI assistant that answers questions based strictly on the provided context from uploaded documents.
-
-IMPORTANT RULES:
-1. ONLY answer questions using information from the provided context
-2. If the context doesn't contain relevant information, politely decline and suggest topics you can help with
-3. Be concise but comprehensive in your answers
-4. Always cite information from the context when possible
-5. Maintain a helpful and professional tone
-6. If asked about topics outside your knowledge base, explain that you can only help with information from the uploaded documents
-
-CONTEXT FROM DOCUMENTS:
-{context}
-
-CONVERSATION HISTORY:
-{chat_history}
-
-HUMAN QUESTION: {question}
-
-ASSISTANT RESPONSE:`);
-	}
-
 	/**
 	 * Get OpenAI configuration for a specific bot
 	 */
@@ -70,7 +33,7 @@ ASSISTANT RESPONSE:`);
 				isCustom: keyData.isCustom,
 				source: keyData.source,
 				models: keyData.models || {
-					chat: 'gpt-4',
+					chat: 'gpt-4.1-mini',
 					embeddings: 'text-embedding-3-small',
 				},
 			};
@@ -97,209 +60,29 @@ ASSISTANT RESPONSE:`);
 	}
 
 	/**
-	 * Create LLM instance with bot-specific configuration
-	 */
-	async createLLM(botId, userId) {
-		const config = await this.getOpenAIConfig(botId, userId);
-		return new ChatOpenAI({
-			model: config.models.chat,
-			temperature: 0.3,
-			maxTokens: 1000,
-			apiKey: config.apiKey,
-		});
-	}
-
-	/**
-	 * Create embeddings instance with bot-specific configuration
-	 */
-	async createEmbeddings(botId, userId) {
-		const config = await this.getOpenAIConfig(botId, userId);
-		return new OpenAIEmbeddings({
-			model: config.models.embeddings,
-			openAIApiKey: config.apiKey,
-		});
-	}
-
-	/**
-	 * Check if a collection exists for the given botId
-	 */
-	async collectionExists(botId) {
-		try {
-			const collections = await this.qdrantClient.getCollections();
-			return collections.collections.some((col) => col.name === botId);
-		} catch (error) {
-			console.error('Error checking collection existence:', error);
-			return false;
-		}
-	}
-
-	/**
-	 * Get relevant documents from vector database
-	 */
-	async getRelevantDocuments(botId, userId, query, topK = 4) {
-		try {
-			const exists = await this.collectionExists(botId);
-			if (!exists) {
-				return [];
-			}
-
-			const embeddings = await this.createEmbeddings(botId, userId);
-			const vectorStore = new QdrantVectorStore(embeddings, {
-				client: this.qdrantClient,
-				collectionName: botId,
-			});
-
-			const documents = await vectorStore.similaritySearch(query, topK);
-			return documents;
-		} catch (error) {
-			console.error('Error retrieving relevant documents:', error);
-			return [];
-		}
-	}
-
-	/**
-	 * Format conversation history for context
-	 */
-	formatChatHistory(messages, maxMessages = 20) {
-		if (!messages || messages.length === 0) {
-			return 'No previous conversation.';
-		}
-
-		const recentMessages = messages
-			.slice(-maxMessages - 1, -1)
-			.map((msg) => `${msg.role.toUpperCase()}: ${msg.content}`)
-			.join('\n');
-
-		return recentMessages || 'No previous conversation.';
-	}
-
-	/**
-	 * Format retrieved documents as context
-	 */
-	formatDocumentsAsContext(documents) {
-		if (!documents || documents.length === 0) {
-			return 'No relevant documents found in the knowledge base.';
-		}
-
-		return documents
-			.map((doc, index) => {
-				const metadata = doc.metadata || {};
-				const fileName = metadata.fileName || metadata.source || 'Unknown file';
-				const pageNumber = metadata.pageNumber
-					? ` (Page ${metadata.pageNumber})`
-					: '';
-				return `[Source ${index + 1}: ${fileName}${pageNumber}]\n${
-					doc.pageContent
-				}`;
-			})
-			.join('\n\n');
-	}
-
-	/**
-	 * Generate fallback response when no relevant documents found
-	 */
-	generateFallbackResponse(botName = 'Assistant') {
-		const suggestions = [
-			'Ask about the content in the uploaded documents',
-			'Request summaries of specific topics',
-			'Ask for details about processes or procedures mentioned in the files',
-			'Inquire about data or information contained in the knowledge base',
-		];
-
-		return `I'm sorry, but I couldn't find relevant information in my knowledge base to answer your question. 
-
-I can only provide answers based on the documents that have been uploaded to me. Here are some ways I can help:
-
-${suggestions.map((suggestion) => `• ${suggestion}`).join('\n')}
-
-Please feel free to ask me about any topics covered in the uploaded documents!`;
-	}
-
-	/**
 	 * Generate AI response using RAG
 	 */
 	async generateRAGResponse(
-		botId,
+		bot,
 		userQuery,
 		conversationHistory = [],
 		botInfo = {}
 	) {
 		try {
-			const startTime = Date.now();
-			const bot = await Bot.findById(botId, 'ownerId');
-			if (!bot) {
-				throw new Error('Bot not found');
-			}
+			const config = await this.getOpenAIConfig(bot._id, bot.ownerId);
 
-			// Retrieve relevant documents
-			const relevantDocs = await this.getRelevantDocuments(
-				botId,
-				bot.ownerId,
+			// Delegate to ragService for RAG response generation
+			const ragResponse = await ragService.generateResponse(
+				bot,
+				config.apiKey,
 				userQuery,
-				4
+				conversationHistory
 			);
 
-			// Format context and chat history
-			const context = this.formatDocumentsAsContext(relevantDocs);
-			const chatHistory = this.formatChatHistory(conversationHistory, 20);
-
-			// Check if we have relevant context
-			if (relevantDocs.length === 0) {
-				const fallbackResponse = this.generateFallbackResponse(botInfo.name);
-				const fallbackTokens = Math.ceil(fallbackResponse.length * 0.75);
-				return {
-					content: fallbackResponse,
-					sources: [],
-					responseTime: Date.now() - startTime,
-					tokensUsed: fallbackTokens,
-					model: 'fallback',
-					hasRelevantContext: false,
-				};
-			}
-
-			// Create dynamic LLM instance
-			const llm = await this.createLLM(botId, bot.ownerId);
-
-			// Create the RAG chain
-			const ragChain = RunnableSequence.from([
-				{
-					context: () => context,
-					chat_history: () => chatHistory,
-					question: (input) => input.question,
-				},
-				this.systemPromptTemplate,
-				llm,
-				new StringOutputParser(),
-			]);
-
-			// Generate response
-			const response = await ragChain.invoke({ question: userQuery });
-
-			// Clean response
-			const cleanResponse = response
-				.replace(/\s*\[Source \d+:[^\]]+\]\s*/g, '')
-				.trim();
-
-			// Extract source information
-			const sources = relevantDocs.map((doc) => ({
-				fileName:
-					doc.metadata?.fileName || doc.metadata?.source || 'Unknown file',
-				pageNumber: doc.metadata?.pageNumber,
-				chunkIndex: doc.metadata?.chunkIndex,
-				score: doc.metadata?.score,
-			}));
-
-			const responseTime = Date.now() - startTime;
-			const estimatedTokens = Math.ceil(cleanResponse.length * 0.75);
-
+			// Add API source info
 			return {
-				content: cleanResponse,
-				sources: sources,
-				responseTime: responseTime,
-				tokensUsed: estimatedTokens,
-				model: llm.modelName,
-				hasRelevantContext: true,
-				apiSource: (await this.getOpenAIConfig(botId, bot.ownerId)).source,
+				...ragResponse,
+				apiSource: config.source,
 			};
 		} catch (error) {
 			console.error('RAG generation error:', error);
@@ -317,6 +100,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			};
 		}
 	}
+
 	/**
 	 * Send a message and get AI response
 	 * @param {string} botId - The bot ID
@@ -324,33 +108,28 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 	 * @param {string} sessionId - Session identifier
 	 * @returns {Promise<Object>} AI response with metadata
 	 */
-	async sendMessage(botId, userMessage, sessionId) {
-		const timer = createPerformanceTimer();
-
+	async sendMessage(bot, userMessage, sessionId) {
 		try {
 			logInfo('Sending message to chat service', {
-				botId,
+				botId: bot._id,
 				sessionId,
 				messageLength: userMessage?.length || 0,
 			});
 
 			// Validate inputs
-			if (!botId || !userMessage || !sessionId) {
+			if (!bot || !userMessage || !sessionId) {
 				throw new ChatError(
-					'Bot ID, message, and session ID are required',
+					'Bot, message, and session ID are required',
 					'MISSING_PARAMETERS',
 					400
 				);
 			}
 
-			// Verify bot exists
-			const bot = await Bot.findById(botId);
-			if (!bot) {
-				throw new ChatError('Bot not found', 'BOT_NOT_FOUND', 404);
-			}
-
 			// Get conversation history
-			const conversation = await this.getOrCreateConversation(botId, sessionId);
+			const conversation = await this.getOrCreateConversation(
+				bot._id,
+				sessionId
+			);
 			const conversationHistory = conversation.messages || [];
 
 			// Add user message to conversation
@@ -364,7 +143,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 
 			// Generate AI response using internal RAG
 			const ragResponse = await this.generateRAGResponse(
-				botId,
+				bot,
 				userMessage,
 				conversationHistory,
 				{
@@ -392,10 +171,10 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			conversationHistory.push(assistantMessage);
 
 			// Save updated conversation
-			await this.saveConversation(botId, sessionId, conversationHistory);
+			await this.saveConversation(bot._id, sessionId, conversationHistory);
 
 			// Update bot analytics
-			await this.updateBotAnalytics(botId, {
+			await this.updateBotAnalytics(bot._id, {
 				messageCount: 1,
 				tokensUsed: ragResponse.tokensUsed,
 				hasRelevantContext: ragResponse.hasRelevantContext,
@@ -404,7 +183,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			// const duration = timer.stop();
 
 			logInfo('Message processed successfully', {
-				botId,
+				botId: bot._id,
 				sessionId,
 				// duration,
 				responseLength: ragResponse.content?.length || 0,
@@ -429,7 +208,7 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			// const duration = timer.stop();
 
 			logError('Error sending message', error, {
-				botId,
+				bot: bot._id,
 				sessionId,
 				// duration,
 				errorType: error.constructor.name,
@@ -455,8 +234,6 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 	 * @returns {Promise<Object>} Conversation history
 	 */
 	async getConversationHistory(botId, sessionId, limit = 50) {
-		const timer = createPerformanceTimer();
-
 		try {
 			logInfo('Fetching conversation history', {
 				botId,
@@ -537,8 +314,6 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 	 * @returns {Promise<boolean>} Success status
 	 */
 	async clearConversationHistory(botId, sessionId) {
-		const timer = createPerformanceTimer();
-
 		try {
 			logInfo('Clearing conversation history', {
 				botId,
@@ -780,52 +555,6 @@ Please feel free to ask me about any topics covered in the uploaded documents!`;
 			throw new ChatError(
 				'Failed to fetch chat statistics',
 				'STATISTICS_FETCH_FAILED',
-				500
-			);
-		}
-	}
-
-	/**
-	 * Get available topics in the bot's knowledge base
-	 * @param {string} botId - The bot ID
-	 * @returns {Promise<Object>} Available topics and knowledge base info
-	 */
-	async getAvailableTopics(botId) {
-		try {
-			logInfo('Fetching available topics', { botId });
-
-			// Validate bot exists
-			const bot = await Bot.findById(botId);
-			if (!bot) {
-				throw new ChatError('Bot not found', 'BOT_NOT_FOUND', 404);
-			}
-
-			// Get topics from RAG service
-			const topics = await ragService.getAvailableTopics(botId);
-
-			logInfo('Available topics fetched successfully', {
-				botId,
-				topicCount: Array.isArray(topics) ? topics.length : 0,
-			});
-
-			return {
-				botId,
-				botName: bot.name,
-				topics,
-				hasKnowledgeBase: Array.isArray(topics)
-					? topics.length > 0
-					: !!topics.totalDocuments,
-			};
-		} catch (error) {
-			logError('Error fetching available topics', error, { botId });
-
-			if (error instanceof ChatError) {
-				throw error;
-			}
-
-			throw new ChatError(
-				'Failed to fetch available topics',
-				'TOPICS_FETCH_FAILED',
 				500
 			);
 		}

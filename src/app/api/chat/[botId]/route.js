@@ -82,11 +82,7 @@ export async function POST(request, { params }) {
 		}
 
 		// Use chat service to handle message processing
-		const aiResponse = await chatService.sendMessage(
-			botId,
-			message,
-			sessionId
-		);
+		const aiResponse = await chatService.sendMessage(bot, message, sessionId);
 
 		const response = apiSuccess(
 			{
@@ -156,7 +152,8 @@ export async function GET(request, { params }) {
 			tokens: msg.metadata?.tokensUsed || msg.tokens,
 			responseTime: msg.metadata?.responseTime || msg.responseTime,
 			sources: msg.metadata?.sources || msg.sources || [],
-			hasRelevantContext: msg.metadata?.hasRelevantContext || msg.hasRelevantContext,
+			hasRelevantContext:
+				msg.metadata?.hasRelevantContext || msg.hasRelevantContext,
 		}));
 
 		return addCorsHeaders(

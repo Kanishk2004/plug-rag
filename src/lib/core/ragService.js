@@ -25,7 +25,7 @@ import { logInfo, logError } from '../utils/logger.js';
  */
 export class RAGService {
 	constructor() {
-		// Initialize Qdrant client
+		// Initialize Qdrant client with standardized URL configuration
 		this.qdrantClient = new QdrantClient({
 			url: process.env.QDRANT_URL || 'http://localhost:6333',
 			apiKey: process.env.QDRANT_API_KEY,
@@ -33,7 +33,9 @@ export class RAGService {
 
 		// System prompt template for RAG
 		this.systemPromptTemplate = PromptTemplate.fromTemplate(`
-You are an AI assistant that answers questions based strictly on the provided context from uploaded documents.
+You are an AI assistant, and your name is {bot_name}.
+You are very polite and helpful.
+You help the user by answering questions based strictly on the provided context from documents.
 
 IMPORTANT RULES:
 1. ONLY answer questions using information from the provided context
@@ -264,13 +266,13 @@ ASSISTANT RESPONSE:`);
 	/**
 	 * Generate RAG response with comprehensive logging
 	 */
-	async generateResponse(botId, apiKey, query, conversationHistory = []) {
+	async generateResponse(bot, apiKey, query, conversationHistory = []) {
 		try {
 			const startTime = Date.now();
-			console.log(`🚀 [RAG] Starting response generation for bot: ${botId}`);
+			console.log(`🚀 [RAG] Starting response generation for bot: ${bot._id}`);
 
 			// Retrieve relevant documents
-			const documents = await this.retrieveDocuments(botId, apiKey, query, 4);
+			const documents = await this.retrieveDocuments(bot._id, apiKey, query, 2);
 
 			if (documents.length === 0) {
 				console.log(
@@ -289,15 +291,16 @@ ASSISTANT RESPONSE:`);
 
 			// Create LLM instance
 			const llm = new ChatOpenAI({
-				model: 'gpt-4',
+				model: 'gpt-4.1-mini',
 				temperature: 0.3,
-				maxTokens: 1000,
-				openAIApiKey: apiKey,
+				maxTokens: 600,
+				apiKey: apiKey,
 			});
 
 			// Create the RAG chain
 			const ragChain = RunnableSequence.from([
 				{
+					bot_name: () => bot.name || 'AI Assistant',
 					context: () => context,
 					chat_history: () => chatHistory,
 					question: (input) => input.question,
@@ -343,7 +346,7 @@ ASSISTANT RESPONSE:`);
 				sources: sources,
 				responseTime: responseTime,
 				tokensUsed: estimatedTokens,
-				model: 'gpt-4',
+				model: 'gpt-4.1-mini',
 				hasRelevantContext: true,
 				documentsFound: documents.length,
 			};
@@ -426,108 +429,6 @@ ASSISTANT RESPONSE:`);
 			hasRelevantContext: false,
 			documentsFound: 0,
 		};
-	}
-
-	/**
-	 * Get comprehensive system status for debugging
-	 */
-	async getSystemStatus() {
-		try {
-			console.log(`🔍 [RAG] Getting system status...`);
-
-			// Test Qdrant connection
-			const collections = await listCollections();
-
-			const systemStatus = {
-				qdrantConnected: true,
-				totalCollections: collections.length,
-				collections: [],
-			};
-
-			// Get detailed info for each collection
-			for (const collectionName of collections) {
-				try {
-					const status = await this.getCollectionStatus(collectionName);
-					systemStatus.collections.push({
-						name: collectionName,
-						...status,
-					});
-				} catch (error) {
-					systemStatus.collections.push({
-						name: collectionName,
-						exists: false,
-						error: error.message,
-					});
-				}
-			}
-
-			console.log(`✅ [RAG] System status retrieved:`, systemStatus);
-			return systemStatus;
-		} catch (error) {
-			console.error(`💥 [RAG] Failed to get system status:`, error.message);
-			return {
-				qdrantConnected: false,
-				error: error.message,
-				totalCollections: 0,
-				collections: [],
-			};
-		}
-	}
-
-	/**
-	 * Debug a specific bot's RAG setup
-	 */
-	async debugBot(botId) {
-		try {
-			console.log(`🔧 [RAG] Starting debug analysis for bot: ${botId}`);
-
-			const collectionName = botId.toString();
-			const status = await this.getCollectionStatus(botId);
-
-			const debugInfo = {
-				botId: botId.toString(),
-				collectionName,
-				...status,
-				timestamp: new Date().toISOString(),
-			};
-
-			if (status.exists && status.pointsCount > 0) {
-				// Sample some documents
-				try {
-					const sampleResult = await this.qdrantClient.scroll(collectionName, {
-						limit: 3,
-						with_payload: true,
-						with_vector: false,
-					});
-
-					if (sampleResult.points?.length > 0) {
-						debugInfo.sampleDocuments = sampleResult.points.map((point) => ({
-							id: point.id,
-							metadata: point.payload?.metadata || {},
-							contentPreview:
-								point.payload?.page_content?.substring(0, 100) + '...' ||
-								'No content',
-							// Show original file references for easier debugging
-							originalFileId:
-								point.payload?.metadata?.originalFileId || 'Unknown',
-							chunkIndex: point.payload?.metadata?.chunkIndex || 'Unknown',
-						}));
-					}
-				} catch (error) {
-					debugInfo.sampleError = error.message;
-				}
-			}
-
-			console.log(`🔧 [RAG] Debug info for bot ${botId}:`, debugInfo);
-			return debugInfo;
-		} catch (error) {
-			console.error(`💥 [RAG] Debug failed for bot ${botId}:`, error.message);
-			return {
-				botId: botId.toString(),
-				error: error.message,
-				timestamp: new Date().toISOString(),
-			};
-		}
 	}
 }
 
