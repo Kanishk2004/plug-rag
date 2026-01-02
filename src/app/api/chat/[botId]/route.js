@@ -81,6 +81,11 @@ export async function POST(request, { params }) {
 			return notFoundError('Bot not found or inactive');
 		}
 
+		// Validate domain against bot's whitelist
+		if (!validateDomain(bot, domain)) {
+			return validationError('Domain is not allowed to access this bot');
+		}
+
 		// Use chat service to handle message processing
 		const aiResponse = await chatService.sendMessage(bot, message, sessionId);
 

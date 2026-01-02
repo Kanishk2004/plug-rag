@@ -42,6 +42,21 @@ const messageSchema = new mongoose.Schema({
 		type: String,
 		default: 'gpt-4',
 	},
+	// Intent classification metadata
+	responseType: {
+		type: String,
+		enum: ['faq', 'rag', 'simple_llm', 'small_talk'],
+		default: 'rag',
+	},
+	intentType: {
+		type: String,
+		enum: ['NEEDS_RAG', 'GENERAL_CHAT', 'SMALL_TALK', null],
+		default: null,
+	},
+	intentConfidence: {
+		type: Number,
+		default: null,
+	},
 });
 
 const conversationSchema = new mongoose.Schema(

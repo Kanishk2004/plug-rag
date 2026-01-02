@@ -34,7 +34,7 @@ export async function addFileProcessingJob(jobData, options = {}) {
 		const job = await fileProcessingQueue.add('process-file', jobData, {
 			jobId: jobData.fileId, // Use fileId as job ID to prevent duplicates
 			priority: options.priority || 1, // Lower number = higher priority
-			delay: options.delay !== undefined ? options.delay : 2000, // 2 second delay to allow S3 propagation
+			delay: options.delay !== undefined ? options.delay : 5000, // 5 second delay to allow S3 propagation
 			...options,
 		});
 

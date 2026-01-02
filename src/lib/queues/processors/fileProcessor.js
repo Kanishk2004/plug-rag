@@ -32,11 +32,17 @@ export async function processFileJob(job) {
 		// Validate buffer after download
 		if (!fileBuffer || fileBuffer.length === 0) {
 			throw new Error(
-				`Downloaded file buffer is empty or null. S3 Key: ${s3Key}, Buffer length: ${fileBuffer?.length || 0}`
+				`Downloaded file buffer is empty or null. S3 Key: ${s3Key}, Buffer length: ${
+					fileBuffer?.length || 0
+				}`
 			);
 		}
 
-		console.log(`[PROCESSOR] Downloaded buffer size: ${(fileBuffer.length / 1024).toFixed(2)} KB (${fileBuffer.length} bytes)`);
+		console.log(
+			`[PROCESSOR] Downloaded buffer size: ${(fileBuffer.length / 1024).toFixed(
+				2
+			)} KB (${fileBuffer.length} bytes)`
+		);
 
 		// Validate buffer size matches expected size (if available)
 		if (size && fileBuffer.length !== size) {
@@ -93,8 +99,6 @@ export async function processFileJob(job) {
 			chunks,
 			{
 				fileId,
-				filename,
-				uploadedAt: new Date().toISOString(),
 			}
 		);
 

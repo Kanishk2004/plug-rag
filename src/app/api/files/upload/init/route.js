@@ -145,7 +145,6 @@ export async function POST(request) {
 			botId,
 			ownerId: userId,
 			filename: sanitizedFilename,
-			originalName: filename,
 			mimeType,
 			fileType,
 			size: fileSize,

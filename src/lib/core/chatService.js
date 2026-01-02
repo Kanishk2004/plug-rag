@@ -4,6 +4,9 @@ import { apiKeyService } from './apiKeyService.js';
 import { ragService } from './ragService.js';
 import { logInfo, logError } from '../utils/logger.js';
 import { createPerformanceTimer } from '../utils/performance.js';
+import intentClassifier, { INTENT_TYPES } from './intentClassifier.js';
+import faqService from './faqService.js';
+import { getOpenAIClient } from '../integrations/openai.js';
 
 /**
  * Custom error class for chat-related operations
@@ -81,7 +84,12 @@ class ChatService {
 
 			// Add API source info
 			return {
-				...ragResponse,
+				content: ragResponse.content,
+				sources: ragResponse.sources,
+				tokensUsed: ragResponse.tokensUsed,
+				model: ragResponse.model,
+				hasRelevantContext: ragResponse.hasRelevantContext,
+				documentsFound: ragResponse.documentsFound,
 				apiSource: config.source,
 			};
 		} catch (error) {
@@ -141,29 +149,101 @@ class ChatService {
 
 			conversationHistory.push(userMessageObj);
 
-			// Generate AI response using internal RAG
-			const ragResponse = await this.generateRAGResponse(
-				bot,
-				userMessage,
-				conversationHistory,
-				{
-					name: bot.name,
-					description: bot.description,
-				}
-			);
+			// Step 1: Check FAQ first (fastest path - no API calls)
+			const faqAnswer = faqService.checkFAQ(userMessage, bot);
+			if (faqAnswer) {
+				logInfo('FAQ match found', { botId: bot._id });
+
+				const faqResponse = {
+					content: faqAnswer,
+					sources: [],
+					responseTime: 10,
+					tokensUsed: 0,
+					model: 'faq',
+					hasRelevantContext: false,
+					responseType: 'faq',
+				};
+
+				// Create assistant message
+				const assistantMessage = {
+					role: 'assistant',
+					content: faqResponse.content,
+					timestamp: new Date(),
+					metadata: {
+						sources: [],
+						responseTime: faqResponse.responseTime,
+						tokensUsed: 0,
+						model: 'faq',
+						hasRelevantContext: false,
+						responseType: 'faq',
+					},
+				};
+
+				conversationHistory.push(assistantMessage);
+				await this.saveConversation(
+					bot._id,
+					sessionId,
+					conversationHistory
+				);
+
+				return {
+					message: faqResponse.content,
+					sources: [],
+					hasRelevantContext: false,
+					tokensUsed: 0,
+					responseType: 'faq',
+				};
+			}
+
+			// Step 2: Classify intent to determine routing
+			const intent = await intentClassifier.classify(userMessage, bot);
+			logInfo('Intent classified', {
+				botId: bot._id,
+				intent: intent.type,
+				confidence: intent.confidence,
+			});
+
+			let aiResponse;
+
+			// Step 3: Route based on intent
+			if (intent.type === INTENT_TYPES.NEEDS_RAG) {
+				// Full RAG pipeline
+				aiResponse = await this.generateRAGResponse(
+					bot,
+					userMessage,
+					conversationHistory,
+					{
+						name: bot.name,
+						description: bot.description,
+					}
+				);
+				aiResponse.responseType = 'rag';
+			} else if (intent.type === INTENT_TYPES.GENERAL_CHAT) {
+				// Simple LLM without retrieval
+				aiResponse = await this.generateSimpleLLMResponse(
+					bot,
+					userMessage,
+					conversationHistory
+				);
+			} else if (intent.type === INTENT_TYPES.SMALL_TALK) {
+				// Predefined responses
+				aiResponse = await this.generateSmallTalkResponse(bot, userMessage);
+			}
 
 			// Create assistant message
 			const assistantMessage = {
 				role: 'assistant',
-				content: ragResponse.content,
+				content: aiResponse.content,
 				timestamp: new Date(),
 				metadata: {
-					sources: ragResponse.sources,
-					responseTime: ragResponse.responseTime,
-					tokensUsed: ragResponse.tokensUsed,
-					model: ragResponse.model,
-					hasRelevantContext: ragResponse.hasRelevantContext,
-					apiSource: ragResponse.apiSource,
+					sources: aiResponse.sources || [],
+					responseTime: aiResponse.responseTime,
+					tokensUsed: aiResponse.tokensUsed,
+					model: aiResponse.model,
+					hasRelevantContext: aiResponse.hasRelevantContext,
+					responseType: aiResponse.responseType,
+					intentType: intent.type,
+					intentConfidence: intent.confidence,
 				},
 			};
 
@@ -176,36 +256,32 @@ class ChatService {
 			// Update bot analytics
 			await this.updateBotAnalytics(bot._id, {
 				messageCount: 1,
-				tokensUsed: ragResponse.tokensUsed,
-				hasRelevantContext: ragResponse.hasRelevantContext,
+				tokensUsed: aiResponse.tokensUsed,
+				hasRelevantContext: aiResponse.hasRelevantContext,
 			});
-
-			// const duration = timer.stop();
 
 			logInfo('Message processed successfully', {
 				botId: bot._id,
 				sessionId,
-				// duration,
-				responseLength: ragResponse.content?.length || 0,
-				tokensUsed: ragResponse.tokensUsed,
-				hasRelevantContext: ragResponse.hasRelevantContext,
+				responseType: aiResponse.responseType,
+				responseLength: aiResponse.content?.length || 0,
+				tokensUsed: aiResponse.tokensUsed,
+				hasRelevantContext: aiResponse.hasRelevantContext,
 			});
 
 			return {
-				message: ragResponse.content,
-				sources: ragResponse.sources,
+				message: aiResponse.content,
+				sources: aiResponse.sources || [],
 				metadata: {
 					messageId: assistantMessage.timestamp.toISOString(),
-					responseTime: ragResponse.responseTime,
-					tokensUsed: ragResponse.tokensUsed,
-					model: ragResponse.model,
-					hasRelevantContext: ragResponse.hasRelevantContext,
-					apiSource: ragResponse.apiSource,
-					// processingTime: duration,
+					responseTime: aiResponse.responseTime,
+					tokensUsed: aiResponse.tokensUsed,
+					model: aiResponse.model,
+					hasRelevantContext: aiResponse.hasRelevantContext,
+					responseType: aiResponse.responseType,
 				},
 			};
 		} catch (error) {
-			// const duration = timer.stop();
 
 			logError('Error sending message', error, {
 				bot: bot._id,
@@ -558,6 +634,96 @@ class ChatService {
 				500
 			);
 		}
+	}
+
+	/**
+	 * Generate simple LLM response without RAG retrieval
+	 * Used for general chat that doesn't need document context
+	 */
+	async generateSimpleLLMResponse(bot, userMessage, conversationHistory) {
+		const startTime = Date.now();
+
+		try {
+			const client = getOpenAIClient();
+
+			// Get last 5 messages for context (not 10 like RAG)
+			const recentMessages = conversationHistory.slice(-5);
+
+			const systemPrompt = `You are a helpful assistant for ${bot.name}.
+You can ONLY discuss topics related to: ${bot.description || bot.name}
+
+STRICT RULES:
+- Stay within the allowed topic scope
+- If asked about unrelated topics, politely redirect to what you can help with
+- Keep responses concise and friendly
+- Don't make up specific facts - admit if you don't know details
+- You don't have access to specific documents, so don't claim to have detailed information
+
+Be helpful but honest about your limitations.`;
+
+			const messages = [
+				{ role: 'system', content: systemPrompt },
+				...recentMessages.map((msg) => ({
+					role: msg.role,
+					content: msg.content,
+				})),
+			];
+
+			const response = await client.chat.completions.create({
+				model: 'gpt-3.5-turbo',
+				messages,
+				temperature: 0.7,
+				max_tokens: 300,
+			});
+
+			const content = response.choices[0].message.content;
+			const tokensUsed = response.usage?.total_tokens || 0;
+			const responseTime = Date.now() - startTime;
+
+			logInfo('Simple LLM response generated', {
+				botId: bot._id,
+				tokensUsed,
+				responseTime,
+			});
+
+			return {
+				content,
+				sources: [],
+				responseTime,
+				tokensUsed,
+				model: 'gpt-3.5-turbo',
+				hasRelevantContext: false,
+				responseType: 'simple_llm',
+			};
+		} catch (error) {
+			logError('Error generating simple LLM response', error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Generate small talk response (predefined or simple)
+	 */
+	async generateSmallTalkResponse(bot, userMessage) {
+		// For now, we'll use simple predefined responses
+		// Could be enhanced with simple LLM call if needed
+		const responses = [
+			"I'm here to help! What would you like to know?",
+			'Feel free to ask me anything related to what I can assist with.',
+			'How can I help you today?',
+		];
+
+		const content = responses[Math.floor(Math.random() * responses.length)];
+
+		return {
+			content,
+			sources: [],
+			responseTime: 10,
+			tokensUsed: 0,
+			model: 'predefined',
+			hasRelevantContext: false,
+			responseType: 'small_talk',
+		};
 	}
 }
 

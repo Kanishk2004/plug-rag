@@ -106,17 +106,13 @@ export async function storeDocuments(
 		const enrichedDocuments = documents.map((doc, index) => {
 			// Create a valid UUID for Qdrant point ID
 			const uniqueId = randomUUID();
-			console.log(`🔑 [QDRANT] Generated UUID for chunk ${index}: ${uniqueId}`);
 
 			const enrichedMetadata = {
 				...doc.metadata,
 				...metadata,
-				storedAt: new Date().toISOString(),
 				documentId: uniqueId,
-				// Store original identifiers in metadata for reference
-				originalFileId: metadata.fileId,
-				chunkIndex: doc.metadata.chunk || index,
-				timestamp: Date.now(),
+				chunkIndex: doc.metadata.chunkIndex || index,
+				timestamp: new Date().toISOString(),
 			};
 
 			return {

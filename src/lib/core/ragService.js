@@ -13,12 +13,7 @@ import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { createEmbeddingsInstance } from '../processors/embeddings.js';
-import {
-	storeDocuments,
-	getCollectionInfo,
-	listCollections,
-} from '../integrations/qdrant.js';
-import { logInfo, logError } from '../utils/logger.js';
+import { storeDocuments, getCollectionInfo } from '../integrations/qdrant.js';
 
 /**
  * RAG Service Class
@@ -126,7 +121,6 @@ ASSISTANT RESPONSE:`);
 			const result = await storeDocuments(collectionName, embeddings, chunks, {
 				...metadata,
 				botId: botId.toString(),
-				storedAt: new Date().toISOString(),
 			});
 
 			console.log(`✅ [RAG] Chunks stored successfully:`, result);
@@ -268,7 +262,6 @@ ASSISTANT RESPONSE:`);
 	 */
 	async generateResponse(bot, apiKey, query, conversationHistory = []) {
 		try {
-			const startTime = Date.now();
 			console.log(`🚀 [RAG] Starting response generation for bot: ${bot._id}`);
 
 			// Retrieve relevant documents
@@ -331,12 +324,9 @@ ASSISTANT RESPONSE:`);
 					index: index + 1,
 				};
 			});
-
-			const responseTime = Date.now() - startTime;
 			const estimatedTokens = Math.ceil(cleanResponse.length * 0.75);
 
 			console.log(`✅ [RAG] Response generated successfully`, {
-				responseTime,
 				tokensUsed: estimatedTokens,
 				sourceCount: sources.length,
 			});
@@ -344,7 +334,6 @@ ASSISTANT RESPONSE:`);
 			return {
 				content: cleanResponse,
 				sources: sources,
-				responseTime: responseTime,
 				tokensUsed: estimatedTokens,
 				model: 'gpt-4.1-mini',
 				hasRelevantContext: true,
