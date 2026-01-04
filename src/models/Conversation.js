@@ -27,35 +27,28 @@ const messageSchema = new mongoose.Schema({
 	],
 	hasRelevantContext: {
 		type: Boolean,
-		default: false,
 	},
 	tokens: {
 		type: Number,
-		default: 0,
 	},
 	// Response metadata
 	responseTime: {
 		type: Number, // in milliseconds
-		default: 0,
 	},
 	model: {
 		type: String,
-		default: 'gpt-4',
 	},
 	// Intent classification metadata
 	responseType: {
 		type: String,
 		enum: ['faq', 'rag', 'simple_llm', 'small_talk'],
-		default: 'rag',
 	},
 	intentType: {
 		type: String,
 		enum: ['NEEDS_RAG', 'GENERAL_CHAT', 'SMALL_TALK', null],
-		default: null,
 	},
 	intentConfidence: {
 		type: Number,
-		default: null,
 	},
 });
 

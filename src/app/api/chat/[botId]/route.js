@@ -91,15 +91,11 @@ export async function POST(request, { params }) {
 
 		const response = apiSuccess(
 			{
-				message: aiResponse.message,
+				message: aiResponse.content,
 				sessionId: sessionId,
-				messageId: aiResponse.metadata.messageId,
 				sources: aiResponse.sources,
-				responseTime: aiResponse.metadata.responseTime,
-				tokensUsed: aiResponse.metadata.tokensUsed,
-				hasRelevantContext: aiResponse.metadata.hasRelevantContext,
-				model: aiResponse.metadata.model,
-				processingTime: aiResponse.metadata.processingTime,
+				hasRelevantContext: aiResponse.hasRelevantContext,
+				model: aiResponse.model,
 			},
 			'Message sent successfully'
 		);

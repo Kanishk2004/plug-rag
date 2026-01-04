@@ -6,7 +6,7 @@ import { logInfo, logError } from '../utils/logger.js';
 import { createPerformanceTimer } from '../utils/performance.js';
 import intentClassifier, { INTENT_TYPES } from './intentClassifier.js';
 import faqService from './faqService.js';
-import { getOpenAIClient } from '../integrations/openai.js';
+import { createOpenAIClient } from '../integrations/openai.js';
 
 /**
  * Custom error class for chat-related operations
@@ -140,24 +140,25 @@ class ChatService {
 			);
 			const conversationHistory = conversation.messages || [];
 
-			// Add user message to conversation
-			const userMessageObj = {
-				role: 'user',
-				content: userMessage,
-				timestamp: new Date(),
-			};
-
-			conversationHistory.push(userMessageObj);
-
 			// Step 1: Check FAQ first (fastest path - no API calls)
 			const faqAnswer = faqService.checkFAQ(userMessage, bot);
 			if (faqAnswer) {
 				logInfo('FAQ match found', { botId: bot._id });
 
+				// Add user message to conversation
+				const userMessageObj = {
+					role: 'user',
+					content: userMessage,
+					intentType: 'GENERAL_CHAT',
+					intentConfidence: 1,
+					timestamp: new Date(),
+				};
+
+				conversationHistory.push(userMessageObj);
+
 				const faqResponse = {
 					content: faqAnswer,
 					sources: [],
-					responseTime: 10,
 					tokensUsed: 0,
 					model: 'faq',
 					hasRelevantContext: false,
@@ -169,30 +170,18 @@ class ChatService {
 					role: 'assistant',
 					content: faqResponse.content,
 					timestamp: new Date(),
-					metadata: {
-						sources: [],
-						responseTime: faqResponse.responseTime,
-						tokensUsed: 0,
-						model: 'faq',
-						hasRelevantContext: false,
-						responseType: 'faq',
-					},
+					sources: [],
+					responseTime: faqResponse.responseTime,
+					tokensUsed: 0,
+					model: 'faq',
+					hasRelevantContext: false,
+					responseType: 'faq',
 				};
 
 				conversationHistory.push(assistantMessage);
-				await this.saveConversation(
-					bot._id,
-					sessionId,
-					conversationHistory
-				);
+				await this.saveConversation(bot._id, sessionId, conversationHistory);
 
-				return {
-					message: faqResponse.content,
-					sources: [],
-					hasRelevantContext: false,
-					tokensUsed: 0,
-					responseType: 'faq',
-				};
+				return { ...assistantMessage };
 			}
 
 			// Step 2: Classify intent to determine routing
@@ -202,6 +191,16 @@ class ChatService {
 				intent: intent.type,
 				confidence: intent.confidence,
 			});
+
+			const userMessageObj = {
+				role: 'user',
+				content: userMessage,
+				intentType: intent.type,
+				intentConfidence: intent.confidence,
+				timestamp: new Date(),
+			};
+
+			conversationHistory.push(userMessageObj);
 
 			let aiResponse;
 
@@ -282,7 +281,6 @@ class ChatService {
 				},
 			};
 		} catch (error) {
-
 			logError('Error sending message', error, {
 				bot: bot._id,
 				sessionId,
@@ -644,7 +642,7 @@ class ChatService {
 		const startTime = Date.now();
 
 		try {
-			const client = getOpenAIClient();
+			const client = createOpenAIClient();
 
 			// Get last 5 messages for context (not 10 like RAG)
 			const recentMessages = conversationHistory.slice(-5);

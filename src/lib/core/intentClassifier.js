@@ -1,5 +1,5 @@
-import { getOpenAIClient } from '../integrations/openai.js';
-import logger from '../utils/logger.js';
+import { createOpenAIClient } from '../integrations/openai.js';
+import { logError, logInfo, logWarn } from '../utils/logger.js';
 
 const INTENT_TYPES = {
 	NEEDS_RAG: 'NEEDS_RAG',
@@ -18,7 +18,7 @@ class IntentClassifier {
 	 */
 	async classify(query, bot) {
 		try {
-			const client = getOpenAIClient();
+			const client = createOpenAIClient();
 
 			const systemPrompt = `You are an intent classifier. Analyze the user's message and classify it into ONE of these categories:
 
@@ -52,26 +52,24 @@ Use confidence score 0-1 based on how certain you are.`;
 
 			// Validate response
 			if (!Object.values(INTENT_TYPES).includes(result.type)) {
-				logger.warn(
-					'Invalid intent type from classifier, defaulting to NEEDS_RAG'
-				);
+				logWarn('Invalid intent type from classifier, defaulting to NEEDS_RAG');
 				return { type: INTENT_TYPES.NEEDS_RAG, confidence: 0.5 };
 			}
 
 			// If confidence is low, default to RAG (safer)
 			if (result.confidence < CONFIDENCE_THRESHOLD) {
-				logger.info(
+				logInfo(
 					`Low confidence (${result.confidence}) for intent, defaulting to NEEDS_RAG`
 				);
 				return { type: INTENT_TYPES.NEEDS_RAG, confidence: result.confidence };
 			}
 
-			logger.info(
+			logInfo(
 				`Intent classified: ${result.type} (confidence: ${result.confidence})`
 			);
 			return result;
 		} catch (error) {
-			logger.error('Error in intent classification:', error);
+			logError('Error in intent classification:', error);
 			// On error, default to RAG to avoid missing important queries
 			return { type: INTENT_TYPES.NEEDS_RAG, confidence: 0.0 };
 		}

@@ -1,4 +1,4 @@
-import logger from '../utils/logger.js';
+import { logInfo } from '../utils/logger.js';
 
 // System-level FAQs (common across all bots)
 const SYSTEM_FAQS = [
@@ -34,7 +34,7 @@ class FAQService {
 		// Check system FAQs first
 		const systemMatch = this._findMatch(normalizedQuery, SYSTEM_FAQS);
 		if (systemMatch) {
-			logger.info('Matched system FAQ');
+			logInfo('Matched system FAQ');
 			return systemMatch;
 		}
 
@@ -49,7 +49,7 @@ class FAQService {
 
 			const botMatch = this._findMatch(normalizedQuery, botFaqs);
 			if (botMatch) {
-				logger.info('Matched bot-specific FAQ');
+				logInfo('Matched bot-specific FAQ');
 				return botMatch;
 			}
 		}
