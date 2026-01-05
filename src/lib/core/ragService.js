@@ -192,10 +192,6 @@ ASSISTANT RESPONSE:`);
 	async retrieveDocuments(botId, apiKey, query, topK = 4) {
 		try {
 			const collectionName = botId.toString();
-			console.log(
-				`🔍 [RAG] Starting document retrieval for: ${collectionName}`
-			);
-			console.log(`❓ [RAG] Query: "${query.substring(0, 100)}..."`);
 
 			// Check collection status first
 			const status = await this.getCollectionStatus(botId);
@@ -219,8 +215,6 @@ ASSISTANT RESPONSE:`);
 				openAIApiKey: apiKey,
 			});
 
-			console.log(`🔗 [RAG] Creating vector store connection...`);
-
 			// Initialize vector store
 			const vectorStore = new QdrantVectorStore(embeddings, {
 				client: this.qdrantClient,
@@ -228,19 +222,10 @@ ASSISTANT RESPONSE:`);
 				url: process.env.QDRANT_URL || 'http://localhost:6333',
 			});
 
-			console.log(`🔍 [RAG] Performing similarity search (topK: ${topK})`);
-
 			// Perform similarity search
 			const documents = await vectorStore.similaritySearch(query, topK);
 
 			console.log(`📚 [RAG] Retrieved ${documents.length} documents`);
-
-			if (documents.length > 0) {
-				console.log(`📄 [RAG] Sample document:`, {
-					content: documents[0].pageContent?.substring(0, 200) + '...',
-					metadata: documents[0].metadata,
-				});
-			}
 
 			return documents;
 		} catch (error) {
@@ -273,10 +258,6 @@ ASSISTANT RESPONSE:`);
 				);
 				return this.generateFallbackResponse();
 			}
-
-			console.log(
-				`📚 [RAG] Found ${documents.length} relevant documents, generating response...`
-			);
 
 			// Format context and chat history
 			const context = this.formatDocumentsAsContext(documents);

@@ -25,13 +25,45 @@ export class ChatError extends Error {
  * Handles chat conversations, message processing, and RAG integration
  */
 class ChatService {
+	constructor() {
+		// API key cache: { botId: { config, timestamp } }
+		this.apiKeyCache = new Map();
+		this.CACHE_TTL = 10 * 60 * 1000; // 10 minutes in milliseconds
+	}
+
 	/**
-	 * Get OpenAI configuration for a specific bot
+	 * Clear API key cache for a specific bot or all bots
+	 * @param {string} botId - Optional bot ID to clear specific cache
+	 */
+	clearAPIKeyCache(botId = null) {
+		if (botId) {
+			const cacheKey = botId.toString();
+			this.apiKeyCache.delete(cacheKey);
+			logInfo('Cleared API key cache for bot', { botId: cacheKey });
+		} else {
+			this.apiKeyCache.clear();
+			logInfo('Cleared all API key cache');
+		}
+	}
+
+	/**
+	 * Get OpenAI configuration for a specific bot with caching
 	 */
 	async getOpenAIConfig(botId, userId) {
+		// Convert to string for consistent cache key (ObjectId vs String)
+		const cacheKey = botId.toString();
+
+		// Check cache first
+		const cached = this.apiKeyCache.get(cacheKey);
+		if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+			logInfo('✅ Using cached API key', { botId: cacheKey });
+			return cached.config;
+		}
+
+		logInfo('🔄 Fetching API key from database', { botId: cacheKey });
 		try {
 			const keyData = await apiKeyService.getApiKey(botId, userId);
-			return {
+			const config = {
 				apiKey: keyData.apiKey,
 				isCustom: keyData.isCustom,
 				source: keyData.source,
@@ -40,13 +72,24 @@ class ChatService {
 					embeddings: 'text-embedding-3-small',
 				},
 			};
+
+			// Cache the config
+			this.apiKeyCache.set(cacheKey, {
+				config,
+				timestamp: Date.now(),
+			});
+
+			logInfo('💾 Cached API key', { botId: cacheKey });
+
+			return config;
 		} catch (error) {
 			// Fallback to global key if configured
 			if (process.env.OPENAI_API_KEY) {
+				const cacheKey = botId.toString();
 				console.warn(
-					`[ChatService] Using global API key fallback for bot ${botId}: ${error.message}`
+					`[ChatService] Using global API key fallback for bot ${cacheKey}: ${error.message}`
 				);
-				return {
+				const config = {
 					apiKey: process.env.OPENAI_API_KEY,
 					isCustom: false,
 					source: 'global_fallback',
@@ -55,6 +98,14 @@ class ChatService {
 						embeddings: 'text-embedding-3-small',
 					},
 				};
+
+				// Cache fallback config
+				this.apiKeyCache.set(cacheKey, {
+					config,
+					timestamp: Date.now(),
+				});
+
+				return config;
 			}
 			throw new Error(
 				`No OpenAI API key available for bot ${botId}: ${error.message}`
@@ -69,20 +120,19 @@ class ChatService {
 		bot,
 		userQuery,
 		conversationHistory = [],
-		botInfo = {}
+		botInfo = {},
+		apiKey
 	) {
 		try {
-			const config = await this.getOpenAIConfig(bot._id, bot.ownerId);
-
 			// Delegate to ragService for RAG response generation
 			const ragResponse = await ragService.generateResponse(
 				bot,
-				config.apiKey,
+				apiKey,
 				userQuery,
 				conversationHistory
 			);
 
-			// Add API source info
+			// Return RAG response
 			return {
 				content: ragResponse.content,
 				sources: ragResponse.sources,
@@ -90,7 +140,7 @@ class ChatService {
 				model: ragResponse.model,
 				hasRelevantContext: ragResponse.hasRelevantContext,
 				documentsFound: ragResponse.documentsFound,
-				apiSource: config.source,
+				responseTime: ragResponse.responseTime,
 			};
 		} catch (error) {
 			console.error('RAG generation error:', error);
@@ -171,7 +221,6 @@ class ChatService {
 					content: faqResponse.content,
 					timestamp: new Date(),
 					sources: [],
-					responseTime: faqResponse.responseTime,
 					tokensUsed: 0,
 					model: 'faq',
 					hasRelevantContext: false,
@@ -184,13 +233,12 @@ class ChatService {
 				return { ...assistantMessage };
 			}
 
-			// Step 2: Classify intent to determine routing
-			const intent = await intentClassifier.classify(userMessage, bot);
-			logInfo('Intent classified', {
-				botId: bot._id,
-				intent: intent.type,
-				confidence: intent.confidence,
-			});
+			// Step 2: Fetch API key once (with caching)
+			const config = await this.getOpenAIConfig(bot._id, bot.ownerId);
+			const { apiKey } = config;
+
+			// Step 3: Classify intent to determine routing
+			const intent = await intentClassifier.classify(userMessage, bot, apiKey);
 
 			const userMessageObj = {
 				role: 'user',
@@ -204,7 +252,7 @@ class ChatService {
 
 			let aiResponse;
 
-			// Step 3: Route based on intent
+			// Step 4: Route based on intent
 			if (intent.type === INTENT_TYPES.NEEDS_RAG) {
 				// Full RAG pipeline
 				aiResponse = await this.generateRAGResponse(
@@ -214,7 +262,8 @@ class ChatService {
 					{
 						name: bot.name,
 						description: bot.description,
-					}
+					},
+					apiKey
 				);
 				aiResponse.responseType = 'rag';
 			} else if (intent.type === INTENT_TYPES.GENERAL_CHAT) {
@@ -222,7 +271,8 @@ class ChatService {
 				aiResponse = await this.generateSimpleLLMResponse(
 					bot,
 					userMessage,
-					conversationHistory
+					conversationHistory,
+					apiKey
 				);
 			} else if (intent.type === INTENT_TYPES.SMALL_TALK) {
 				// Predefined responses
@@ -234,16 +284,12 @@ class ChatService {
 				role: 'assistant',
 				content: aiResponse.content,
 				timestamp: new Date(),
-				metadata: {
-					sources: aiResponse.sources || [],
-					responseTime: aiResponse.responseTime,
-					tokensUsed: aiResponse.tokensUsed,
-					model: aiResponse.model,
-					hasRelevantContext: aiResponse.hasRelevantContext,
-					responseType: aiResponse.responseType,
-					intentType: intent.type,
-					intentConfidence: intent.confidence,
-				},
+				sources: aiResponse.sources || [],
+				responseTime: aiResponse.responseTime,
+				tokensUsed: aiResponse.tokensUsed,
+				model: aiResponse.model,
+				hasRelevantContext: aiResponse.hasRelevantContext,
+				responseType: aiResponse.responseType,
 			};
 
 			// Add assistant message to conversation
@@ -259,26 +305,8 @@ class ChatService {
 				hasRelevantContext: aiResponse.hasRelevantContext,
 			});
 
-			logInfo('Message processed successfully', {
-				botId: bot._id,
-				sessionId,
-				responseType: aiResponse.responseType,
-				responseLength: aiResponse.content?.length || 0,
-				tokensUsed: aiResponse.tokensUsed,
-				hasRelevantContext: aiResponse.hasRelevantContext,
-			});
-
 			return {
-				message: aiResponse.content,
-				sources: aiResponse.sources || [],
-				metadata: {
-					messageId: assistantMessage.timestamp.toISOString(),
-					responseTime: aiResponse.responseTime,
-					tokensUsed: aiResponse.tokensUsed,
-					model: aiResponse.model,
-					hasRelevantContext: aiResponse.hasRelevantContext,
-					responseType: aiResponse.responseType,
-				},
+				...assistantMessage,
 			};
 		} catch (error) {
 			logError('Error sending message', error, {
@@ -638,11 +666,16 @@ class ChatService {
 	 * Generate simple LLM response without RAG retrieval
 	 * Used for general chat that doesn't need document context
 	 */
-	async generateSimpleLLMResponse(bot, userMessage, conversationHistory) {
+	async generateSimpleLLMResponse(
+		bot,
+		userMessage,
+		conversationHistory,
+		apiKey
+	) {
 		const startTime = Date.now();
 
 		try {
-			const client = createOpenAIClient();
+			const client = createOpenAIClient(apiKey);
 
 			// Get last 5 messages for context (not 10 like RAG)
 			const recentMessages = conversationHistory.slice(-5);
@@ -668,7 +701,7 @@ Be helpful but honest about your limitations.`;
 			];
 
 			const response = await client.chat.completions.create({
-				model: 'gpt-3.5-turbo',
+				model: 'gpt-4.1-mini',
 				messages,
 				temperature: 0.7,
 				max_tokens: 300,
@@ -689,7 +722,7 @@ Be helpful but honest about your limitations.`;
 				sources: [],
 				responseTime,
 				tokensUsed,
-				model: 'gpt-3.5-turbo',
+				model: 'gpt-4.1-mini',
 				hasRelevantContext: false,
 				responseType: 'simple_llm',
 			};

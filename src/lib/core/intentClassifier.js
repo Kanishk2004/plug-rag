@@ -14,11 +14,12 @@ class IntentClassifier {
 	 * Classify user query intent using GPT-3.5-turbo
 	 * @param {string} query - User's message
 	 * @param {Object} bot - Bot object with description/purpose
+	 * @param {string} apiKey - OpenAI API key
 	 * @returns {Promise<{type: string, confidence: number}>}
 	 */
-	async classify(query, bot) {
+	async classify(query, bot, apiKey) {
 		try {
-			const client = createOpenAIClient();
+			const client = createOpenAIClient(apiKey);
 
 			const systemPrompt = `You are an intent classifier. Analyze the user's message and classify it into ONE of these categories:
 
