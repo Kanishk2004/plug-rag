@@ -85,6 +85,17 @@ const botSchema = new mongoose.Schema(
 				maxlength: 50,
 			},
 		},
+		faqs: [
+			{
+				question: String,
+				answer: String,
+				keywords: [String],
+				enabled: {
+					type: Boolean,
+					default: true,
+				},
+			},
+		],
 		// Vector storage configuration
 		vectorStorage: {
 			enabled: {
