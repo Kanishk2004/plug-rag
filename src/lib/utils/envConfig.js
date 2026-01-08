@@ -7,6 +7,9 @@ export const NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY =
 export const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
 export const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
+export const NEXT_PUBLIC_APP_URL =
+	process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
 // MongoDB Configuration
 export const MONGODB_URI = process.env.MONGODB_URI;
 
