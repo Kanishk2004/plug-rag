@@ -10,9 +10,6 @@ import {
 	S3_REGION,
 } from '@/lib/utils/envConfig';
 
-// Track server start time for uptime calculation
-const serverStartTime = Date.now();
-
 /**
  * GET /api/health - Health check endpoint
  *
@@ -32,7 +29,19 @@ export async function GET(request) {
 	const detailed = searchParams.get('detailed') === 'true';
 
 	const timestamp = new Date().toISOString();
-	const uptime = Math.floor((Date.now() - serverStartTime) / 1000);
+
+	// Get actual process uptime in seconds
+	const uptime = Math.floor(process.uptime());
+
+	// Get memory usage
+	const memoryUsage = process.memoryUsage();
+	const memory = {
+		rss: formatBytes(memoryUsage.rss), // Resident Set Size - total memory allocated
+		heapTotal: formatBytes(memoryUsage.heapTotal), // Total heap allocated
+		heapUsed: formatBytes(memoryUsage.heapUsed), // Heap actually used
+		external: formatBytes(memoryUsage.external), // C++ objects bound to JS
+		arrayBuffers: formatBytes(memoryUsage.arrayBuffers || 0), // ArrayBuffers and SharedArrayBuffers
+	};
 
 	// Basic health check - just confirm server is running
 	if (!detailed) {
@@ -40,7 +49,10 @@ export async function GET(request) {
 			{
 				status: 'healthy',
 				timestamp,
-				uptime,
+				uptime: formatUptime(uptime),
+				uptimeSeconds: uptime,
+				memory,
+				node: process.version,
 			},
 			{ status: 200 }
 		);
@@ -67,11 +79,51 @@ export async function GET(request) {
 		{
 			status: overallStatus,
 			timestamp,
-			uptime,
+			uptime: formatUptime(uptime),
+			uptimeSeconds: uptime,
+			memory,
+			node: process.version,
+			platform: process.platform,
+			pid: process.pid,
 			services,
 		},
 		{ status: statusCode }
 	);
+}
+
+/**
+ * Format uptime in human-readable format
+ * @param {number} seconds - Uptime in seconds
+ * @returns {string} Formatted uptime string
+ */
+function formatUptime(seconds) {
+	const days = Math.floor(seconds / 86400);
+	const hours = Math.floor((seconds % 86400) / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+	const secs = Math.floor(seconds % 60);
+
+	const parts = [];
+	if (days > 0) parts.push(`${days}d`);
+	if (hours > 0) parts.push(`${hours}h`);
+	if (minutes > 0) parts.push(`${minutes}m`);
+	if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+	return parts.join(' ');
+}
+
+/**
+ * Format bytes to human-readable format
+ * @param {number} bytes - Bytes to format
+ * @returns {string} Formatted bytes string
+ */
+function formatBytes(bytes) {
+	if (bytes === 0) return '0 B';
+
+	const k = 1024;
+	const sizes = ['B', 'KB', 'MB', 'GB'];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+	return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 /**
