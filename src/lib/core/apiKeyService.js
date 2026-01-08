@@ -202,46 +202,6 @@ export class ApiKeyService {
 	}
 
 	/**
-	 * Validate existing stored API key for a bot
-	 * @param {string} botId - The bot ID
-	 * @param {string} userId - The user ID
-	 * @returns {Promise<Object>} Validation result
-	 */
-	async validateStoredKey(botId, userId) {
-		try {
-			const keyData = await this.getApiKey(botId, userId);
-
-			if (!keyData.isCustom) {
-				return {
-					isValid: true,
-					source: 'global',
-					message: 'Using global API key',
-				};
-			}
-
-			// Validate the custom key
-			const validation = await validateOpenAIKey(keyData.apiKey);
-
-			// Update the validation status in database
-			await Bot.findOneAndUpdate(
-				{ _id: botId, ownerId: userId },
-				{
-					'openaiApiConfig.keyStatus': validation.isValid ? 'valid' : 'invalid',
-					'openaiApiConfig.lastValidated': new Date(),
-				}
-			);
-
-			return validation;
-		} catch (error) {
-			console.error(`Error validating stored key for bot ${botId}:`, error);
-			return {
-				isValid: false,
-				error: error.message,
-			};
-		}
-	}
-
-	/**
 	 * Get API key configuration status for a bot
 	 * @param {string} botId - The bot ID
 	 * @param {string} userId - The user ID

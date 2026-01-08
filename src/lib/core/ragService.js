@@ -12,8 +12,36 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { QdrantClient } from '@qdrant/js-client-rest';
-import { createEmbeddingsInstance } from '../processors/embeddings.js';
 import { storeDocuments, getCollectionInfo } from '../integrations/qdrant.js';
+
+/**
+ * Default embedding configuration
+ */
+const DEFAULT_EMBEDDING_CONFIG = {
+	model: 'text-embedding-3-small',
+	dimensions: 1536,
+};
+
+/**
+ * Create embeddings instance for a specific API key
+ * @param {string} apiKey - OpenAI API key
+ * @param {Object} config - Embedding configuration
+ * @returns {OpenAIEmbeddings} Configured embeddings instance
+ */
+function createEmbeddingsInstance(apiKey, config = {}) {
+	if (!apiKey) {
+		throw new Error('OpenAI API key is required');
+	}
+
+	const embeddingConfig = {
+		openAIApiKey: apiKey,
+		model: config.model || DEFAULT_EMBEDDING_CONFIG.model,
+		dimensions: config.dimensions || DEFAULT_EMBEDDING_CONFIG.dimensions,
+		...config,
+	};
+
+	return new OpenAIEmbeddings(embeddingConfig);
+}
 
 /**
  * RAG Service Class

@@ -164,30 +164,6 @@ export async function updateUserUsage(clerkId, updates) {
 }
 
 /**
- * Update user profile information
- * @param {string} clerkId - Clerk user ID
- * @param {Object} profileData - Profile data to update
- * @returns {Promise<Object>} Updated user document
- */
-export async function updateUserProfile(clerkId, profileData) {
-	try {
-		await connect();
-
-		const user = await User.findOneAndUpdate(
-			{ clerkId },
-			{ $set: profileData },
-			{ new: true }
-		);
-
-		logInfo('Updated user profile', { clerkId });
-		return user;
-	} catch (error) {
-		logError('Error updating user profile', { clerkId, error: error.message });
-		throw error;
-	}
-}
-
-/**
  * Check limits from existing user object (optimized - no DB query)
  * @param {Object} user - User document from MongoDB
  * @returns {Object} Limits check result
@@ -210,48 +186,4 @@ export function checkUserLimitsFromUser(user) {
 	};
 }
 
-/**
- * Check user limits by fetching user from DB
- * @param {string} clerkId - Clerk user ID
- * @returns {Promise<Object>} Limits check result
- */
-export async function checkUserLimits(clerkId) {
-	try {
-		const user = await getCurrentDBUser(clerkId);
-		if (!user) {
-			throw new Error('User not found');
-		}
 
-		return checkUserLimitsFromUser(user);
-	} catch (error) {
-		logError('Error checking user limits', { clerkId, error: error.message });
-		throw error;
-	}
-}
-
-/**
- * Get user statistics for analytics
- * @param {string} clerkId - Clerk user ID
- * @returns {Promise<Object>} User statistics
- */
-export async function getUserStats(clerkId) {
-	try {
-		const user = await getCurrentDBUser(clerkId);
-		if (!user) {
-			throw new Error('User not found');
-		}
-
-		return {
-			usage: user.usage,
-			limits: user.limits,
-			utilizationPercentage: {
-				bots: (user.usage.botsCreated / user.limits.maxBots) * 100,
-				storage: (user.usage.storageUsed / user.limits.maxStorage) * 100,
-			},
-			joinedAt: user.createdAt,
-		};
-	} catch (error) {
-		logError('Error getting user stats', { clerkId, error: error.message });
-		throw error;
-	}
-}

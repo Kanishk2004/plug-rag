@@ -15,7 +15,12 @@ import QuickAction from '@/components/dashboard/QuickAction';
 import ActivityItem from '@/components/dashboard/ActivityItem';
 
 // Icon imports
-import { ChatIcon, ActiveIcon, BotsIcon, AnalyticsIcon } from '@/components/ui/icons';
+import {
+	ChatIcon,
+	ActiveIcon,
+	BotsIcon,
+	AnalyticsIcon,
+} from '@/components/ui/icons';
 
 export default async function Dashboard() {
 	// Performance optimized user sync
@@ -64,7 +69,8 @@ export default async function Dashboard() {
 			// Use stored analytics data
 			bot.conversationCount = bot.analytics?.totalSessions || 0;
 			bot.totalMessages = bot.analytics?.totalMessages || 0;
-			bot.lastActive = bot.analytics?.lastActiveAt || bot.updatedAt || bot.createdAt;
+			bot.lastActive =
+				bot.analytics?.lastActiveAt || bot.updatedAt || bot.createdAt;
 		}
 
 		// Get total conversations across all bots using stored analytics
@@ -74,19 +80,19 @@ export default async function Dashboard() {
 			let activeBots = 0;
 			const sevenDaysAgo = new Date();
 			sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-			
+
 			for (const bot of userBots) {
 				totalConversations += bot.analytics?.totalSessions || 0;
-				
+
 				// Count as active if has activity in last 7 days
 				const lastActive = bot.analytics?.lastActiveAt;
 				if (lastActive && new Date(lastActive) >= sevenDaysAgo) {
 					activeBots++;
 				}
 			}
-			
+
 			dashboardData.totalConversations = totalConversations;
-			
+
 			// Only override activeBots if we got some real data
 			if (activeBots > 0 || totalConversations > 0) {
 				dashboardData.activeBots = activeBots;

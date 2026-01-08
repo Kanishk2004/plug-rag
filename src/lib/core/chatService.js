@@ -161,17 +161,19 @@ class ChatService {
 
 	/**
 	 * Send a message and get AI response
-	 * @param {string} botId - The bot ID
+	 * @param {Object} bot - Bot document
 	 * @param {string} userMessage - User's message
 	 * @param {string} sessionId - Session identifier
+	 * @param {Object} sessionMetadata - Optional session metadata (userFingerprint, domain, ipAddress, userAgent)
 	 * @returns {Promise<Object>} AI response with metadata
 	 */
-	async sendMessage(bot, userMessage, sessionId) {
+	async sendMessage(bot, userMessage, sessionId, sessionMetadata = {}) {
 		try {
 			logInfo('Sending message to chat service', {
 				botId: bot._id,
 				sessionId,
 				messageLength: userMessage?.length || 0,
+				hasDomain: !!sessionMetadata.domain,
 			});
 
 			// Validate inputs
@@ -295,14 +297,22 @@ class ChatService {
 			// Add assistant message to conversation
 			conversationHistory.push(assistantMessage);
 
-			// Save updated conversation
-			await this.saveConversation(bot._id, sessionId, conversationHistory);
+			// Save updated conversation with metadata
+			await this.saveConversation(
+				bot._id,
+				sessionId,
+				conversationHistory,
+				sessionMetadata
+			);
+
+			// Determine if this is a new session (first message pair)
+			const isNewSession = conversationHistory.length === 2;
 
 			// Update bot analytics
 			await this.updateBotAnalytics(bot._id, {
 				messageCount: 1,
 				tokensUsed: aiResponse.tokensUsed,
-				hasRelevantContext: aiResponse.hasRelevantContext,
+				isNewSession,
 			});
 
 			return {
@@ -515,19 +525,44 @@ class ChatService {
 	 * @param {Array} messages - Array of messages
 	 * @returns {Promise<void>}
 	 */
-	async saveConversation(botId, sessionId, messages) {
+	/**
+	 * Save conversation to database
+	 * @param {string} botId - Bot ID
+	 * @param {string} sessionId - Session ID
+	 * @param {Array} messages - Message history
+	 * @param {Object} sessionMetadata - Session metadata (userFingerprint, domain, ipAddress, userAgent)
+	 */
+	async saveConversation(botId, sessionId, messages, sessionMetadata = {}) {
 		try {
-			await Conversation.findOneAndUpdate(
-				{ botId, sessionId },
-				{
-					messages,
-					updatedAt: new Date(),
-				},
-				{
-					upsert: true,
-					new: true,
-				}
-			);
+			const updateData = {
+				messages,
+				totalMessages: messages.filter((m) => m.role === 'assistant').length,
+				totalTokens: messages.reduce(
+					(sum, m) => sum + (m.tokensUsed || m.tokens || 0),
+					0
+				),
+				lastMessageAt: new Date(),
+				updatedAt: new Date(),
+			};
+
+			// Add session metadata if this is a new conversation
+			if (sessionMetadata.userFingerprint !== undefined) {
+				updateData.userFingerprint = sessionMetadata.userFingerprint || '';
+			}
+			if (sessionMetadata.domain !== undefined) {
+				updateData.domain = sessionMetadata.domain || 'unknown';
+			}
+			if (sessionMetadata.ipAddress !== undefined) {
+				updateData.ipAddress = sessionMetadata.ipAddress || '';
+			}
+			if (sessionMetadata.userAgent !== undefined) {
+				updateData.userAgent = sessionMetadata.userAgent || '';
+			}
+
+			await Conversation.findOneAndUpdate({ botId, sessionId }, updateData, {
+				upsert: true,
+				new: true,
+			});
 
 			logInfo('Conversation saved', {
 				botId,
@@ -547,29 +582,33 @@ class ChatService {
 	/**
 	 * Update bot analytics with chat data
 	 * @param {string} botId - The bot ID
-	 * @param {Object} analytics - Analytics data
+	 * @param {Object} analytics - Analytics data { messageCount, tokensUsed, isNewSession }
 	 * @returns {Promise<void>}
 	 */
 	async updateBotAnalytics(botId, analytics) {
 		try {
-			const updateData = {};
+			const updateData = {
+				'analytics.lastActiveAt': new Date(),
+			};
+
+			// Increment counters
+			const incrementFields = {};
 
 			if (analytics.messageCount) {
-				updateData.$inc = {
-					'analytics.totalMessages': analytics.messageCount,
-					'analytics.totalTokensUsed': analytics.tokensUsed || 0,
-				};
+				incrementFields['analytics.totalMessages'] = analytics.messageCount;
 			}
 
-			if (analytics.hasRelevantContext !== undefined) {
-				updateData.$inc = updateData.$inc || {};
-				updateData.$inc['analytics.relevantResponses'] =
-					analytics.hasRelevantContext ? 1 : 0;
-				updateData.$inc['analytics.fallbackResponses'] =
-					analytics.hasRelevantContext ? 0 : 1;
+			if (analytics.tokensUsed) {
+				incrementFields['analytics.totalTokensUsed'] = analytics.tokensUsed;
 			}
 
-			updateData.updatedAt = new Date();
+			if (analytics.isNewSession) {
+				incrementFields['analytics.totalSessions'] = 1;
+			}
+
+			if (Object.keys(incrementFields).length > 0) {
+				updateData.$inc = incrementFields;
+			}
 
 			await Bot.findByIdAndUpdate(botId, updateData);
 

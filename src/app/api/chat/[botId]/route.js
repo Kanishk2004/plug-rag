@@ -1,7 +1,5 @@
-import { NextResponse } from 'next/server';
 import connect from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
-import Conversation from '@/models/Conversation';
 import { chatService } from '@/lib/core/chatService';
 import {
 	apiSuccess,
@@ -9,6 +7,13 @@ import {
 	notFoundError,
 	serverError,
 } from '@/lib/utils/apiResponse';
+import { checkRateLimit, getClientIp } from '@/lib/utils/rateLimit';
+import {
+	validateChatMessage,
+	validateSessionId,
+	sanitizeDomain,
+	sanitizeFingerprint,
+} from '@/lib/utils/sanitization';
 
 // Helper function to add CORS headers
 function addCorsHeaders(response) {
@@ -57,7 +62,7 @@ export async function POST(request, { params }) {
 	try {
 		const { botId } = await params;
 		if (!botId) {
-			return validationError('Bot ID is required');
+			return addCorsHeaders(validationError('Bot ID is required'));
 		}
 
 		// Connect to database
@@ -67,9 +72,29 @@ export async function POST(request, { params }) {
 		const body = await request.json();
 		const { message, sessionId, userFingerprint, domain } = body;
 
-		if (!message || !sessionId) {
-			return validationError('Message and sessionId are required');
+		// Validate and sanitize session ID
+		const sessionValidation = validateSessionId(sessionId);
+		if (!sessionValidation.valid) {
+			return addCorsHeaders(validationError(sessionValidation.error));
 		}
+		const sanitizedSessionId = sessionValidation.sanitized;
+
+		// Check rate limits (both IP and session-based)
+		const rateLimitError = checkRateLimit(request, sanitizedSessionId);
+		if (rateLimitError) {
+			return addCorsHeaders(rateLimitError);
+		}
+
+		// Validate and sanitize message
+		const messageValidation = validateChatMessage(message);
+		if (!messageValidation.valid) {
+			return addCorsHeaders(validationError(messageValidation.error));
+		}
+		const sanitizedMessage = messageValidation.sanitized;
+
+		// Sanitize optional fields
+		const sanitizedDomain = sanitizeDomain(domain);
+		const sanitizedFingerprint = sanitizeFingerprint(userFingerprint);
 
 		// Verify bot exists and is active
 		const bot = await Bot.findOne({
@@ -78,21 +103,36 @@ export async function POST(request, { params }) {
 		});
 
 		if (!bot) {
-			return notFoundError('Bot not found or inactive');
+			return addCorsHeaders(notFoundError('Bot not found or inactive'));
 		}
 
 		// Validate domain against bot's whitelist
-		if (!validateDomain(bot, domain)) {
-			return validationError('Domain is not allowed to access this bot');
+		if (!validateDomain(bot, sanitizedDomain)) {
+			return addCorsHeaders(
+				validationError('Domain is not allowed to access this bot')
+			);
 		}
 
+		// Get client IP for tracking
+		const clientIp = getClientIp(request);
+
 		// Use chat service to handle message processing
-		const aiResponse = await chatService.sendMessage(bot, message, sessionId);
+		const aiResponse = await chatService.sendMessage(
+			bot,
+			sanitizedMessage,
+			sanitizedSessionId,
+			{
+				userFingerprint: sanitizedFingerprint,
+				domain: sanitizedDomain,
+				ipAddress: clientIp,
+				userAgent: request.headers.get('user-agent') || '',
+			}
+		);
 
 		const response = apiSuccess(
 			{
 				message: aiResponse.content,
-				sessionId: sessionId,
+				sessionId: sanitizedSessionId,
 				sources: aiResponse.sources,
 				hasRelevantContext: aiResponse.hasRelevantContext,
 				model: aiResponse.model,

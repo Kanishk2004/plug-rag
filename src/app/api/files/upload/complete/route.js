@@ -72,10 +72,11 @@ export async function POST(request) {
 		}
 
 		console.log('[FILE-UPLOAD-COMPLETE] S3 upload verified:', file.s3Key);
-		7;
-		// Step 5: Update file status to uploaded
+
+		// Step 5: Update file status and queue for processing in a single atomic operation
 		await File.findByIdAndUpdate(fileId, {
 			status: 'uploaded',
+			embeddingStatus: 'queued',
 		});
 
 		// Step 6: Add file to processing queue
@@ -87,10 +88,6 @@ export async function POST(request) {
 			filename: file.filename,
 			mimeType: file.mimeType,
 			size: file.size,
-		});
-
-		await File.findByIdAndUpdate(fileId, {
-			embeddingStatus: 'queued',
 		});
 
 		console.log('[FILE-UPLOAD-COMPLETE] File queued for processing', {
