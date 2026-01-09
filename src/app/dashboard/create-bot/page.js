@@ -12,6 +12,9 @@ export default function CreateBot() {
 		description: '',
 		embedColor: '#f97316',
 		embedPosition: 'bottom-right',
+		greeting: 'Hello! How can I help you today?',
+		placeholder: 'Type your message...',
+		title: 'Chat Assistant',
 	});
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState(null);
@@ -41,6 +44,9 @@ export default function CreateBot() {
 				customization: {
 					bubbleColor: formData.embedColor,
 					position: formData.embedPosition,
+					greeting: formData.greeting,
+					placeholder: formData.placeholder,
+					title: formData.title,
 				},
 			});
 
@@ -96,7 +102,8 @@ export default function CreateBot() {
 							</p>
 						</div>
 						<p className="text-green-300 text-sm mt-1">
-							Redirecting to bot setup page to configure API key and upload files...
+							Redirecting to bot setup page to configure API key and upload
+							files...
 						</p>
 					</div>
 				)}
@@ -189,7 +196,72 @@ export default function CreateBot() {
 									className="w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
 									<option value="bottom-right">Bottom Right</option>
 									<option value="bottom-left">Bottom Left</option>
+									<option value="top-right">Top Right</option>
+									<option value="top-left">Top Left</option>
 								</select>
+							</div>
+						</div>
+
+						<div className="space-y-4 mt-4">
+							<div>
+								<label
+									htmlFor="title"
+									className="block text-sm font-medium text-gray-200 mb-1">
+									Chat Title
+								</label>
+								<input
+									type="text"
+									id="title"
+									name="title"
+									value={formData.title}
+									onChange={handleInputChange}
+									maxLength={50}
+									className="w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+									placeholder="e.g., Chat Assistant"
+								/>
+								<p className="text-xs text-gray-400 mt-1">
+									This appears at the top of the chat widget
+								</p>
+							</div>
+							<div>
+								<label
+									htmlFor="greeting"
+									className="block text-sm font-medium text-gray-200 mb-1">
+									Greeting Message
+								</label>
+								<input
+									type="text"
+									id="greeting"
+									name="greeting"
+									value={formData.greeting}
+									onChange={handleInputChange}
+									maxLength={200}
+									className="w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+									placeholder="e.g., Hello! How can I help you today?"
+								/>
+								<p className="text-xs text-gray-400 mt-1">
+									Initial message shown when chat opens
+								</p>
+							</div>
+							<div>
+								<label
+									htmlFor="placeholder"
+									className="block text-sm font-medium text-gray-200 mb-1">
+									Input Placeholder
+								</label>
+								<input
+									type="text"
+									id="placeholder"
+									name="placeholder"
+									value={formData.placeholder}
+									onChange={handleInputChange}
+									maxLength={100}
+									className="w-full px-3 py-2 border border-gray-700 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+									placeholder="e.g., Type your message..."
+								/>
+								<p className="text-xs text-gray-400 mt-1">
+									Placeholder text in the message input field
+								</p>
 							</div>
 						</div>
 
@@ -206,7 +278,11 @@ export default function CreateBot() {
 									className={`absolute ${
 										formData.embedPosition === 'bottom-right'
 											? 'bottom-4 right-4'
-											: 'bottom-4 left-4'
+											: formData.embedPosition === 'bottom-left'
+											? 'bottom-4 left-4'
+											: formData.embedPosition === 'top-right'
+											? 'top-4 right-4'
+											: 'top-4 left-4'
 									} w-12 h-12 rounded-full shadow-lg flex items-center justify-center cursor-pointer`}
 									style={{ backgroundColor: formData.embedColor }}>
 									<ChatIcon className="w-6 h-6 text-white" />
@@ -226,8 +302,13 @@ export default function CreateBot() {
 									1
 								</div>
 								<div>
-									<h3 className="text-sm font-medium text-white">Configure OpenAI API Key</h3>
-									<p className="text-sm text-gray-300">Set up your custom OpenAI API key for this bot to enable AI responses and file processing.</p>
+									<h3 className="text-sm font-medium text-white">
+										Configure OpenAI API Key
+									</h3>
+									<p className="text-sm text-gray-300">
+										Set up your custom OpenAI API key for this bot to enable AI
+										responses and file processing.
+									</p>
 								</div>
 							</div>
 							<div className="flex items-start space-x-3">
@@ -235,8 +316,13 @@ export default function CreateBot() {
 									2
 								</div>
 								<div>
-									<h3 className="text-sm font-medium text-white">Upload Knowledge Base</h3>
-									<p className="text-sm text-gray-300">Upload PDF, DOCX, TXT, CSV, or HTML files that your bot will use to answer questions.</p>
+									<h3 className="text-sm font-medium text-white">
+										Upload Knowledge Base
+									</h3>
+									<p className="text-sm text-gray-300">
+										Upload PDF, DOCX, TXT, CSV, or HTML files that your bot will
+										use to answer questions.
+									</p>
 								</div>
 							</div>
 							<div className="flex items-start space-x-3">
@@ -244,8 +330,13 @@ export default function CreateBot() {
 									3
 								</div>
 								<div>
-									<h3 className="text-sm font-medium text-white">Test & Deploy</h3>
-									<p className="text-sm text-gray-300">Test your bot's responses and get the embed code to add it to your website.</p>
+									<h3 className="text-sm font-medium text-white">
+										Test & Deploy
+									</h3>
+									<p className="text-sm text-gray-300">
+										Test your bot's responses and get the embed code to add it
+										to your website.
+									</p>
 								</div>
 							</div>
 						</div>
@@ -253,8 +344,14 @@ export default function CreateBot() {
 							<div className="flex items-start space-x-2">
 								<InfoIcon className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
 								<div>
-									<p className="text-blue-200 text-sm font-medium">Why API Keys First?</p>
-									<p className="text-blue-300 text-sm">Each bot uses its own OpenAI API key for security and cost isolation. This ensures your usage and costs are separate for each bot.</p>
+									<p className="text-blue-200 text-sm font-medium">
+										Why API Keys First?
+									</p>
+									<p className="text-blue-300 text-sm">
+										Each bot uses its own OpenAI API key for security and cost
+										isolation. This ensures your usage and costs are separate
+										for each bot.
+									</p>
 								</div>
 							</div>
 						</div>
@@ -348,7 +445,12 @@ const CheckIcon = () => (
 
 // Information icon for helpful tips
 const InfoIcon = ({ className }) => (
-	<svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+	<svg
+		className={className}
+		fill="none"
+		viewBox="0 0 24 24"
+		strokeWidth={1.5}
+		stroke="currentColor">
 		<path
 			strokeLinecap="round"
 			strokeLinejoin="round"

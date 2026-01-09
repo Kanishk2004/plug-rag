@@ -61,9 +61,20 @@ export async function POST(request) {
 		// Step 3: Check user plan limits before creating bot
 		// Prevents users from exceeding their plan's bot or storage limits
 		const { limits } = checkUserLimitsFromUser(user);
-		if (limits.botsReached || limits.storageReached)
-			if (!name || !description)
-				return validationError('Name and description are required');
+		if (limits.botsReached) {
+			return forbiddenError('Bot limit reached for your plan');
+		}
+		if (limits.storageReached) {
+			return forbiddenError('Storage limit reached for your plan');
+		}
+
+		// Step 4: Parse and validate request body
+		const { name, description, customization } = await request.json();
+
+		// Validate required fields
+		if (!name || !description) {
+			return validationError('Name and description are required');
+		}
 
 		// Validate field lengths
 		if (name.length < 2 || name.length > 50)
