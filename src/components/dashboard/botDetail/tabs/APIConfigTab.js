@@ -1,20 +1,35 @@
+'use client';
+import { useState, useEffect } from 'react';
 import APIKeyManager from '@/components/APIKeyManager';
+import DomainWhitelist from '@/components/dashboard/DomainWhitelist';
 import { CheckIcon } from '@/components/ui/icons';
 
 /**
  * API Configuration Tab Component - Manage API keys for the bot
  * @param {Object} props
  * @param {string} props.botId - Bot ID
+ * @param {Object} props.bot - Bot object
  * @param {Object} props.apiKeyStatus - API key status object
  * @param {Function} props.onApiKeyUpdate - Callback when API key is updated
  * @param {Function} props.onNavigateToOverview - Callback to switch to overview tab
+ * @param {Function} props.showNotification - Function to show notifications
  */
 export default function APIConfigTab({
 	botId,
+	bot,
 	apiKeyStatus,
 	onApiKeyUpdate,
 	onNavigateToOverview,
+	showNotification,
 }) {
+	const [domains, setDomains] = useState([]);
+
+	useEffect(() => {
+		if (bot) {
+			setDomains(bot.domainWhitelist || []);
+		}
+	}, [bot]);
+
 	return (
 		<div className="lg:col-span-12 space-y-6">
 			<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
@@ -29,6 +44,14 @@ export default function APIConfigTab({
 				</div>
 				<APIKeyManager botId={botId} onKeyUpdate={onApiKeyUpdate} />
 			</div>
+
+			{/* Domain Security */}
+			<DomainWhitelist
+				botId={botId}
+				domains={domains}
+				onDomainsChange={setDomains}
+				showNotification={showNotification}
+			/>
 
 			{/* Return to Files Helper */}
 			{apiKeyStatus.hasCustomKey && apiKeyStatus.keyStatus === 'valid' && (

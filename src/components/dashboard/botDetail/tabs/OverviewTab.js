@@ -22,6 +22,7 @@ import QueuedFileItem from '@/components/files/QueuedFileItem';
  * @param {Function} props.onToggleStatus - Callback to toggle bot status
  * @param {Function} props.onDeleteBot - Callback to delete bot
  * @param {Function} props.onNavigateToApiConfig - Callback to switch to API config tab
+ * @param {Function} props.onNavigateToEmbed - Callback to switch to Embed tab
  */
 export default function OverviewTab({
 	bot,
@@ -31,6 +32,7 @@ export default function OverviewTab({
 	onToggleStatus,
 	onDeleteBot,
 	onNavigateToApiConfig,
+	onNavigateToEmbed,
 }) {
 	const {
 		files,
@@ -836,11 +838,11 @@ export default function OverviewTab({
 			<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
 				<h3 className="text-lg font-medium text-white mb-4">Quick Actions</h3>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-					<Link
-						href={`/dashboard/bots/${bot.id}/embed`}
-						className="block w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-3 px-4 rounded-lg text-center font-medium transition-colors">
+					<button
+						onClick={onNavigateToEmbed}
+						className="w-full bg-orange-100 hover:bg-orange-200 text-orange-700 py-3 px-4 rounded-lg text-center font-medium transition-colors">
 						Get Embed Code
-					</Link>
+					</button>
 					<button
 						onClick={onToggleStatus}
 						className={`w-full py-3 px-4 rounded-lg text-center font-medium transition-colors ${

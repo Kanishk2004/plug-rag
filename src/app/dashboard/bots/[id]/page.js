@@ -12,6 +12,7 @@ import ConversationsTab from '@/components/dashboard/botDetail/tabs/Conversation
 import APIConfigTab from '@/components/dashboard/botDetail/tabs/APIConfigTab';
 import ChatTab from '@/components/dashboard/botDetail/tabs/ChatTab';
 import FAQTab from '@/components/dashboard/botDetail/tabs/FAQTab';
+import EmbedTab from '@/components/dashboard/botDetail/tabs/EmbedTab';
 
 export default function BotDetail({ params }) {
 	const router = useRouter();
@@ -332,6 +333,15 @@ export default function BotDetail({ params }) {
 							FAQs
 						</button>
 						<button
+							onClick={() => setActiveTab('embed')}
+							className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+								activeTab === 'embed'
+									? 'border-orange-500 text-orange-400'
+									: 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
+							}`}>
+							Embed
+						</button>
+						<button
 							onClick={() => setActiveTab('chat')}
 							className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
 								activeTab === 'chat'
@@ -356,6 +366,7 @@ export default function BotDetail({ params }) {
 							onToggleStatus={handleToggleStatus}
 							onDeleteBot={handleDeleteBot}
 							onNavigateToApiConfig={() => setActiveTab('api-config')}
+							onNavigateToEmbed={() => setActiveTab('embed')}
 						/>
 					)}
 
@@ -370,14 +381,24 @@ export default function BotDetail({ params }) {
 					{activeTab === 'api-config' && (
 						<APIConfigTab
 							botId={botId}
+							bot={bot}
 							apiKeyStatus={apiKeyStatus}
 							onApiKeyUpdate={handleApiKeyUpdate}
 							onNavigateToOverview={() => setActiveTab('overview')}
+							showNotification={showNotification}
 						/>
 					)}
 
 					{activeTab === 'faqs' && (
 						<FAQTab botId={botId} showNotification={showNotification} />
+					)}
+
+					{activeTab === 'embed' && (
+						<EmbedTab
+							botId={botId}
+							bot={bot}
+							showNotification={showNotification}
+						/>
 					)}
 
 					{activeTab === 'chat' && (
