@@ -11,20 +11,23 @@ export function useBotFiles(botId) {
   const [uploading, setUploading] = useState(false);
   const [processingFiles, setProcessingFiles] = useState(new Set());
 
-  const fetchFiles = useCallback(async () => {
+  const fetchFiles = useCallback(async (signal) => {
     if (!botId) return;
 
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/files?botId=${botId}`);
+      const response = await fetch(`/api/files?botId=${botId}`, { signal });
       
       if (!response.ok) {
         throw new Error(`Failed to fetch files: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      
+      // Check if request was cancelled before updating state
+      if (signal?.aborted) return;
       
       if (data.success) {
         // Handle standardized response format
@@ -33,11 +36,16 @@ export function useBotFiles(botId) {
         throw new Error(data.error || 'Failed to fetch files');
       }
     } catch (err) {
+      // Ignore abort errors (they're intentional)
+      if (err.name === 'AbortError') return;
+      
       console.error('Error fetching files:', err);
       setError(err.message);
       setFiles([]);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }, [botId]);
 
@@ -77,7 +85,14 @@ export function useBotFiles(botId) {
   }, []);
 
   useEffect(() => {
-    fetchFiles();
+    // Create AbortController to cancel requests if botId changes
+    const abortController = new AbortController();
+    fetchFiles(abortController.signal);
+
+    // Cleanup: abort pending request when component unmounts or botId changes
+    return () => {
+      abortController.abort();
+    };
   }, [fetchFiles]);
 
   return {

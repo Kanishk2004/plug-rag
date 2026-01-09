@@ -34,6 +34,7 @@ export class FileService {
 			vectorDeleteCount: 0,
 			s3Deleted: false,
 			queueRemoved: false,
+			warnings: [],
 		};
 
 		// Step 3: Remove from processing queue if queued/processing
@@ -62,9 +63,17 @@ export class FileService {
 					`[FILE-DELETE] Deleted ${vectorDeleteCount} vectors for file ${file._id}`
 				);
 			} catch (vectorError) {
+				const errorMsg = vectorError.message || 'Unknown error';
 				console.error(
-					`[FILE-DELETE] Failed to delete vectors: ${vectorError.message}`
+					`[FILE-DELETE] Vector deletion failed: ${errorMsg}`
 				);
+				
+				// Track this as a warning, not a fatal error
+				if (errorMsg.includes('ECONNREFUSED') || errorMsg.includes('fetch failed')) {
+					deletionResults.warnings.push('Vector database unavailable - cleanup will retry later');
+				} else {
+					deletionResults.warnings.push(`Vector cleanup incomplete: ${errorMsg}`);
+				}
 				// Continue with deletion even if vector deletion fails
 			}
 		}
@@ -79,8 +88,9 @@ export class FileService {
 			}
 		} catch (s3Error) {
 			console.error(
-				`[FILE-DELETE] Failed to delete from S3: ${s3Error.message}`
+				`[FILE-DELETE] S3 deletion failed: ${s3Error.message}`
 			);
+			deletionResults.warnings.push(`Storage cleanup incomplete: ${s3Error.message}`);
 			// Continue with deletion even if S3 deletion fails
 		}
 
@@ -121,7 +131,10 @@ export class FileService {
 				vectorDeleteCount: deletionResults.vectorDeleteCount,
 				s3Deleted: deletionResults.s3Deleted,
 				queueRemoved: deletionResults.queueRemoved,
-				message: 'File and associated data deleted successfully',
+				warnings: deletionResults.warnings,
+				message: deletionResults.warnings.length > 0 
+					? 'File deleted with warnings - some cleanup pending'
+					: 'File and associated data deleted successfully',
 			},
 		};
 	}
