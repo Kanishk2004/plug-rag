@@ -7,14 +7,27 @@ const BotCard = ({ bot, onRefresh }) => {
 	const handleToggleStatus = async () => {
 		setIsToggling(true);
 		try {
-			// We'll implement this when we have individual bot management
-			console.log(`Toggling status for bot ${bot.id}`);
-			// For now, just refresh the list
+			const newStatus = bot.status === 'active' ? 'inactive' : 'active';
+			
+			const response = await fetch(`/api/bots/${bot.id}`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ status: newStatus }),
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to update bot status');
+			}
+
+			// Refresh the list to show updated status
 			if (onRefresh) {
 				await onRefresh();
 			}
 		} catch (error) {
 			console.error('Error toggling bot status:', error);
+			alert('Failed to update bot status. Please try again.');
 		} finally {
 			setIsToggling(false);
 		}
@@ -77,7 +90,7 @@ const BotCard = ({ bot, onRefresh }) => {
 				<div className="text-center">
 					<div className="flex items-center justify-center space-x-1 mb-1">
 						<p className="text-2xl font-bold text-white">
-							{bot.analytics?.totalMessages || bot.totalMessages || 0}
+							{bot.analytics?.totalMessages || 0}
 						</p>
 					</div>
 					<p className="text-xs text-gray-300">Messages</p>
@@ -98,8 +111,7 @@ const BotCard = ({ bot, onRefresh }) => {
 					<div className="flex items-center justify-center space-x-1 mb-1">
 						<p className="text-lg font-semibold text-orange-400">
 							{(() => {
-								const tokens =
-									bot.analytics?.totalTokensUsed || bot.totalTokens || 0;
+								const tokens = bot.analytics?.totalTokensUsed || 0;
 								if (tokens >= 1000) {
 									return Math.floor(tokens / 1000) + 'K';
 								} else {
@@ -112,22 +124,20 @@ const BotCard = ({ bot, onRefresh }) => {
 				</div>
 				<div>
 					<div className="flex items-center justify-center space-x-1 mb-1">
-						<p className="text-lg font-semibold text-blue-400">
-							{bot.analytics?.lastActiveAt || bot.lastActiveAt
-								? 'Active'
-								: 'Inactive'}
+						<p className="text-2xl font-bold text-blue-400">
+							{bot.analytics?.totalSessions || 0}
 						</p>
 					</div>
-					<p className="text-xs text-gray-300">Status</p>
+					<p className="text-xs text-gray-300">Conversations</p>
 				</div>
 			</div>
 
 			{/* Last Active */}
 			<div className="mb-6">
-				<p className="text-sm text-gray-700">
+				<p className="text-sm text-gray-400">
 					Last updated: {getLastActiveText(bot.updatedAt)}
 				</p>
-				<p className="text-xs text-gray-600">
+				<p className="text-xs text-gray-400">
 					Created: {formatDate(bot.createdAt)}
 				</p>
 			</div>
@@ -136,7 +146,7 @@ const BotCard = ({ bot, onRefresh }) => {
 			<div className="flex space-x-2">
 				<Link
 					href={`/dashboard/bots/${bot.id}`}
-					className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-200 py-2 px-3 rounded-lg text-sm font-medium text-center transition-colors">
+					className="flex-1 bg-orange-500 hover:bg-orange-700 text-gray-200 py-2 px-3 rounded-lg text-sm font-medium text-center transition-colors">
 					Manage
 				</Link>
 				<Link

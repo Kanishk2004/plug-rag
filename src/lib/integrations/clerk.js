@@ -5,6 +5,7 @@
  * and user management operations with MongoDB.
  */
 
+import { cache } from 'react';
 import { currentUser } from '@clerk/nextjs/server';
 import { logInfo, logError } from '../utils/logger.js';
 import connect from './mongo.js';
@@ -95,7 +96,7 @@ export async function syncUserWithDB(clerkId = null) {
  * @param {string} clerkId - Clerk user ID
  * @returns {Promise<boolean>} Whether user exists in DB
  */
-export async function checkUserExists(clerkId) {
+export const checkUserExists = cache(async function checkUserExists(clerkId) {
 	try {
 		await connect();
 		const exists = await User.exists({ clerkId });
@@ -107,15 +108,15 @@ export async function checkUserExists(clerkId) {
 		});
 		return false;
 	}
-}
+});
 
 /**
- * Get current user from MongoDB
+ * Get current user from MongoDB (cached during request)
  * Returns the MongoDB user document
  * @param {string} clerkId - Optional Clerk user ID
  * @returns {Promise<Object|null>} MongoDB user document
  */
-export async function getCurrentDBUser(clerkId = null) {
+export const getCurrentDBUser = cache(async function getCurrentDBUser(clerkId = null) {
 	try {
 		let userId = clerkId;
 
@@ -137,7 +138,7 @@ export async function getCurrentDBUser(clerkId = null) {
 		logError('Error getting current DB user', { error: error.message });
 		return null;
 	}
-}
+});
 
 /**
  * Update user usage statistics

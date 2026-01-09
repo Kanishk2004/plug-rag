@@ -12,9 +12,21 @@ const DashboardLayout = ({ children }) => {
 	const navigation = [
 		{ name: 'Dashboard', href: '/dashboard', iconSrc: '/icons/dashboard.png' },
 		{ name: 'My Bots', href: '/dashboard/bots', iconSrc: '/icons/bot.png' },
-		{ name: 'Create Bot', href: '/dashboard/create-bot', iconSrc: '/icons/plus.png' },
-		{ name: 'Analytics', href: '/dashboard/analytics', iconSrc: '/icons/analytics.png' },
-		{ name: 'Settings', href: '/dashboard/settings', iconSrc: '/icons/settings.png' },
+		{
+			name: 'Create Bot',
+			href: '/dashboard/create-bot',
+			iconSrc: '/icons/plus.png',
+		},
+		{
+			name: 'Analytics',
+			href: '/dashboard/analytics',
+			iconSrc: '/icons/analytics.png',
+		},
+		{
+			name: 'Settings',
+			href: '/dashboard/settings',
+			iconSrc: '/icons/settings.png',
+		},
 	];
 
 	const isCurrentPath = (href) => {

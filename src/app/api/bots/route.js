@@ -54,28 +54,16 @@ export async function POST(request) {
 		const { userId } = await auth();
 		if (!userId) return authError();
 
-		// Step 2: Get user from database and sync if needed
-		// This ensures the user exists in our MongoDB and has proper limits set
-		let user = await getCurrentDBUser(userId);
-		if (!user) {
-			console.log('User not found in DB, creating user...');
-			user = await syncUserWithDB(userId);
-			if (!user) return authError('failed to create user in DB');
-		}
+		// Step 2: Get user from database (sync handled by dashboard layout)
+		const user = await getCurrentDBUser(userId);
+		if (!user) return authError('User not found');
 
 		// Step 3: Check user plan limits before creating bot
 		// Prevents users from exceeding their plan's bot or storage limits
 		const { limits } = checkUserLimitsFromUser(user);
 		if (limits.botsReached || limits.storageReached)
-			return forbiddenError('Plan limits reached', limits);
-
-		// Step 4: Parse and validate request body
-		const body = await request.json();
-		const { name, description, customization = {} } = body;
-
-		// Validate required fields
-		if (!name || !description)
-			return validationError('Name and description are required');
+			if (!name || !description)
+				return validationError('Name and description are required');
 
 		// Validate field lengths
 		if (name.length < 2 || name.length > 50)
@@ -84,7 +72,7 @@ export async function POST(request) {
 			return validationError('Description cannot exceed 500 characters');
 
 		// Step 5: Validate and sanitize customization options
-		console.log("Customisations: ", customization);
+		console.log('Customisations: ', customization);
 		const validatedCustomization = validateCustomization(customization);
 		console.log('Validated Customizations: ', validatedCustomization);
 
@@ -162,42 +150,6 @@ export async function POST(request) {
  * - status?: 'all' | 'active' | 'inactive' | 'training' | 'error' - Filter by bot status
  * - search?: string - Search in bot name or description (case-insensitive)
  *
- * Response Format:
- * {
- *   success: true,
- *   message: "Retrieved X bots successfully",
- *   data: {
- *     items: [
- *       {
- *         id: string,
- *         name: string,
- *         description: string,
- *         botKey: string,
- *         status: string,
- *         fileCount: number,
- *         totalTokens: number,
- *         totalMessages: number,
- *         lastActiveAt: Date,
- *         customization: object,
- *         createdAt: Date,
- *         updatedAt: Date
- *       }
- *     ],
- *     pagination: {
- *       page: number,
- *       limit: number,
- *       total: number,
- *       totalPages: number,
- *       hasNextPage: boolean,
- *       hasPrevPage: boolean
- *     }
- *   }
- * }
- *
- * Response Codes:
- * - 200: Bots retrieved successfully
- * - 401: Authentication required
- * - 500: Internal server error
  */
 export async function GET(request) {
 	try {
@@ -208,14 +160,9 @@ export async function GET(request) {
 		// Step 2: Connect to database
 		await connect();
 
-		// Step 3: Ensure user exists in database and sync if needed
-		// This handles cases where user exists in Clerk but not in our MongoDB
-		let user = await getCurrentDBUser(userId);
-		if (!user) {
-			console.log('User not found in DB, creating user...');
-			user = await syncUserWithDB(userId);
-			if (!user) return authError('Failed to create user in DB');
-		}
+		// Step 3: Get user from database (sync handled by dashboard layout)
+		const user = await getCurrentDBUser(userId);
+		if (!user) return authError('User not found');
 
 		// Step 4: Parse and validate query parameters
 		const { searchParams } = new URL(request.url);

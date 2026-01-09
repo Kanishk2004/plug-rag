@@ -27,12 +27,12 @@ export default function MyBots() {
 		limit: 12,
 		status: statusFilter,
 		search: searchTerm, // Use server-side search
-		autoRefresh: true,
-		refreshInterval: 30000,
+		autoRefresh: false,
+		// refreshInterval: 30000,
 	});
 
 	// Server-side search is handled by the API via the search parameter
-	// No need for client-side filtering anymore
+	// No need for client-side filtering
 
 	if (error) {
 		return (
@@ -74,13 +74,7 @@ export default function MyBots() {
 					<Link
 						href="/dashboard/create-bot"
 						className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2">
-						<Image
-							src="/icons/plus.png"
-							alt="Plus icon"
-							width={20}
-							height={20}
-							className="brightness-0 invert"
-						/>
+						<PlusIcon className="w-5 h-5" />
 						<span>Create New Bot</span>
 					</Link>
 				</div>
@@ -131,7 +125,7 @@ export default function MyBots() {
 				{/* Loading State */}
 				{loading && bots.length === 0 && (
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-						{Array.from({ length: 6 }).map((_, i) => (
+						{Array.from({ length: 3 }).map((_, i) => (
 							<BotCardSkeleton key={i} />
 						))}
 					</div>

@@ -1,8 +1,5 @@
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/nextjs';
-import { checkUserExists, syncUserWithDB } from '@/lib/integrations/clerk';
 import { currentUser } from '@clerk/nextjs/server';
-import Image from 'next/image';
 import Link from 'next/link';
 import connect from '@/lib/integrations/mongo';
 import Bot from '@/models/Bot';
@@ -20,23 +17,13 @@ import {
 	ActiveIcon,
 	BotsIcon,
 	AnalyticsIcon,
+	PlusIcon,
 } from '@/components/ui/icons';
+import { SignedIn } from '@clerk/nextjs';
 
 export default async function Dashboard() {
-	// Performance optimized user sync
+	// User is already authenticated and synced by layout
 	const user = await currentUser();
-
-	if (!user) {
-		return <RedirectToSignIn />;
-	}
-
-	// Quick check if user exists (fast query)
-	const userExists = await checkUserExists(user.id);
-
-	if (!userExists) {
-		// Create user synchronously to ensure it exists
-		await syncUserWithDB(user.id);
-	}
 
 	// Fetch dashboard data
 	let dashboardData = {
@@ -176,7 +163,7 @@ export default async function Dashboard() {
 									  } total`
 							}`}
 							changeType="neutral"
-							iconSrc="/icons/bot.png"
+							icon={BotsIcon}
 						/>
 						<StatCard
 							title="Total Conversations"
@@ -249,7 +236,7 @@ export default async function Dashboard() {
 									title="Create New Bot"
 									description="Set up a new chatbot in minutes"
 									href="/dashboard/create-bot"
-									iconSrc="/icons/plus.png"
+									icon={PlusIcon}
 								/>
 								<QuickAction
 									title="Manage Bots"
@@ -261,7 +248,7 @@ export default async function Dashboard() {
 									title="View Analytics"
 									description="Check your bot performance"
 									href="/dashboard/analytics"
-									iconSrc="/icons/analytics.png"
+									icon={AnalyticsIcon}
 								/>
 							</div>
 						</div>

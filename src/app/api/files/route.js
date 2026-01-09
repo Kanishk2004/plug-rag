@@ -37,7 +37,7 @@ export async function GET(request) {
 		// Step 3: Connect to database
 		await connect();
 
-		// Step 4: Get user and verify existence
+		// Step 4: Get user (sync handled by dashboard layout)
 		const user = await getCurrentDBUser(userId);
 		if (!user) {
 			return authError('User not found');

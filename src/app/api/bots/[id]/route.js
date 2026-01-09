@@ -45,13 +45,9 @@ export async function GET(request, { params }) {
 		// Step 3: Connect to database
 		await connect();
 
-		// Step 4: Ensure user exists in database
-		let user = await getCurrentDBUser(userId);
-		if (!user) {
-			console.log('User not found in DB, creating user...');
-			user = await syncUserWithDB(userId);
-			if (!user) return authError('Failed to create user in DB');
-		}
+		// Step 4: Get user from database (sync handled by dashboard layout)
+		const user = await getCurrentDBUser(userId);
+		if (!user) return authError('User not found');
 
 		// Step 5: Find bot and verify ownership (using ownerId which stores Clerk ID)
 		const bot = await Bot.findOne({

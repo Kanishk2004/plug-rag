@@ -48,7 +48,7 @@ export async function POST(request) {
 		const { userId } = await auth();
 		if (!userId) return authError();
 
-		// Step 2: Get current user and check limits
+		// Step 2: Get user (sync handled by dashboard layout)
 		const user = await getCurrentDBUser(userId);
 		if (!user) {
 			return notFoundError('User not found');
