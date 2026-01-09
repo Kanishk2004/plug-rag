@@ -1,9 +1,5 @@
 import { useState } from 'react';
-import {
-	LoadingSpinner,
-	RefreshIcon,
-	ChatIcon,
-} from '@/components/ui/icons';
+import { LoadingSpinner, RefreshIcon, ChatIcon } from '@/components/ui/icons';
 import { useConversations } from '@/hooks/useConversations';
 import ConversationItem from '@/components/conversations/ConversationItem';
 import ConversationDetail from '@/components/conversations/ConversationDetail';
@@ -143,8 +139,7 @@ export default function ConversationsTab({ botId, bot, showNotification }) {
 					<div className="text-center">
 						<div className="text-2xl font-bold text-orange-400">
 							{(() => {
-								const avg =
-									conversationStats?.avgMessagesPerConversation || 0;
+								const avg = conversationStats?.avgMessagesPerConversation || 0;
 								return avg.toFixed(1);
 							})()}
 						</div>
@@ -220,8 +215,8 @@ export default function ConversationsTab({ botId, bot, showNotification }) {
 									<ChatIcon className="w-12 h-12 text-gray-600 mx-auto mb-3" />
 									<p className="text-gray-400">No conversations yet</p>
 									<p className="text-gray-500 text-sm mt-1">
-										Conversations will appear here when users interact with
-										your bot
+										Conversations will appear here when users interact with your
+										bot
 									</p>
 								</div>
 							)}
@@ -235,9 +230,7 @@ export default function ConversationsTab({ botId, bot, showNotification }) {
 								isSelected={
 									selectedConversation?.sessionId === conversation.sessionId
 								}
-								isDeleting={processingConversations.has(
-									conversation.sessionId
-								)}
+								isDeleting={processingConversations.has(conversation.sessionId)}
 							/>
 						))}
 					</div>
@@ -252,9 +245,7 @@ export default function ConversationsTab({ botId, bot, showNotification }) {
 								<div className="flex space-x-2">
 									<button
 										onClick={loadPreviousPage}
-										disabled={
-											!pagination.hasPrevPage || conversationsLoading
-										}
+										disabled={!pagination.hasPrevPage || conversationsLoading}
 										className="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
 										Prev
 									</button>

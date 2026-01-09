@@ -96,20 +96,29 @@ export class FileService {
 
 		// Step 6: Update bot analytics
 		try {
-			const analyticsUpdate = {
-				$inc: {
-					fileCount: -1,
-					'analytics.storageUsed': -file.size,
-				},
-			};
+			// Fetch current bot to get accurate counts
+			const bot = await Bot.findById(file.botId);
+			
+			if (bot) {
+				const analyticsUpdate = {
+					$set: {
+						// Use Math.max to prevent negative values
+						fileCount: Math.max(0, (bot.fileCount || 0) - 1),
+						'analytics.storageUsed': Math.max(0, (bot.analytics?.storageUsed || 0) - file.size),
+					},
+				};
 
-			// Only decrement embeddings if file was successfully embedded
-			if (file.embeddingStatus === 'completed' && file.totalChunks > 0) {
-				analyticsUpdate.$inc['analytics.totalEmbeddings'] = -file.totalChunks;
+				// Only decrement embeddings if file was successfully embedded
+				if (file.embeddingStatus === 'completed' && file.totalChunks > 0) {
+					analyticsUpdate.$set['analytics.totalEmbeddings'] = Math.max(
+						0,
+						(bot.analytics?.totalEmbeddings || 0) - file.totalChunks
+					);
+				}
+
+				await Bot.findByIdAndUpdate(file.botId, analyticsUpdate);
+				console.log(`[FILE-DELETE] Updated bot analytics for bot ${file.botId}`);
 			}
-
-			await Bot.findByIdAndUpdate(file.botId, analyticsUpdate);
-			console.log(`[FILE-DELETE] Updated bot analytics for bot ${file.botId}`);
 		} catch (analyticsError) {
 			console.error(
 				`[FILE-DELETE] Failed to update bot analytics: ${analyticsError.message}`

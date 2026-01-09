@@ -1,6 +1,11 @@
-import { FileIcon, XIcon, LoadingSpinner } from '@/components/ui/icons';
+import {
+	FileIcon,
+	XIcon,
+	LoadingSpinner,
+	RefreshIcon,
+} from '@/components/ui/icons';
 
-const FileItem = ({ file, isProcessing, onDelete }) => {
+const FileItem = ({ file, isProcessing, onDelete, onRetry, onCancel }) => {
 	const getFileStatus = () => {
 		// Priority: Check file.status first for critical states
 		if (file.status === 'deleted') {
@@ -45,6 +50,18 @@ const FileItem = ({ file, isProcessing, onDelete }) => {
 
 	const { color: statusColor, text: statusText } = getFileStatus();
 
+	// Determine available actions based on file status
+	const canRetry =
+		file.status === 'uploaded' ||
+		file.embeddingStatus === 'failed' ||
+		file.embeddingStatus === 'cancelled';
+
+	const canCancel =
+		file.embeddingStatus === 'queued' || file.embeddingStatus === 'retrying';
+
+	const canDelete =
+		file.status !== 'deleted' && file.embeddingStatus !== 'deleted';
+
 	return (
 		<div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg border border-gray-700">
 			<div className="flex items-center space-x-3">
@@ -73,11 +90,32 @@ const FileItem = ({ file, isProcessing, onDelete }) => {
 			<div className="flex items-center space-x-2">
 				{isProcessing && <LoadingSpinner className="w-4 h-4 text-orange-400" />}
 
-				<button
-					onClick={onDelete}
-					className="text-gray-400 hover:text-red-400 transition-colors p-1">
-					<XIcon className="w-6 h-6 bg-red-500 rounded text-white hover:bg-red-700" />
-				</button>
+				{canRetry && onRetry && (
+					<button
+						onClick={() => onRetry(file.id, file.filename)}
+						className="text-gray-400 hover:text-orange-400 transition-colors p-1"
+						title="Retry processing">
+						<RefreshIcon className="w-5 h-5" />
+					</button>
+				)}
+
+				{canCancel && onCancel && (
+					<button
+						onClick={() => onCancel(file.id, file.filename)}
+						className="text-gray-400 hover:text-yellow-400 transition-colors p-1 text-xs px-2 py-1 border border-gray-600 rounded hover:bg-gray-700"
+						title="Cancel processing">
+						Cancel
+					</button>
+				)}
+
+				{canDelete && onDelete && (
+					<button
+						onClick={onDelete}
+						className="text-gray-400 hover:text-red-400 transition-colors p-1"
+						title="Delete file">
+						<XIcon className="w-6 h-6 bg-red-500 rounded text-white hover:bg-red-700" />
+					</button>
+				)}
 			</div>
 		</div>
 	);

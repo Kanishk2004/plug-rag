@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChatSession } from '@/lib/utils/sessionUtils';
 
 // Icons
@@ -8,7 +8,8 @@ const SendIcon = ({ className }) => (
 		className={className}
 		fill="none"
 		stroke="currentColor"
-		viewBox="0 0 24 24">
+		viewBox="0 0 24 24"
+		style={{ transform: 'rotate(90deg)' }}>
 		<path
 			strokeLinecap="round"
 			strokeLinejoin="round"
@@ -223,7 +224,7 @@ const SuggestedQuestions = ({
 /**
  * Main chat interface component
  */
-const ChatInterface = ({ botId, botName = 'Assistant' }) => {
+const ChatInterface = ({ botId, botName = 'Assistant', onClearConversation }) => {
 	const [messages, setMessages] = useState([]);
 	const [inputMessage, setInputMessage] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
@@ -342,11 +343,7 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 	};
 
 	// Clear conversation
-	const clearConversation = async () => {
-		if (!confirm('Are you sure you want to clear the conversation history?')) {
-			return;
-		}
-
+	const clearConversation = useCallback(async () => {
 		if (!chatSession) {
 			setError('Chat session not initialized');
 			return;
@@ -365,7 +362,14 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 			console.error('Error clearing conversation:', error);
 			setError('Failed to clear conversation. Please try again.');
 		}
-	};
+	}, [chatSession]);
+
+	// Expose clear function to parent
+	useEffect(() => {
+		if (onClearConversation) {
+			onClearConversation(clearConversation);
+		}
+	}, [clearConversation, onClearConversation]);
 
 	// Handle form submission
 	const handleSubmit = (e) => {
@@ -399,21 +403,6 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 
 	return (
 		<div className="h-full flex flex-col bg-gray-900">
-			{/* Chat Header */}
-			<div className="flex items-center justify-between p-4 border-b border-gray-800">
-				<div>
-					<h3 className="text-lg font-medium text-white">Test Chat</h3>
-					<p className="text-sm text-gray-400">with {botName}</p>
-				</div>
-
-				<button
-					onClick={clearConversation}
-					className="p-2 text-gray-400 hover:text-gray-300 hover:bg-gray-800 rounded-lg transition-colors"
-					title="Clear conversation">
-					<ClearIcon className="w-5 h-5" />
-				</button>
-			</div>
-
 			{/* Error Display */}
 			{error && (
 				<div className="mx-4 mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-200 text-sm">
@@ -422,7 +411,7 @@ const ChatInterface = ({ botId, botName = 'Assistant' }) => {
 			)}
 
 			{/* Messages Area */}
-			<div className="flex-1 overflow-y-auto p-4 space-y-4">
+			<div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900">
 				{messages.length === 0 && !isLoading ? (
 					<div className="text-center py-8">
 						<div className="text-gray-400 mb-4">

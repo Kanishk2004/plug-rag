@@ -11,6 +11,7 @@ import OverviewTab from '@/components/dashboard/botDetail/tabs/OverviewTab';
 import ConversationsTab from '@/components/dashboard/botDetail/tabs/ConversationsTab';
 import APIConfigTab from '@/components/dashboard/botDetail/tabs/APIConfigTab';
 import ChatTab from '@/components/dashboard/botDetail/tabs/ChatTab';
+import FAQTab from '@/components/dashboard/botDetail/tabs/FAQTab';
 
 export default function BotDetail({ params }) {
 	const router = useRouter();
@@ -322,6 +323,15 @@ export default function BotDetail({ params }) {
 							API Configuration
 						</button>
 						<button
+							onClick={() => setActiveTab('faqs')}
+							className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+								activeTab === 'faqs'
+									? 'border-orange-500 text-orange-400'
+									: 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-700'
+							}`}>
+							FAQs
+						</button>
+						<button
 							onClick={() => setActiveTab('chat')}
 							className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
 								activeTab === 'chat'
@@ -364,6 +374,10 @@ export default function BotDetail({ params }) {
 							onApiKeyUpdate={handleApiKeyUpdate}
 							onNavigateToOverview={() => setActiveTab('overview')}
 						/>
+					)}
+
+					{activeTab === 'faqs' && (
+						<FAQTab botId={botId} showNotification={showNotification} />
 					)}
 
 					{activeTab === 'chat' && (

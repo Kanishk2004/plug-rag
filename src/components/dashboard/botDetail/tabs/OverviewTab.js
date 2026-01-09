@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import FileUpload from '@/components/FileUpload';
 import {
@@ -6,9 +6,9 @@ import {
 	SettingsIcon,
 	CheckIcon,
 	WarningIcon,
+	RefreshIcon,
 } from '@/components/ui/icons';
 import { useBotFiles } from '@/hooks/useBotFiles';
-import { fileAPI } from '@/lib/clientAPI';
 import FileItem from '@/components/files/FileItem';
 import QueuedFileItem from '@/components/files/QueuedFileItem';
 
@@ -44,11 +44,247 @@ export default function OverviewTab({
 	const [queuedFiles, setQueuedFiles] = useState([]);
 	const [uploading, setUploading] = useState(false);
 	const [showDeletedFiles, setShowDeletedFiles] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState({});
 
 	const handleFilesUploaded = async (uploadedFiles) => {
-		// Add files to queue instead of uploading immediately
-		setQueuedFiles((prev) => [...prev, ...uploadedFiles]);
+		// Add files to queue with metadata
+		const filesWithMetadata = uploadedFiles.map((fileObj) => ({
+			...fileObj,
+			uploadStatus: 'queued', // queued, initializing, uploading, completing, completed, failed
+			progress: 0,
+			error: null,
+			fileId: null,
+			uploadUrl: null,
+		}));
+		setQueuedFiles((prev) => [...prev, ...filesWithMetadata]);
 		showNotification(`${uploadedFiles.length} file(s) added to queue`);
+	};
+
+	/**
+	 * Step 1: Initialize file upload and get presigned URL
+	 */
+	const initializeFileUpload = async (file) => {
+		console.log('[INIT-UPLOAD] Initializing upload:', {
+			fileName: file.name,
+			fileSize: file.size,
+			mimeType: file.type,
+			botId: bot.id,
+		});
+
+		const formData = new FormData();
+		formData.append('botId', bot.id);
+		formData.append('filename', file.file.name);
+		formData.append('fileSize', file.file.size);
+		formData.append('mimeType', file.file.type);
+
+		const response = await fetch('/api/files/upload/init', {
+			method: 'POST',
+			body: formData,
+		});
+
+		const data = await response.json();
+
+		if (!response.ok || !data.success) {
+			console.error('[INIT-UPLOAD] Failed:', data);
+			throw new Error(data.error || 'Failed to initialize upload');
+		}
+
+		console.log('[INIT-UPLOAD] Success:', {
+			fileId: data.data.fileId,
+			hasUploadUrl: !!data.data.uploadUrl,
+		});
+
+		return data.data; // { uploadUrl, fileId, s3Key, expiresIn }
+	};
+
+	/**
+	 * Step 2: Upload file to S3 using presigned URL
+	 * Matches Postman's binary upload with Content-Type header
+	 */
+	const uploadFileToS3 = async (
+		actualFile,
+		uploadUrl,
+		mimeType,
+		onProgress
+	) => {
+		console.log('[S3-UPLOAD] Starting upload:', {
+			fileName: actualFile.name,
+			fileSize: actualFile.size,
+			mimeType: mimeType,
+			uploadUrlPrefix: uploadUrl.substring(0, 100) + '...',
+		});
+
+		// Read file as ArrayBuffer (raw binary data, like Postman)
+		const fileBuffer = await actualFile.arrayBuffer();
+		console.log(
+			'[S3-UPLOAD] File read as ArrayBuffer, size:',
+			fileBuffer.byteLength
+		);
+
+		return new Promise((resolve, reject) => {
+			const xhr = new XMLHttpRequest();
+
+			// Track upload progress
+			xhr.upload.addEventListener('progress', (e) => {
+				if (e.lengthComputable) {
+					const percentComplete = Math.round((e.loaded / e.total) * 100);
+					onProgress(percentComplete);
+				}
+			});
+
+			xhr.addEventListener('load', () => {
+				console.log('[S3-UPLOAD] Response received:', {
+					status: xhr.status,
+					statusText: xhr.statusText,
+					responseHeaders: xhr.getAllResponseHeaders(),
+				});
+
+				if (xhr.status === 200) {
+					console.log('[S3-UPLOAD] Upload successful');
+					resolve();
+				} else {
+					console.error('[S3-UPLOAD] Upload failed:', {
+						status: xhr.status,
+						statusText: xhr.statusText,
+						response: xhr.responseText,
+					});
+					reject(
+						new Error(
+							`S3 upload failed with status ${xhr.status}: ${xhr.statusText}`
+						)
+					);
+				}
+			});
+
+			xhr.addEventListener('error', (e) => {
+				console.error('[S3-UPLOAD] Network error:', e);
+				reject(
+					new Error('Network error during S3 upload. Possible CORS issue.')
+				);
+			});
+
+			xhr.addEventListener('abort', () => {
+				console.warn('[S3-UPLOAD] Upload aborted');
+				reject(new Error('Upload aborted'));
+			});
+
+			xhr.open('PUT', uploadUrl);
+
+			// Set Content-Type header (matching Postman)
+			xhr.setRequestHeader('Content-Type', mimeType);
+
+			console.log('[S3-UPLOAD] Headers set:', { 'Content-Type': mimeType });
+			console.log('[S3-UPLOAD] Sending ArrayBuffer...');
+
+			// Send raw binary data
+			xhr.send(fileBuffer);
+		});
+	};
+
+	/**
+	 * Step 3: Complete upload and queue for processing
+	 */
+	const completeFileUpload = async (fileId) => {
+		const response = await fetch('/api/files/upload/complete', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ fileId }),
+		});
+
+		const data = await response.json();
+
+		if (!response.ok || !data.success) {
+			throw new Error(data.error || 'Failed to complete upload');
+		}
+
+		return data.data;
+	};
+
+	/**
+	 * Upload a single file through the 3-step process
+	 */
+	const uploadSingleFile = async (queuedFile, index) => {
+		console.log('[UPLOAD-FILE] Starting upload process:', queuedFile.name);
+
+		try {
+			// Update status: Initializing
+			setQueuedFiles((prev) =>
+				prev.map((f, i) =>
+					i === index ? { ...f, uploadStatus: 'initializing', progress: 0 } : f
+				)
+			);
+
+			// Step 1: Initialize and get presigned URL
+			const initData = await initializeFileUpload(queuedFile);
+
+			setQueuedFiles((prev) =>
+				prev.map((f, i) =>
+					i === index
+						? {
+								...f,
+								fileId: initData.fileId,
+								uploadUrl: initData.uploadUrl,
+								uploadStatus: 'uploading',
+						  }
+						: f
+				)
+			);
+
+			// Step 2: Upload to S3 with progress tracking
+			await uploadFileToS3(
+				queuedFile.file,
+				initData.uploadUrl,
+				queuedFile.type || queuedFile.file.type,
+				(progress) => {
+					setQueuedFiles((prev) =>
+						prev.map((f, i) => (i === index ? { ...f, progress } : f))
+					);
+				}
+			);
+
+			// Update status: Completing
+			setQueuedFiles((prev) =>
+				prev.map((f, i) =>
+					i === index ? { ...f, uploadStatus: 'completing', progress: 100 } : f
+				)
+			);
+
+			// Step 3: Complete upload and queue for processing
+			await completeFileUpload(initData.fileId);
+
+			console.log(
+				'[UPLOAD-FILE] Upload completed successfully:',
+				queuedFile.name
+			);
+
+			// Mark as completed
+			setQueuedFiles((prev) =>
+				prev.map((f, i) =>
+					i === index ? { ...f, uploadStatus: 'completed', progress: 100 } : f
+				)
+			);
+
+			return { success: true, fileId: initData.fileId };
+		} catch (error) {
+			console.error(`[UPLOAD-FILE] Error uploading ${queuedFile.name}:`, error);
+
+			// Mark as failed
+			setQueuedFiles((prev) =>
+				prev.map((f, i) =>
+					i === index
+						? {
+								...f,
+								uploadStatus: 'failed',
+								error: error.message,
+						  }
+						: f
+				)
+			);
+
+			return { success: false, error: error.message, file: queuedFile.name };
+		}
 	};
 
 	const handleStartUpload = async () => {
@@ -56,76 +292,63 @@ export default function OverviewTab({
 
 		setUploading(true);
 
-		try {
-			// Extract the actual File objects from the queued file objects
-			const actualFiles = queuedFiles.map((fileObj) => fileObj.file);
+		const results = {
+			total: queuedFiles.length,
+			successful: 0,
+			failed: 0,
+			errors: [],
+		};
 
-			// Validate all files before uploading
-			const invalidFiles = actualFiles.filter(
-				(file) => !file || !file.name || !file.size
-			);
-			if (invalidFiles.length > 0) {
-				showNotification(
-					`Invalid files detected: ${invalidFiles.length} files are missing required properties`,
-					'error'
-				);
-				console.error('Invalid files:', invalidFiles);
-				return;
+		try {
+			// Upload files sequentially to avoid overwhelming the server
+			for (let i = 0; i < queuedFiles.length; i++) {
+				const file = queuedFiles[i];
+
+				// Skip already completed or failed files
+				if (file.uploadStatus === 'completed') {
+					results.successful++;
+					continue;
+				}
+
+				const result = await uploadSingleFile(file, i);
+
+				if (result.success) {
+					results.successful++;
+				} else {
+					results.failed++;
+					results.errors.push(result.error);
+				}
 			}
 
-			console.log(
-				`Starting upload of ${actualFiles.length} files to bot ${bot.id}`
-			);
-
-			// Use the well-tested fileAPI.uploadMultiple function
-			const result = await fileAPI.uploadMultiple(
-				actualFiles,
-				bot.id,
-				{
-					generateEmbeddings: true,
-					maxChunkSize: 700,
-					overlap: 100,
-				},
-				(progress) => {
-					// Optional: Handle progress updates
-					console.log(
-						`Upload progress: ${progress.fileName} - ${progress.status}`
-					);
-				}
-			);
-
-			// Show results
-			if (result.success) {
+			// Show summary notification
+			if (results.failed === 0) {
 				showNotification(
-					`Successfully uploaded ${result.uploadedCount} file(s). ` +
-						`${
-							result.totalTokensUsed
-						} tokens used ($${result.totalEstimatedCost.toFixed(6)})`
+					`Successfully uploaded and queued ${results.successful} file(s) for processing`
 				);
 			} else {
 				showNotification(
-					`Uploaded ${result.uploadedCount}/${queuedFiles.length} files. ` +
-						`${result.errorCount} failed. ${result.totalTokensUsed} tokens used.`,
-					result.errorCount > 0 ? 'error' : 'success'
+					`Upload completed: ${results.successful} successful, ${results.failed} failed`,
+					'warning'
 				);
 			}
 
-			// Show individual file results
-			result.results.forEach((fileResult) => {
-				if (!fileResult.success) {
-					showNotification(
-						`Failed to upload ${fileResult.file}: ${fileResult.error}`,
-						'error'
-					);
-				}
+			// Show individual error messages
+			results.errors.forEach((error) => {
+				showNotification(error, 'error');
 			});
 		} catch (error) {
-			showNotification(`Upload failed: ${error.message}`, 'error');
+			showNotification(`Upload process failed: ${error.message}`, 'error');
 		} finally {
-			// Clear queue and refresh files
-			setQueuedFiles([]);
 			setUploading(false);
+			// Refresh files list to show newly uploaded files
 			refetchFiles();
+
+			// Clear completed files from queue after a delay
+			setTimeout(() => {
+				setQueuedFiles((prev) =>
+					prev.filter((f) => f.uploadStatus !== 'completed')
+				);
+			}, 2000);
 		}
 	};
 
@@ -136,8 +359,81 @@ export default function OverviewTab({
 
 	const handleClearQueue = () => {
 		if (queuedFiles.length === 0) return;
-		setQueuedFiles([]);
-		showNotification('Queue cleared');
+
+		// Only clear files that haven't started uploading
+		const canClear = queuedFiles.filter(
+			(f) => f.uploadStatus === 'queued' || f.uploadStatus === 'failed'
+		);
+
+		if (canClear.length === 0) {
+			showNotification('No files to clear (uploads in progress)', 'warning');
+			return;
+		}
+
+		setQueuedFiles((prev) =>
+			prev.filter(
+				(f) => f.uploadStatus !== 'queued' && f.uploadStatus !== 'failed'
+			)
+		);
+		showNotification(`Cleared ${canClear.length} file(s) from queue`);
+	};
+
+	const handleRetryFile = async (fileId, fileName) => {
+		try {
+			const response = await fetch('/api/files/upload/retry', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ fileId }),
+			});
+
+			const data = await response.json();
+
+			if (response.ok && data.success) {
+				showNotification(`${fileName} queued for retry`);
+				await refetchFiles();
+			} else {
+				showNotification(data.error || `Failed to retry ${fileName}`, 'error');
+			}
+		} catch (error) {
+			showNotification(
+				`Failed to retry ${fileName}: ${error.message}`,
+				'error'
+			);
+		}
+	};
+
+	const handleCancelFile = async (fileId, fileName) => {
+		if (
+			!confirm(`Are you sure you want to cancel processing for ${fileName}?`)
+		) {
+			return;
+		}
+
+		try {
+			const response = await fetch('/api/files/upload/cancel', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ fileId }),
+			});
+
+			const data = await response.json();
+
+			if (response.ok && data.success) {
+				showNotification(`${fileName} processing cancelled`);
+				await refetchFiles();
+			} else {
+				showNotification(data.error || `Failed to cancel ${fileName}`, 'error');
+			}
+		} catch (error) {
+			showNotification(
+				`Failed to cancel ${fileName}: ${error.message}`,
+				'error'
+			);
+		}
 	};
 
 	const handleDeleteFile = async (fileId, fileName) => {
@@ -292,6 +588,7 @@ export default function OverviewTab({
 									key={`queued-${index}`}
 									file={file}
 									onRemove={() => handleRemoveFromQueue(file)}
+									disabled={uploading}
 								/>
 							))}
 						</div>
@@ -304,20 +601,20 @@ export default function OverviewTab({
 						.filter((file) => {
 							// Filter out deleted files unless showDeletedFiles is true
 							const isDeleted =
-								file.status === 'deleted' ||
-								file.embeddingStatus === 'deleted';
+								file.status === 'deleted' || file.embeddingStatus === 'deleted';
 							return showDeletedFiles || !isDeleted;
 						})
 						.map((file) => {
 							const isDeleted =
-								file.status === 'deleted' ||
-								file.embeddingStatus === 'deleted';
+								file.status === 'deleted' || file.embeddingStatus === 'deleted';
 							return (
 								<div key={file.id} className={isDeleted ? 'opacity-50' : ''}>
 									<FileItem
 										file={file}
 										isProcessing={processingFiles.has(file.id)}
 										onDelete={() => handleDeleteFile(file.id, file.filename)}
+										onRetry={handleRetryFile}
+										onCancel={handleCancelFile}
 									/>
 								</div>
 							);
@@ -455,8 +752,8 @@ export default function OverviewTab({
 								/>
 								{queuedFiles.length === 0 && (
 									<p className="text-sm text-gray-500 mt-2">
-										Files will be added to upload queue. Click "Start Upload"
-										to process them.
+										Files will be added to upload queue. Click "Start Upload" to
+										process them.
 									</p>
 								)}
 							</>
@@ -466,9 +763,7 @@ export default function OverviewTab({
 
 			{/* Bot Information */}
 			<div className="bg-gray-900 rounded-lg border border-gray-800 p-6">
-				<h3 className="text-lg font-medium text-white mb-4">
-					Bot Information
-				</h3>
+				<h3 className="text-lg font-medium text-white mb-4">Bot Information</h3>
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
 					<div>
 						<span className="text-gray-400">Created:</span>
@@ -480,6 +775,12 @@ export default function OverviewTab({
 						<span className="text-gray-400">Last Updated:</span>
 						<span className="ml-2 text-gray-200">
 							{new Date(bot.updatedAt).toLocaleDateString()}
+						</span>
+					</div>
+					<div>
+						<span className="text-gray-400">Title (assistant name):</span>
+						<span className="ml-2 text-gray-200">
+							{bot.customization?.title || 'My Chat Bot'}
 						</span>
 					</div>
 					<div className="md:col-span-2">
@@ -500,8 +801,7 @@ export default function OverviewTab({
 							<div
 								className="w-4 h-4 rounded border border-gray-600"
 								style={{
-									backgroundColor:
-										bot.customization?.bubbleColor || '#f97316',
+									backgroundColor: bot.customization?.bubbleColor || '#f97316',
 								}}
 							/>
 							<span className="font-mono text-gray-200 text-xs">
