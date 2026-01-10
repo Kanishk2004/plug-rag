@@ -1,957 +1,923 @@
 # 🔌 PlugRAG API Reference
 
-> **Complete REST API documentation for the PlugRAG platform**
+Complete API documentation for the PlugRAG platform. All authenticated endpoints require a valid Clerk JWT token in the Authorization header.
 
-## 📋 **Table of Contents**
+## 📖 Table of Contents
+
 - [Authentication](#authentication)
-- [Bot Management](#bot-management)
-- [File Management](#file-management)
-- [Vector Operations](#vector-operations)
+- [Bot Management](#bot-management-api)
+- [File Management](#file-management-api)
 - [Chat API](#chat-api)
-- [Analytics](#analytics)
-- [Webhooks](#webhooks)
+- [System API](#system-api)
 - [Error Handling](#error-handling)
 - [Rate Limiting](#rate-limiting)
-- [SDKs & Examples](#sdks--examples)
 
 ---
 
-## 🔐 **Authentication**
+## 🔐 Authentication
 
-PlugRAG uses **Clerk** for authentication with Bearer token authorization for protected routes and public access for chat endpoints.
+All protected endpoints require authentication via Clerk.
 
-### **Authentication Methods**
+### Authorization Header
 
-#### **Dashboard API (Protected)**
-```javascript
-// Automatic authentication in dashboard
-const response = await fetch('/api/bots', {
-  method: 'GET',
-  // Clerk automatically handles auth headers
-});
-```
-
-#### **External API Access**
-```javascript
-// Using Clerk session token
-const token = await getToken();
-const response = await fetch('/api/bots', {
-  method: 'GET',
-  headers: {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
-  }
-});
-```
-
-#### **Public Chat API (No Auth Required)**
-```javascript
-// Public chat endpoints don't require authentication
-const response = await fetch('/api/chat/bot_123', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    message: "Hello!",
-    sessionId: "session_abc123"
-  })
-});
-```
-
----
-
-## 🤖 **Bot Management**
-
-### **List Bots**
 ```http
-GET /api/bots
+Authorization: Bearer <clerk_jwt_token>
 ```
+
+### Getting Your Token
+
+1. Sign in to the application
+2. Token is automatically included in requests from the dashboard
+3. For external API calls, obtain token from Clerk SDK
+
+### Public Endpoints
+
+The following endpoints do **NOT** require authentication:
+- `POST /api/chat/[botId]` - Public chat endpoint
+- `GET /api/health` - Health check
+
+---
+
+## 🤖 Bot Management API
+
+### List Bots
+
+Get all bots for the authenticated user.
+
+**Endpoint:** `GET /api/bots`
+
+**Authentication:** Required
 
 **Query Parameters:**
-- `page` (number, optional): Page number (default: 1)
-- `limit` (number, optional): Items per page (default: 10)
-- `status` (string, optional): Filter by status (`active`, `inactive`, `all`)
-- `search` (string, optional): Search by name or description
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `search` | string | No | Search by bot name |
+| `status` | string | No | Filter by status ('active', 'inactive') |
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "id": "bot_123",
-        "name": "Customer Support Bot",
-        "description": "Handles customer inquiries",
-        "status": "active",
-        "analytics": {
-          "totalMessages": 1250,
-          "totalSessions": 89,
-          "totalTokensUsed": 45230,
-          "totalEmbeddings": 156,
-          "lastActiveAt": "2025-01-15T10:30:00Z"
-        },
-        "fileCount": 12,
-        "createdAt": "2025-01-01T00:00:00Z",
-        "updatedAt": "2025-01-15T10:30:00Z"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 10,
-      "total": 25,
-      "totalPages": 3,
-      "hasNextPage": true,
-      "hasPrevPage": false
+  "bots": [
+    {
+      "_id": "bot_123",
+      "name": "Customer Support Bot",
+      "description": "Helps customers with product questions",
+      "status": "active",
+      "createdAt": "2026-01-10T10:00:00.000Z",
+      "analytics": {
+        "totalMessages": 150,
+        "totalConversations": 45,
+        "lastMessageAt": "2026-01-10T15:30:00.000Z"
+      },
+      "qdrantCollectionName": "bot_123_collection"
     }
-  }
+  ]
 }
 ```
 
-### **Create Bot**
-```http
-POST /api/bots
+**Example:**
+```bash
+curl -X GET "https://your-domain.com/api/bots?status=active" \
+  -H "Authorization: Bearer <token>"
 ```
+
+---
+
+### Create Bot
+
+Create a new chatbot.
+
+**Endpoint:** `POST /api/bots`
+
+**Authentication:** Required
 
 **Request Body:**
 ```json
 {
-  "name": "Support Assistant",
-  "description": "Customer support chatbot for technical queries",
-  "customization": {
-    "bubbleColor": "#3B82F6",
-    "position": "bottom-right",
-    "greeting": "How can I help you today?",
-    "placeholder": "Type your message...",
-    "title": "Support Chat"
-  }
+  "name": "My Support Bot",
+  "description": "Answers customer questions",
+  "systemPrompt": "You are a helpful customer support assistant.",
+  "welcomeMessage": "Hi! How can I help you today?",
+  "openaiApiConfig": {
+    "apiKey": "sk-...",           // Optional: BYOK
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "maxTokens": 500,
+    "fallbackEnabled": true
+  },
+  "domainWhitelist": ["example.com", "*.example.com"],
+  "faqs": [
+    {
+      "question": "What are your hours?",
+      "answer": "We're open Monday-Friday, 9 AM to 5 PM EST."
+    }
+  ]
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Bot created successfully",
-  "data": {
-    "id": "bot_new123",
-    "name": "Support Assistant",
-    "description": "Customer support chatbot for technical queries",
-    "botKey": "key_abc123",
+  "bot": {
+    "_id": "bot_123",
+    "name": "My Support Bot",
     "status": "active",
-    "customization": { /* customization object */ },
-    "analytics": {
-      "totalMessages": 0,
-      "totalSessions": 0,
-      "totalTokensUsed": 0,
-      "totalEmbeddings": 0,
-      "lastActiveAt": "2025-01-15T12:00:00Z"
-    },
-    "vectorStorage": {
-      "enabled": false,
-      "collectionName": "",
-      "provider": "qdrant"
-    },
-    "createdAt": "2025-01-15T12:00:00Z"
+    "createdAt": "2026-01-10T10:00:00.000Z",
+    "qdrantCollectionName": "bot_123_collection"
   }
 }
 ```
 
-### **Get Bot Details**
-```http
-GET /api/bots/{botId}
+**Example:**
+```bash
+curl -X POST "https://your-domain.com/api/bots" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Support Bot",
+    "description": "Customer support",
+    "systemPrompt": "You are helpful.",
+    "welcomeMessage": "Hello!",
+    "openaiApiConfig": {
+      "model": "gpt-4",
+      "temperature": 0.7,
+      "maxTokens": 500
+    }
+  }'
 ```
 
-**Path Parameters:**
-- `botId` (string, required): Bot identifier
+---
+
+### Get Bot
+
+Get details of a specific bot.
+
+**Endpoint:** `GET /api/bots/[id]`
+
+**Authentication:** Required
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "id": "bot_123",
+  "bot": {
+    "_id": "bot_123",
     "name": "Customer Support Bot",
-    "description": "Handles customer inquiries",
+    "description": "Helps customers",
     "status": "active",
-    "customization": {
-      "bubbleColor": "#3B82F6",
-      "position": "bottom-right",
-      "greeting": "How can I help you today?",
-      "placeholder": "Type your message...",
-      "title": "Support Chat"
+    "systemPrompt": "You are a helpful assistant.",
+    "welcomeMessage": "Hi! How can I help?",
+    "openaiApiConfig": {
+      "model": "gpt-4",
+      "temperature": 0.7,
+      "maxTokens": 500,
+      "fallbackEnabled": true,
+      "hasCustomKey": true
     },
-    "analytics": {
-      "totalMessages": 1250,
-      "totalSessions": 89,
-      "totalTokensUsed": 45230,
-      "totalEmbeddings": 156,
-      "lastActiveAt": "2025-01-15T10:30:00Z",
-      "averageSessionLength": 4.2,
-      "uniqueVisitors": 67
-    },
-    "vectorStorage": {
-      "enabled": true,
-      "collectionName": "user123_bot456",
-      "provider": "qdrant",
-      "dimensions": 1536,
-      "model": "text-embedding-3-small"
-    },
-    "fileCount": 12,
-    "fileStats": {
-      "processing": 1,
-      "completed": 10,
-      "failed": 1
-    },
-    "limits": {
-      "maxFilesPerBot": 50,
-      "maxFileSize": 10485760,
-      "messagesPerMonth": 1000
-    },
-    "createdAt": "2025-01-01T00:00:00Z",
-    "updatedAt": "2025-01-15T10:30:00Z"
+    "domainWhitelist": ["example.com"],
+    "faqs": [...],
+    "analytics": {...},
+    "createdAt": "2026-01-10T10:00:00.000Z",
+    "updatedAt": "2026-01-10T12:00:00.000Z"
   }
 }
 ```
 
-### **Update Bot**
-```http
-PATCH /api/bots/{botId}
+**Example:**
+```bash
+curl -X GET "https://your-domain.com/api/bots/bot_123" \
+  -H "Authorization: Bearer <token>"
 ```
+
+---
+
+### Update Bot
+
+Update bot configuration.
+
+**Endpoint:** `PATCH /api/bots/[id]`
+
+**Authentication:** Required
 
 **Request Body:**
 ```json
 {
   "name": "Updated Bot Name",
   "description": "Updated description",
-  "status": "inactive",
-  "customization": {
-    "bubbleColor": "#EF4444",
-    "greeting": "Welcome! How may I assist you?"
-  }
+  "status": "active",
+  "systemPrompt": "Updated prompt",
+  "welcomeMessage": "Updated welcome",
+  "openaiApiConfig": {
+    "model": "gpt-4-turbo",
+    "temperature": 0.8,
+    "maxTokens": 600
+  },
+  "domainWhitelist": ["newdomain.com"],
+  "faqs": [...]
 }
-```
-
-### **Delete Bot**
-```http
-DELETE /api/bots/{botId}
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Bot and all associated data deleted successfully",
-  "data": {
-    "deletedBotId": "bot_123",
-    "filesDeleted": 12,
-    "vectorsDeleted": 156,
-    "conversationsDeleted": 89
+  "bot": {
+    "_id": "bot_123",
+    "name": "Updated Bot Name",
+    ...
   }
 }
 ```
 
+**Example:**
+```bash
+curl -X PATCH "https://your-domain.com/api/bots/bot_123" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "New Name", "status": "inactive"}'
+```
+
 ---
 
-## 📁 **File Management**
+### Delete Bot
 
-### **List Files**
-```http
-GET /api/files
+Delete a bot and all associated data.
+
+**Endpoint:** `DELETE /api/bots/[id]`
+
+**Authentication:** Required
+
+**Response:**
+```json
+{
+  "message": "Bot deleted successfully"
+}
 ```
+
+**Notes:**
+- Deletes all bot files
+- Deletes Qdrant collection
+- Deletes all conversations
+- **This action is irreversible**
+
+**Example:**
+```bash
+curl -X DELETE "https://your-domain.com/api/bots/bot_123" \
+  -H "Authorization: Bearer <token>"
+```
+
+---
+
+## 📁 File Management API
+
+### List Files
+
+Get all files for a specific bot.
+
+**Endpoint:** `GET /api/files?botId=[botId]`
+
+**Authentication:** Required
 
 **Query Parameters:**
-- `botId` (string, required): Filter files by bot
-- `status` (string, optional): Filter by processing status
-- `page` (number, optional): Page number
-- `limit` (number, optional): Items per page
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `botId` | string | Yes | Bot ID |
+| `status` | string | No | Filter by status |
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "items": [
-      {
-        "id": "file_123",
-        "filename": "user-manual.pdf",
-        "originalName": "Product User Manual.pdf",
-        "fileSize": 2048576,
-        "mimeType": "application/pdf",
-        "status": "completed",
-        "processingResult": {
-          "chunksCreated": 23,
-          "embeddingsGenerated": 23,
-          "tokensUsed": 15420,
-          "processingTime": 45.2
-        },
-        "uploadedAt": "2025-01-15T09:00:00Z",
-        "processedAt": "2025-01-15T09:01:30Z"
-      }
-    ],
-    "pagination": { /* pagination object */ }
-  }
-}
-```
-
-### **Upload File**
-```http
-POST /api/files
-```
-
-**Content-Type:** `multipart/form-data`
-
-**Form Fields:**
-- `file` (file, required): File to upload
-- `botId` (string, required): Target bot ID
-- `options` (JSON string, optional): Processing options
-
-**Processing Options:**
-```json
-{
-  "generateEmbeddings": true,
-  "chunkSize": 700,
-  "overlap": 100,
-  "customMetadata": {
-    "category": "product-docs",
-    "version": "v2.1"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "File uploaded and processing started",
-  "data": {
-    "id": "file_new123",
-    "filename": "document.pdf",
-    "status": "processing",
-    "botId": "bot_456",
-    "processingJobId": "job_789",
-    "estimatedTime": "2-3 minutes"
-  }
-}
-```
-
-### **Upload from URL**
-```http
-POST /api/files/url
-```
-
-**Request Body:**
-```json
-{
-  "url": "https://example.com/document.pdf",
-  "botId": "bot_123",
-  "options": {
-    "generateEmbeddings": true,
-    "customFilename": "external-doc.pdf"
-  }
-}
-```
-
-### **Get File Details**
-```http
-GET /api/files/{fileId}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "file_123",
-    "filename": "user-manual.pdf",
-    "originalName": "Product User Manual.pdf",
-    "fileSize": 2048576,
-    "mimeType": "application/pdf",
-    "status": "completed",
-    "botId": "bot_456",
-    "chunks": [
-      {
-        "id": "chunk_1",
-        "content": "This section explains how to...",
-        "tokens": 67,
-        "hasEmbedding": true,
-        "metadata": {
-          "page": 1,
-          "section": "Getting Started"
-        }
-      }
-    ],
-    "processingResult": {
-      "chunksCreated": 23,
-      "embeddingsGenerated": 23,
-      "tokensUsed": 15420,
-      "processingTime": 45.2,
-      "errors": []
-    },
-    "uploadedAt": "2025-01-15T09:00:00Z",
-    "processedAt": "2025-01-15T09:01:30Z"
-  }
-}
-```
-
-### **Delete File**
-```http
-DELETE /api/files/{fileId}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "File and associated vectors deleted successfully",
-  "data": {
-    "fileId": "file_123",
-    "chunksDeleted": 23,
-    "vectorsDeleted": 23
-  }
-}
-```
-
-### **Get File Info**
-```http
-GET /api/files/info
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "supportedFormats": [
-      {
-        "extension": ".pdf",
-        "mimeType": "application/pdf",
-        "maxSize": "50MB",
-        "description": "Portable Document Format"
+  "files": [
+    {
+      "_id": "file_123",
+      "botId": "bot_123",
+      "fileName": "product-manual.pdf",
+      "fileSize": 1048576,
+      "fileType": "pdf",
+      "status": "completed",
+      "s3Url": "https://s3.amazonaws.com/...",
+      "metadata": {
+        "pageCount": 50,
+        "chunkCount": 125
       },
-      {
-        "extension": ".docx",
-        "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "maxSize": "50MB",
-        "description": "Microsoft Word Document"
-      }
-    ],
-    "limits": {
-      "maxFileSize": 52428800,
-      "maxFilesPerBot": 100,
-      "supportedMimeTypes": [
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "text/plain",
-        "text/csv",
-        "text/html"
-      ]
+      "createdAt": "2026-01-10T10:00:00.000Z"
     }
-  }
+  ],
+  "totalCount": 15
 }
+```
+
+**Example:**
+```bash
+curl -X GET "https://your-domain.com/api/files?botId=bot_123" \
+  -H "Authorization: Bearer <token>"
 ```
 
 ---
 
-## 🔍 **Vector Operations**
+### Initialize File Upload
 
-### **Health Check**
-```http
-GET /api/vectors
-```
+Get presigned S3 URL for file upload.
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "status": "healthy",
-    "qdrantConnection": "connected",
-    "openaiConnection": "connected",
-    "totalCollections": 45,
-    "totalVectors": 12890,
-    "avgResponseTime": 23.4
-  }
-}
-```
+**Endpoint:** `POST /api/files/upload/init`
 
-### **Semantic Search**
-```http
-POST /api/vectors/search
-```
+**Authentication:** Required
 
 **Request Body:**
 ```json
 {
   "botId": "bot_123",
-  "query": "How to configure authentication settings?",
-  "limit": 5,
-  "scoreThreshold": 0.7,
-  "filter": {
-    "category": "configuration",
-    "section": "authentication"
-  }
+  "fileName": "product-manual.pdf",
+  "fileType": "pdf",
+  "fileSize": 1048576
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "query": "How to configure authentication settings?",
-    "results": [
-      {
-        "id": "chunk_456",
-        "content": "Authentication can be configured in the settings panel...",
-        "score": 0.89,
-        "fileId": "file_123",
-        "filename": "admin-guide.pdf",
-        "metadata": {
-          "page": 45,
-          "section": "Authentication Setup"
-        }
-      }
-    ],
-    "totalFound": 12,
-    "searchTime": 34.2
-  }
+  "fileId": "file_123",
+  "uploadUrl": "https://s3.amazonaws.com/presigned-url",
+  "s3Key": "uploads/user_123/bot_123/file_123.pdf"
 }
 ```
 
-### **Get Bot Vector Stats**
-```http
-GET /api/vectors/{botId}
-```
+**Supported File Types:**
+- `pdf` - PDF documents
+- `docx` - Microsoft Word
+- `txt` - Plain text
+- `md` - Markdown
+- `csv` - CSV files
+- `html` - HTML files
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
+**File Size Limits:**
+- Max 50 MB per file
+
+**Example:**
+```bash
+curl -X POST "https://your-domain.com/api/files/upload/init" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
     "botId": "bot_123",
-    "collectionName": "user456_bot123",
-    "vectorCount": 234,
-    "dimensions": 1536,
-    "embeddingModel": "text-embedding-3-small",
-    "storageSize": "45.2 MB",
-    "lastUpdated": "2025-01-15T10:30:00Z",
-    "health": {
-      "status": "healthy",
-      "avgSearchTime": 23.4,
-      "errorRate": 0.001
-    }
-  }
-}
-```
-
-### **Initialize Bot Vector Storage**
-```http
-POST /api/vectors/{botId}
-```
-
-**Request Body:**
-```json
-{
-  "dimensions": 1536,
-  "embeddingModel": "text-embedding-3-small",
-  "options": {
-    "optimizeFor": "speed" // or "storage"
-  }
-}
-```
-
-### **Process File to Vectors**
-```http
-POST /api/vectors/process/{fileId}
-```
-
-**Request Body:**
-```json
-{
-  "regenerate": false,
-  "chunkOptions": {
-    "chunkSize": 700,
-    "overlap": 100
-  }
-}
+    "fileName": "manual.pdf",
+    "fileType": "pdf",
+    "fileSize": 1048576
+  }'
 ```
 
 ---
 
-## 💬 **Chat API (Public)**
+### Complete File Upload
 
-### **Send Message**
-```http
-POST /api/chat/{botId}
-```
+Finalize upload and start processing.
+
+**Endpoint:** `POST /api/files/upload/complete`
+
+**Authentication:** Required
 
 **Request Body:**
 ```json
 {
-  "message": "How do I reset my password?",
-  "sessionId": "session_abc123",
-  "userFingerprint": "fp_xyz789", // optional
-  "domain": "example.com", // optional
-  "metadata": { // optional
-    "userAgent": "Mozilla/5.0...",
-    "referrer": "https://example.com/help"
-  }
+  "fileId": "file_123",
+  "s3Key": "uploads/user_123/bot_123/file_123.pdf"
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Message sent successfully",
-  "data": {
-    "message": "To reset your password, go to the login page and click 'Forgot Password'...",
-    "sessionId": "session_abc123",
-    "messageId": "msg_456",
-    "conversationId": "conv_789",
-    "sources": [
-      {
-        "documentId": "file_123",
-        "fileName": "user-guide.pdf",
-        "chunkContent": "Password reset instructions...",
-        "similarityScore": 0.92,
-        "page": 12
-      }
-    ],
-    "responseTime": 1234,
-    "tokensUsed": 89,
-    "hasRelevantContext": true
+  "file": {
+    "_id": "file_123",
+    "status": "processing",
+    "message": "File uploaded successfully. Processing started."
   }
 }
 ```
 
-### **Get Conversation History**
-```http
-GET /api/chat/{botId}?sessionId={sessionId}
+**Processing Steps:**
+1. File queued for processing
+2. Text extraction
+3. Chunking
+4. Embedding generation
+5. Vector storage in Qdrant
+6. Status updated to 'completed'
+
+**Example:**
+```bash
+curl -X POST "https://your-domain.com/api/files/upload/complete" \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fileId": "file_123",
+    "s3Key": "uploads/user_123/bot_123/file_123.pdf"
+  }'
+```
+
+---
+
+### Get File Details
+
+Get information about a specific file.
+
+**Endpoint:** `GET /api/files/[id]`
+
+**Authentication:** Required
+
+**Response:**
+```json
+{
+  "file": {
+    "_id": "file_123",
+    "botId": "bot_123",
+    "fileName": "manual.pdf",
+    "fileSize": 1048576,
+    "fileType": "pdf",
+    "status": "completed",
+    "s3Url": "https://s3.amazonaws.com/...",
+    "metadata": {
+      "pageCount": 50,
+      "chunkCount": 125,
+      "extractedText": "..." 
+    },
+    "createdAt": "2026-01-10T10:00:00.000Z",
+    "updatedAt": "2026-01-10T10:05:00.000Z"
+  }
+}
+```
+
+**Example:**
+```bash
+curl -X GET "https://your-domain.com/api/files/file_123" \
+  -H "Authorization: Bearer <token>"
+```
+
+---
+
+### Delete File
+
+Delete a file and its vectors.
+
+**Endpoint:** `DELETE /api/files/[id]`
+
+**Authentication:** Required
+
+**Response:**
+```json
+{
+  "message": "File deleted successfully"
+}
+```
+
+**Notes:**
+- Deletes S3 object
+- Deletes vectors from Qdrant
+- Deletes MongoDB record
+
+**Example:**
+```bash
+curl -X DELETE "https://your-domain.com/api/files/file_123" \
+  -H "Authorization: Bearer <token>"
+```
+
+---
+
+## 💬 Chat API
+
+### Send Message
+
+Send a chat message to a bot.
+
+**Endpoint:** `POST /api/chat/[botId]`
+
+**Authentication:** NOT required (public endpoint)
+
+**Request Body:**
+```json
+{
+  "message": "What are your business hours?",
+  "sessionId": "uuid-v4-session-id",
+  "domain": "example.com",
+  "userFingerprint": "fp_abc123"
+}
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": {
+  "response": "We're open Monday through Friday, 9 AM to 5 PM EST.",
+  "conversationId": "conv_123",
+  "sessionId": "uuid-v4-session-id"
+}
+```
+
+**Rate Limits:**
+- **IP-based:** 100 requests/hour
+- **Session-based:** 50 messages/hour
+
+**Example:**
+```bash
+curl -X POST "https://your-domain.com/api/chat/bot_123" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Hello",
+    "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+    "domain": "example.com",
+    "userFingerprint": "fp_abc123"
+  }'
+```
+
+---
+
+### Get Conversations
+
+List all conversations for a bot.
+
+**Endpoint:** `GET /api/chat/[botId]/conversations`
+
+**Authentication:** Required
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | number | No | Page number (default: 1) |
+| `limit` | number | No | Results per page (default: 20) |
+| `domain` | string | No | Filter by domain |
+
+**Response:**
+```json
+{
+  "conversations": [
+    {
+      "_id": "conv_123",
+      "sessionId": "uuid-v4",
+      "messageCount": 5,
+      "lastMessage": "Thank you!",
+      "sessionMetadata": {
+        "domain": "example.com",
+        "userFingerprint": "fp_abc123"
+      },
+      "createdAt": "2026-01-10T10:00:00.000Z",
+      "updatedAt": "2026-01-10T10:15:00.000Z"
+    }
+  ],
+  "totalCount": 45,
+  "currentPage": 1,
+  "totalPages": 3
+}
+```
+
+**Example:**
+```bash
+curl -X GET "https://your-domain.com/api/chat/bot_123/conversations?page=1&limit=20" \
+  -H "Authorization: Bearer <token>"
+```
+
+---
+
+### Get Conversation Details
+
+Get full message history for a conversation.
+
+**Endpoint:** `GET /api/chat/[botId]/conversations/[sessionId]`
+
+**Authentication:** Required
+
+**Response:**
+```json
+{
+  "conversation": {
+    "_id": "conv_123",
+    "sessionId": "uuid-v4",
     "messages": [
       {
-        "id": "msg_123",
         "role": "user",
-        "content": "How do I reset my password?",
-        "timestamp": "2025-01-15T10:00:00Z"
+        "content": "What are your hours?",
+        "timestamp": "2026-01-10T10:00:00.000Z"
       },
       {
-        "id": "msg_124",
         "role": "assistant",
-        "content": "To reset your password...",
-        "timestamp": "2025-01-15T10:00:05Z",
-        "sources": [ /* sources array */ ],
-        "tokensUsed": 89,
-        "responseTime": 1234
+        "content": "We're open 9 AM to 5 PM EST.",
+        "timestamp": "2026-01-10T10:00:05.000Z"
       }
     ],
-    "sessionId": "session_abc123",
-    "conversationId": "conv_789",
-    "totalMessages": 4
+    "sessionMetadata": {
+      "domain": "example.com",
+      "userFingerprint": "fp_abc123",
+      "ipAddress": "192.168.1.1",
+      "userAgent": "Mozilla/5.0..."
+    },
+    "createdAt": "2026-01-10T10:00:00.000Z"
   }
 }
 ```
 
-### **Clear Conversation History**
-```http
-DELETE /api/chat/{botId}?sessionId={sessionId}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Conversation history cleared successfully",
-  "data": {
-    "deletedCount": 1,
-    "sessionId": "session_abc123"
-  }
-}
+**Example:**
+```bash
+curl -X GET "https://your-domain.com/api/chat/bot_123/conversations/550e8400-e29b-41d4-a716-446655440000" \
+  -H "Authorization: Bearer <token>"
 ```
 
 ---
 
-## 📊 **Analytics**
+## ⚙️ System API
 
-### **Bot Analytics**
-```http
-GET /api/bots/{botId}/analytics
-```
+### Health Check
 
-**Query Parameters:**
-- `period` (string): `today`, `week`, `month`, `quarter`, `year`
-- `metrics` (array): Specific metrics to include
+Check API health status.
+
+**Endpoint:** `GET /api/health`
+
+**Authentication:** NOT required
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": {
-    "period": "month",
-    "metrics": {
-      "totalMessages": 1250,
-      "totalSessions": 89,
-      "uniqueVisitors": 67,
-      "averageSessionLength": 4.2,
-      "totalTokensUsed": 45230,
-      "avgResponseTime": 1.8,
-      "successRate": 0.94,
-      "topQuestions": [
-        {
-          "question": "How to reset password?",
-          "count": 23,
-          "avgResponseTime": 1.2
-        }
-      ],
-      "dailyStats": [
-        {
-          "date": "2025-01-01",
-          "messages": 45,
-          "sessions": 12,
-          "uniqueVisitors": 9
-        }
-      ]
-    }
+  "status": "ok",
+  "timestamp": "2026-01-10T10:00:00.000Z",
+  "services": {
+    "mongodb": "connected",
+    "qdrant": "connected",
+    "redis": "connected"
   }
 }
 ```
 
----
-
-## 🔗 **Webhooks**
-
-### **Clerk User Events**
-```http
-POST /api/webhooks/clerk
+**Example:**
+```bash
+curl -X GET "https://your-domain.com/api/health"
 ```
 
-**Supported Events:**
-- `user.created` - New user registration
-- `user.updated` - User profile changes
-- `user.deleted` - User account deletion
+---
 
-**Example Payload (user.created):**
+### Clerk Webhooks
+
+Receive user lifecycle events from Clerk.
+
+**Endpoint:** `POST /api/webhooks/clerk`
+
+**Authentication:** Svix webhook signature
+
+**Events Handled:**
+- `user.created` - Create user in database
+- `user.updated` - Update user information
+- `user.deleted` - Clean up user data
+
+**Request Body:**
 ```json
 {
   "type": "user.created",
   "data": {
     "id": "user_123",
-    "email_addresses": [
-      {
-        "email_address": "user@example.com",
-        "id": "email_456"
-      }
-    ],
+    "email_addresses": [...],
     "first_name": "John",
     "last_name": "Doe"
   }
 }
 ```
 
----
-
-## ❌ **Error Handling**
-
-### **Standard Error Response**
+**Response:**
 ```json
 {
-  "success": false,
-  "error": "Detailed error message",
+  "received": true
+}
+```
+
+---
+
+## ❌ Error Handling
+
+All API errors follow a consistent format:
+
+### Error Response Format
+
+```json
+{
+  "error": "Error message",
   "code": "ERROR_CODE",
   "details": {
-    "field": "Specific field error",
-    "timestamp": "2025-01-15T10:00:00Z",
-    "requestId": "req_123456"
+    "field": "Additional context"
   }
 }
 ```
 
-### **HTTP Status Codes**
-- **200** - Success
-- **201** - Created
-- **400** - Bad Request (validation errors)
-- **401** - Unauthorized (authentication required)
-- **403** - Forbidden (access denied)
-- **404** - Not Found
-- **409** - Conflict (duplicate resource)
-- **413** - Payload Too Large (file size limit)
-- **422** - Unprocessable Entity (semantic errors)
-- **429** - Too Many Requests (rate limited)
-- **500** - Internal Server Error
+### HTTP Status Codes
 
-### **Common Error Codes**
-- `UNAUTHORIZED` - Missing or invalid authentication
-- `BOT_NOT_FOUND` - Bot doesn't exist or access denied
-- `FILE_TOO_LARGE` - File exceeds size limit
-- `INVALID_FILE_FORMAT` - Unsupported file type
-- `PROCESSING_FAILED` - File processing error
-- `RATE_LIMIT_EXCEEDED` - Too many requests
-- `VECTOR_SEARCH_FAILED` - Vector database error
-- `OPENAI_API_ERROR` - AI service error
+| Status | Meaning | Usage |
+|--------|---------|-------|
+| 200 | OK | Successful request |
+| 201 | Created | Resource created |
+| 400 | Bad Request | Invalid input |
+| 401 | Unauthorized | Missing/invalid auth |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | Not Found | Resource doesn't exist |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Server error |
 
----
+### Common Error Codes
 
-## 🚦 **Rate Limiting**
+| Code | Description |
+|------|-------------|
+| `VALIDATION_ERROR` | Input validation failed |
+| `UNAUTHORIZED` | Authentication required |
+| `FORBIDDEN` | Access denied |
+| `NOT_FOUND` | Resource not found |
+| `RATE_LIMIT_EXCEEDED` | Too many requests |
+| `BOT_NOT_FOUND` | Bot doesn't exist |
+| `FILE_NOT_FOUND` | File doesn't exist |
+| `INVALID_API_KEY` | OpenAI key invalid |
+| `PROCESSING_ERROR` | File processing failed |
+| `DOMAIN_NOT_WHITELISTED` | Domain not allowed |
 
-### **Current Limits**
-- **API Requests**: 1000/hour per user
-- **File Uploads**: 50/hour per user  
-- **Chat Messages**: 100/hour per bot (public)
-- **Vector Searches**: 500/hour per user
+### Error Examples
 
-### **Rate Limit Headers**
-```http
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 750
-X-RateLimit-Reset: 1642694400
-X-RateLimit-Retry-After: 60
-```
-
-### **Rate Limit Error Response**
+#### Validation Error
 ```json
 {
-  "success": false,
+  "error": "Validation failed",
+  "code": "VALIDATION_ERROR",
+  "details": {
+    "name": "Bot name is required",
+    "systemPrompt": "Must be at least 10 characters"
+  }
+}
+```
+
+#### Rate Limit Error
+```json
+{
   "error": "Rate limit exceeded",
   "code": "RATE_LIMIT_EXCEEDED",
   "details": {
-    "limit": 1000,
-    "remaining": 0,
-    "resetTime": "2025-01-15T11:00:00Z"
+    "limit": 50,
+    "reset": "2026-01-10T11:00:00.000Z",
+    "retryAfter": 3600
+  }
+}
+```
+
+#### Not Found Error
+```json
+{
+  "error": "Bot not found",
+  "code": "BOT_NOT_FOUND",
+  "details": {
+    "botId": "bot_123"
   }
 }
 ```
 
 ---
 
-## 🛠️ **SDKs & Examples**
+## 🚦 Rate Limiting
 
-### **JavaScript/Node.js**
-```javascript
-// Initialize PlugRAG client
-const plugrag = new PlugRAG({
-  apiKey: 'your-api-key',
-  baseURL: 'https://api.plugrag.com'
-});
+### Limits
 
-// Create a bot
-const bot = await plugrag.bots.create({
-  name: 'Support Assistant',
-  description: 'Customer support chatbot'
-});
+| Endpoint Type | Limit | Window | Identifier |
+|--------------|-------|--------|------------|
+| Chat API (IP) | 100 requests | 1 hour | IP Address |
+| Chat API (Session) | 50 messages | 1 hour | Session ID |
+| Authenticated API | 1000 requests | 1 hour | User ID |
 
-// Upload file
-const file = await plugrag.files.upload(bot.id, {
-  file: fileBuffer,
-  filename: 'manual.pdf',
-  options: { generateEmbeddings: true }
-});
+### Rate Limit Headers
 
-// Send chat message
-const response = await plugrag.chat.sendMessage(bot.id, {
-  message: 'Hello!',
-  sessionId: 'session_123'
-});
+Responses include rate limit information:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1704884400
 ```
 
-### **Python**
-```python
-import plugrag
+### Handling Rate Limits
 
-# Initialize client
-client = plugrag.Client(api_key='your-api-key')
+When rate limited, you'll receive a 429 response:
 
-# Create bot
-bot = client.bots.create(
-    name='Support Assistant',
-    description='Customer support chatbot'
-)
-
-# Upload file
-with open('manual.pdf', 'rb') as f:
-    file_result = client.files.upload(
-        bot_id=bot.id,
-        file=f,
-        options={'generate_embeddings': True}
-    )
-
-# Send message
-response = client.chat.send_message(
-    bot_id=bot.id,
-    message='Hello!',
-    session_id='session_123'
-)
-```
-
-### **cURL Examples**
-```bash
-# Create bot
-curl -X POST https://api.plugrag.com/api/bots \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Support Assistant",
-    "description": "Customer support chatbot"
-  }'
-
-# Upload file
-curl -X POST https://api.plugrag.com/api/files \
-  -H "Authorization: Bearer $TOKEN" \
-  -F "file=@manual.pdf" \
-  -F "botId=bot_123" \
-  -F 'options={"generateEmbeddings":true}'
-
-# Send chat message (public)
-curl -X POST https://api.plugrag.com/api/chat/bot_123 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "Hello!",
-    "sessionId": "session_123"
-  }'
-```
-
----
-
-## 🔧 **Testing & Debugging**
-
-### **API Health Check**
-```bash
-curl https://api.plugrag.com/api/vectors/health
-```
-
-### **Test Authentication**
-```javascript
-const response = await fetch('/api/bots', {
-  headers: { 'Authorization': `Bearer ${token}` }
-});
-
-if (response.status === 401) {
-  console.error('Authentication failed');
+```json
+{
+  "error": "Rate limit exceeded",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "details": {
+    "limit": 100,
+    "reset": "2026-01-10T11:00:00.000Z",
+    "retryAfter": 3600
+  }
 }
 ```
 
-### **Enable Debug Mode**
-```javascript
-// Add debug headers to requests
-const response = await fetch('/api/bots', {
-  headers: { 
-    'X-Debug': 'true',
-    'X-Request-ID': 'unique-request-id'
-  }
-});
+**Best Practices:**
+- Respect the `retryAfter` value
+- Implement exponential backoff
+- Cache responses when possible
+- Use session IDs consistently
+
+---
+
+## 🌐 CORS
+
+Cross-Origin Resource Sharing (CORS) is configured as follows:
+
+### Allowed Origins
+- Dashboard: Same origin
+- Chat widget: Any origin (public endpoint)
+
+### Preflight Requests
+
+The API supports OPTIONS requests for CORS preflight:
+
+```http
+OPTIONS /api/chat/bot_123
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: POST, OPTIONS
+Access-Control-Allow-Headers: Content-Type
 ```
 
 ---
 
-<div align="center">
+## 🔗 Webhooks
 
-**📚 Need more help?**  
-[View Examples](./examples) • [Join Discord](https://discord.gg/plugrag) • [Contact Support](mailto:support@plugrag.com)
+### File Processing Events
 
-</div>
+Configure webhooks to receive notifications about file processing:
+
+**Events:**
+- `file.processing.started`
+- `file.processing.completed`
+- `file.processing.failed`
+
+**Payload:**
+```json
+{
+  "event": "file.processing.completed",
+  "fileId": "file_123",
+  "botId": "bot_123",
+  "status": "completed",
+  "timestamp": "2026-01-10T10:05:00.000Z",
+  "metadata": {
+    "chunkCount": 125
+  }
+}
+```
+
+---
+
+## 📊 Analytics API
+
+### Bot Analytics
+
+Get analytics data for a bot.
+
+**Endpoint:** `GET /api/bots/[id]/analytics`
+
+**Authentication:** Required
+
+**Response:**
+```json
+{
+  "analytics": {
+    "totalMessages": 1500,
+    "totalConversations": 450,
+    "averageMessagesPerConversation": 3.3,
+    "topDomains": [
+      { "domain": "example.com", "count": 800 },
+      { "domain": "app.example.com", "count": 500 }
+    ],
+    "messagesByDay": [
+      { "date": "2026-01-10", "count": 150 }
+    ],
+    "lastMessageAt": "2026-01-10T15:30:00.000Z"
+  }
+}
+```
+
+---
+
+## 🧪 Testing
+
+### Test Endpoint
+
+Use the health endpoint for connectivity testing:
+
+```bash
+curl https://your-domain.com/api/health
+```
+
+### Example cURL Commands
+
+See [examples](examples/) folder for complete cURL examples for all endpoints.
+
+---
+
+## 📚 Additional Resources
+
+- [Getting Started Guide](GETTING-STARTED.md)
+- [Architecture Documentation](ARCHITECTURE.md)
+- [Deployment Guide](DEPLOYMENT.md)
+- [Main README](../README.md)
+
+---
+
+## 🆘 Support
+
+For API support:
+- Documentation: This file
+- Issues: GitHub Issues
+- Email: support@plugrag.com

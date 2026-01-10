@@ -1,323 +1,197 @@
 # 🚀 PlugRAG Deployment Guide
 
-> **Complete guide for deploying PlugRAG to production environments**
+Complete guide for deploying PlugRAG to production environments.
 
-## 📋 **Table of Contents**
-- [Deployment Overview](#deployment-overview)
-- [Environment Setup](#environment-setup)
-- [Serverless Deployment (Vercel)](#serverless-deployment-vercel)
-- [Container Deployment](#container-deployment)
+## 📖 Table of Contents
+
+- [Deployment Options](#deployment-options)
+- [Prerequisites](#prerequisites)
+- [Vercel Deployment](#vercel-deployment)
+- [Docker Deployment](#docker-deployment)
+- [AWS Deployment](#aws-deployment)
+- [Environment Configuration](#environment-configuration)
 - [Database Setup](#database-setup)
-- [Vector Database Setup](#vector-database-setup)
-- [Environment Variables](#environment-variables)
-- [Production Checklist](#production-checklist)
-- [Monitoring & Logging](#monitoring--logging)
-- [Scaling & Performance](#scaling--performance)
+- [Security Checklist](#security-checklist)
+- [Monitoring & Maintenance](#monitoring--maintenance)
 
 ---
 
-## 🎯 **Deployment Overview**
+## 🎯 Deployment Options
 
-PlugRAG supports multiple deployment strategies to fit different infrastructure requirements:
+### Recommended Platforms
 
-### **Deployment Options**
-- **🚀 Serverless (Recommended)**: Vercel, AWS Lambda, Azure Functions
-- **🐳 Containerized**: Docker, Kubernetes, AWS ECS, Google Cloud Run  
-- **☁️ Traditional VPS**: DigitalOcean, Linode, AWS EC2
-- **🏢 On-Premise**: Private cloud, datacenter deployment
-
-### **Production Architecture**
-
-```mermaid
-graph TB
-    subgraph "CDN & Load Balancer"
-        A[Cloudflare/AWS CloudFront] --> B[Load Balancer]
-    end
-    
-    subgraph "Application Tier"
-        B --> C[Next.js App 1]
-        B --> D[Next.js App 2]
-        B --> E[Next.js App N]
-    end
-    
-    subgraph "Data Tier"
-        F[(MongoDB Atlas)] --> G[Primary Replica]
-        F --> H[Secondary Replica 1]
-        F --> I[Secondary Replica N]
-        
-        J[(Qdrant Cloud)] --> K[Vector Storage]
-        J --> L[Backup Instance]
-    end
-    
-    subgraph "Caching Layer"
-        M[Redis Cluster] --> N[Cache Node 1]
-        M --> O[Cache Node 2]
-    end
-    
-    subgraph "External Services"
-        P[Clerk Auth]
-        Q[OpenAI API]
-        R[Stripe Payments]
-        S[SendGrid Email]
-    end
-    
-    C --> F
-    C --> J
-    C --> M
-    C --> P
-    C --> Q
-    
-    classDef cdn fill:#3B82F6,stroke:#1E40AF,color:#FFFFFF
-    classDef app fill:#EF4444,stroke:#DC2626,color:#FFFFFF  
-    classDef data fill:#10B981,stroke:#059669,color:#FFFFFF
-    classDef cache fill:#F59E0B,stroke:#D97706,color:#FFFFFF
-    classDef external fill:#8B5CF6,stroke:#7C3AED,color:#FFFFFF
-    
-    class A,B cdn
-    class C,D,E app
-    class F,G,H,I,J,K,L data
-    class M,N,O cache
-    class P,Q,R,S external
-```
+| Platform | Best For | Difficulty | Cost |
+|----------|----------|------------|------|
+| **Vercel** | Quick deployment, serverless | Easy | Free tier available |
+| **Docker** | Full control, self-hosted | Medium | Infrastructure cost |
+| **AWS** | Enterprise, high scale | Advanced | Pay-as-you-go |
+| **DigitalOcean** | Simple VPS hosting | Medium | $12+/month |
 
 ---
 
-## 🛠️ **Environment Setup**
+## 📋 Prerequisites
 
-### **Prerequisites**
+### Required Services
+
+1. **MongoDB Atlas** (Database)
+   - Free tier: M0 (512 MB storage)
+   - Recommended: M10+ for production
+   - [Sign up](https://www.mongodb.com/cloud/atlas)
+
+2. **Clerk** (Authentication)
+   - Free tier: 10,000 MAUs
+   - [Sign up](https://clerk.com/)
+
+3. **OpenAI** (AI/ML)
+   - Pay-per-use pricing
+   - [Get API key](https://platform.openai.com/api-keys)
+
+4. **AWS S3** (File Storage)
+   - Free tier: 5 GB storage
+   - [Create bucket](https://aws.amazon.com/s3/)
+
+5. **Redis** (Job Queue)
+   - Upstash: Free tier available
+   - Self-hosted: Docker or VPS
+
+6. **Qdrant** (Vector Database)
+   - Qdrant Cloud: Free tier
+   - Self-hosted: Docker
+
+### System Requirements
+
+- **Node.js:** 20.11 or higher
+- **Memory:** 2GB minimum, 4GB recommended
+- **Storage:** 10GB minimum
+- **Network:** HTTPS with valid SSL certificate
+
+---
+
+## 🎨 Vercel Deployment
+
+### Step 1: Prepare Your Repository
 
 ```bash
-# Required software versions
-Node.js: >= 20.0.0
-npm: >= 10.0.0
-Docker: >= 24.0.0 (for containerized deployment)
-MongoDB: >= 7.0
-Redis: >= 7.0 (optional, for caching)
-```
-
-### **Local Development Setup**
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/plugrag.git
-cd plugrag
-
-# 2. Install dependencies
+# Ensure package.json is configured
 npm install
 
-# 3. Copy environment variables
-cp .env.example .env.local
-
-# 4. Configure environment variables (see Environment Variables section)
-nano .env.local
-
-# 5. Set up local databases (optional)
-docker-compose up -d mongodb qdrant redis
-
-# 6. Run database migrations
-npm run db:migrate
-
-# 7. Start development server
-npm run dev
-
-# 8. Verify installation
-curl http://localhost:3000/api/health
+# Test build locally
+npm run build
 ```
 
----
+### Step 2: Deploy to Vercel
 
-## 🚀 **Serverless Deployment (Vercel)**
-
-### **Vercel Setup** ⭐ *Recommended for quick deployment*
+#### Option A: Vercel CLI
 
 ```bash
-# 1. Install Vercel CLI
-npm i -g vercel
+# Install Vercel CLI
+npm install -g vercel
 
-# 2. Login to Vercel
+# Login to Vercel
 vercel login
 
-# 3. Deploy to Vercel
-vercel --prod
-
-# 4. Configure environment variables in Vercel dashboard
-# Go to: Project Settings → Environment Variables
+# Deploy
+vercel
 ```
 
-### **Vercel Configuration**
+#### Option B: GitHub Integration
+
+1. Push code to GitHub
+2. Go to [vercel.com](https://vercel.com)
+3. Click "Import Project"
+4. Select your repository
+5. Vercel auto-detects Next.js configuration
+
+### Step 3: Configure Environment Variables
+
+In Vercel Dashboard → Settings → Environment Variables, add:
+
+```env
+MONGODB_URI=mongodb+srv://...
+CLERK_SECRET_KEY=sk_live_...
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
+CLERK_WEBHOOK_SECRET=whsec_...
+ENCRYPTION_SECRET_KEY=your-32-char-key-here!!!!!!!!
+OPENAI_API_KEY=sk-...
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=your-bucket-name
+REDIS_HOST=your-redis-host
+REDIS_PORT=6379
+QDRANT_URL=https://your-qdrant-instance
+NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
+```
+
+### Step 4: Deploy Worker Separately
+
+Vercel doesn't support long-running processes. Options:
+
+#### Option A: Render.com Worker
+
+1. Create new Web Service on Render
+2. Connect your repository
+3. Set build command: `npm install`
+4. Set start command: `npm run worker`
+5. Add same environment variables
+
+#### Option B: Railway.app Worker
+
+1. Create new project
+2. Deploy from GitHub
+3. Override start command: `npm run worker`
+4. Add environment variables
+
+### Step 5: Configure Webhooks
+
+1. In Clerk Dashboard:
+   - Go to Webhooks
+   - Add endpoint: `https://your-domain.vercel.app/api/webhooks/clerk`
+   - Select events: user.created, user.updated, user.deleted
+   - Copy webhook secret to `CLERK_WEBHOOK_SECRET`
+
+### Vercel Configuration
 
 Create `vercel.json`:
+
 ```json
 {
   "version": 2,
-  "framework": "nextjs",
   "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "functions": {
-    "src/app/api/files/route.js": {
-      "maxDuration": 300
-    },
-    "src/app/api/vectors/process/[fileId]/route.js": {
-      "maxDuration": 300
-    },
-    "src/app/api/chat/[botId]/route.js": {
-      "maxDuration": 60
-    }
-  },
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "regions": ["iad1"],
   "env": {
-    "NODE_ENV": "production",
-    "NEXT_TELEMETRY_DISABLED": "1"
-  },
-  "regions": ["iad1", "sfo1"],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "https://your-domain.com"
-        },
-        {
-          "key": "Access-Control-Allow-Methods", 
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
-        }
-      ]
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/dashboard",
-      "has": [
-        {
-          "type": "cookie",
-          "key": "__session"
-        }
-      ],
-      "permanent": false,
-      "destination": "/dashboard/bots"
-    }
-  ]
+    "NODE_ENV": "production"
+  }
 }
-```
-
-### **AWS Lambda Deployment**
-
-```bash
-# Using Serverless Framework
-npm install -g serverless
-npm install serverless-nextjs-plugin
-
-# Create serverless.yml
-cat > serverless.yml << EOF
-service: plugrag-app
-
-provider:
-  name: aws
-  runtime: nodejs20.x
-  region: us-east-1
-  memorySize: 1024
-  timeout: 30
-  environment:
-    NODE_ENV: production
-
-plugins:
-  - serverless-nextjs-plugin
-
-custom:
-  serverless-nextjs:
-    nextConfigDir: ./
-    compatibilityMode: v3
-
-functions:
-  app:
-    handler: index.handler
-    events:
-      - http:
-          path: /{any+}
-          method: any
-      - http:
-          path: /
-          method: any
-EOF
-
-# Deploy
-serverless deploy --stage production
 ```
 
 ---
 
-## 🐳 **Container Deployment**
+## 🐳 Docker Deployment
 
-### **Docker Setup**
+### Full Docker Setup
 
-Create `Dockerfile`:
-```dockerfile
-# Multi-stage build for optimized production image
-FROM node:20-alpine AS base
+See [DOCKER.md](../DOCKER.md) for comprehensive Docker documentation.
 
-# Install dependencies only when needed
-FROM base AS deps
-WORKDIR /app
+### Quick Start
 
-# Copy package files
-COPY package.json package-lock.json* ./
-RUN \
-  if [ -f package-lock.json ]; then npm ci --only=production --silent; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+```bash
+# Create .env.local with your credentials
+cp .env.example .env.local
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# Build and start all services
+docker-compose up --build -d
 
-# Set environment for build
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
-
-# Build application
-RUN npm run build
-
-# Production image, copy all the files and run next
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-# Create nextjs user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy public assets
-COPY --from=builder /app/public ./public
-
-# Copy built application
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
-EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
-
-CMD ["node", "server.js"]
+# View logs
+docker-compose logs -f
 ```
 
-### **Docker Compose Setup**
+### Production Docker Compose
 
 Create `docker-compose.prod.yml`:
+
 ```yaml
 version: '3.8'
 
@@ -326,65 +200,41 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=${MONGODB_URI}
-      - QDRANT_URL=${QDRANT_URL}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    restart: unless-stopped
+      # Add all environment variables from .env.local
+    ports:
+      - "3000:3000"
     depends_on:
-      - mongodb
-      - qdrant
       - redis
-    networks:
-      - plugrag-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.plugrag.rule=Host(`your-domain.com`)"
-      - "traefik.http.routers.plugrag.tls.certresolver=le"
+      - qdrant
+    restart: always
 
-  mongodb:
-    image: mongo:7
-    ports:
-      - "27017:27017"
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
-      - MONGO_INITDB_DATABASE=plugrag
-    volumes:
-      - mongodb_data:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    restart: unless-stopped
-    networks:
-      - plugrag-network
-
-  qdrant:
-    image: qdrant/qdrant:latest
-    ports:
-      - "6333:6333"
-    volumes:
-      - qdrant_data:/qdrant/storage
-    environment:
-      - QDRANT__SERVICE__HTTP_PORT=6333
-      - QDRANT__SERVICE__GRPC_PORT=6334
-    restart: unless-stopped
-    networks:
-      - plugrag-network
+      - NODE_ENV=production
+      # Add all environment variables
+    depends_on:
+      - redis
+      - qdrant
+    restart: always
+    deploy:
+      replicas: 2  # Scale workers
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    restart: unless-stopped
-    networks:
-      - plugrag-network
+    restart: always
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    restart: always
 
   nginx:
     image: nginx:alpine
@@ -396,754 +246,504 @@ services:
       - ./ssl:/etc/nginx/ssl
     depends_on:
       - app
-    restart: unless-stopped
-    networks:
-      - plugrag-network
+    restart: always
 
 volumes:
-  mongodb_data:
-  qdrant_data:
   redis_data:
-
-networks:
-  plugrag-network:
-    driver: bridge
+  qdrant_storage:
 ```
 
-### **Kubernetes Deployment**
-
-Create `k8s/deployment.yaml`:
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: plugrag-app
-  labels:
-    app: plugrag
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: plugrag
-  template:
-    metadata:
-      labels:
-        app: plugrag
-    spec:
-      containers:
-      - name: plugrag
-        image: your-registry/plugrag:latest
-        ports:
-        - containerPort: 3000
-        env:
-        - name: NODE_ENV
-          value: "production"
-        - name: MONGODB_URI
-          valueFrom:
-            secretKeyRef:
-              name: plugrag-secrets
-              key: mongodb-uri
-        - name: OPENAI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: plugrag-secrets
-              key: openai-api-key
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /api/health
-            port: 3000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /api/health
-            port: 3000
-          initialDelaySeconds: 5
-          periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: plugrag-service
-spec:
-  selector:
-    app: plugrag
-  ports:
-  - port: 80
-    targetPort: 3000
-  type: ClusterIP
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: plugrag-ingress
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-spec:
-  tls:
-  - hosts:
-    - your-domain.com
-    secretName: plugrag-tls
-  rules:
-  - host: your-domain.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: plugrag-service
-            port:
-              number: 80
-```
-
----
-
-## 🗄️ **Database Setup**
-
-### **MongoDB Atlas (Recommended)**
+### Deploy
 
 ```bash
-# 1. Create MongoDB Atlas account at https://cloud.mongodb.com
-# 2. Create a new cluster
-# 3. Configure network access (whitelist your app's IP)
-# 4. Create database user
-# 5. Get connection string
-
-# Example connection string format:
-MONGODB_URI="mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority"
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### **Self-Hosted MongoDB**
+---
+
+## ☁️ AWS Deployment
+
+### Architecture
+
+```
+┌─────────────────────────────────────────┐
+│              CloudFront (CDN)           │
+└─────────────────────────────────────────┘
+                    ▼
+┌─────────────────────────────────────────┐
+│        ALB (Application Load Balancer)  │
+└─────────────────────────────────────────┘
+                    ▼
+┌──────────────┐        ┌──────────────┐
+│  ECS Fargate │        │  ECS Fargate │
+│   (App)      │        │   (Worker)   │
+└──────────────┘        └──────────────┘
+        ▼                       ▼
+┌──────────────┐        ┌──────────────┐
+│ ElastiCache  │        │ DocumentDB   │
+│   (Redis)    │        │  (MongoDB)   │
+└──────────────┘        └──────────────┘
+```
+
+### Step 1: Prepare Docker Images
 
 ```bash
-# Install MongoDB on Ubuntu/Debian
-curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
-echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-sudo apt-get update
-sudo apt-get install -y mongodb-org
+# Build images
+docker build -t plugrag-app:latest .
+docker build -t plugrag-worker:latest -f Dockerfile.worker .
 
-# Start MongoDB
-sudo systemctl start mongod
-sudo systemctl enable mongod
+# Tag for ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account>.dkr.ecr.us-east-1.amazonaws.com
 
-# Create application database
-mongosh --eval "
-use plugrag;
-db.createUser({
-  user: 'plugrag_user',
-  pwd: 'secure_password_here',
-  roles: [
-    { role: 'readWrite', db: 'plugrag' }
+docker tag plugrag-app:latest <account>.dkr.ecr.us-east-1.amazonaws.com/plugrag-app:latest
+docker tag plugrag-worker:latest <account>.dkr.ecr.us-east-1.amazonaws.com/plugrag-worker:latest
+
+# Push to ECR
+docker push <account>.dkr.ecr.us-east-1.amazonaws.com/plugrag-app:latest
+docker push <account>.dkr.ecr.us-east-1.amazonaws.com/plugrag-worker:latest
+```
+
+### Step 2: Create ECS Task Definitions
+
+**App Task Definition:**
+
+```json
+{
+  "family": "plugrag-app",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "image": "<account>.dkr.ecr.us-east-1.amazonaws.com/plugrag-app:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        // Add environment variables
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/plugrag-app",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
   ]
-});
-"
+}
 ```
 
-### **Database Configuration**
-
-Create `mongo-init.js` for Docker setup:
-```javascript
-// Initialize database with required indexes
-db = db.getSiblingDB('plugrag');
-
-// Create application user
-db.createUser({
-  user: 'plugrag_user',
-  pwd: 'secure_password',
-  roles: [
-    { role: 'readWrite', db: 'plugrag' }
-  ]
-});
-
-// Create performance indexes
-db.users.createIndex({ "clerkId": 1 }, { unique: true });
-db.bots.createIndex({ "ownerId": 1, "status": 1 });
-db.bots.createIndex({ "botKey": 1 }, { unique: true });
-db.files.createIndex({ "botId": 1, "status": 1 });
-db.conversations.createIndex({ "botId": 1, "sessionId": 1 });
-db.conversations.createIndex({ "botId": 1, "createdAt": -1 });
-
-print("Database initialization completed");
-```
-
----
-
-## 🔍 **Vector Database Setup**
-
-### **Qdrant Cloud (Recommended)**
+### Step 3: Create ECS Service
 
 ```bash
-# 1. Sign up at https://cloud.qdrant.io
-# 2. Create a new cluster
-# 3. Get API URL and key
-# 4. Configure environment variables
-
-QDRANT_URL="https://your-cluster.qdrant.io"
-QDRANT_API_KEY="your-api-key"
+aws ecs create-service \
+  --cluster plugrag-cluster \
+  --service-name plugrag-app \
+  --task-definition plugrag-app \
+  --desired-count 2 \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-xxx],securityGroups=[sg-xxx],assignPublicIp=ENABLED}" \
+  --load-balancers "targetGroupArn=arn:aws:elasticloadbalancing:...,containerName=app,containerPort=3000"
 ```
 
-### **Self-Hosted Qdrant**
+### Step 4: Configure Auto Scaling
 
 ```bash
-# Using Docker
-docker run -p 6333:6333 \
-  -v $(pwd)/qdrant_storage:/qdrant/storage \
-  qdrant/qdrant:latest
-
-# Using Docker Compose (see docker-compose.prod.yml above)
-
-# Or install directly on Ubuntu/Debian
-curl -L https://github.com/qdrant/qdrant/releases/latest/download/qdrant-x86_64-unknown-linux-gnu.tar.gz | tar xz
-sudo mv qdrant /usr/local/bin/
-sudo chmod +x /usr/local/bin/qdrant
-
-# Create systemd service
-sudo tee /etc/systemd/system/qdrant.service << EOF
-[Unit]
-Description=Qdrant Vector Database
-After=network.target
-
-[Service]
-Type=simple
-User=qdrant
-WorkingDirectory=/opt/qdrant
-ExecStart=/usr/local/bin/qdrant --config-path /opt/qdrant/config.yaml
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl enable qdrant
-sudo systemctl start qdrant
+aws application-autoscaling register-scalable-target \
+  --service-namespace ecs \
+  --resource-id service/plugrag-cluster/plugrag-app \
+  --scalable-dimension ecs:service:DesiredCount \
+  --min-capacity 2 \
+  --max-capacity 10
 ```
 
-### **Qdrant Configuration**
+### Infrastructure as Code
 
-Create `/opt/qdrant/config.yaml`:
-```yaml
-service:
-  host: 0.0.0.0
-  http_port: 6333
-  grpc_port: 6334
+Use Terraform or CloudFormation for reproducible deployments.
 
-storage:
-  # Path to the storage directory
-  storage_path: ./storage
-  
-  # Configure Write-Ahead Log
-  wal:
-    wal_capacity_mb: 32
-    wal_segments_ahead: 0
+**Terraform Example:**
 
-# Performance optimization
-cluster:
-  enabled: false
-  
-hnsw_index:
-  m: 16
-  ef_construct: 100
-  full_scan_threshold: 10000
-
-optimizers:
-  default_segment_number: 2
-  max_segment_size: 20000
-  memmap_threshold: 50000
-  indexing_threshold: 20000
-  flush_interval_sec: 5
-```
-
----
-
-## 🔑 **Environment Variables**
-
-### **Required Environment Variables**
-
-```bash
-# Application
-NODE_ENV=production
-PORT=3000
-NEXTAUTH_URL=https://your-domain.com
-NEXTAUTH_SECRET=your-nextauth-secret-here
-
-# Database
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/plugrag
-
-# Vector Database
-QDRANT_URL=https://your-qdrant-cluster.com
-QDRANT_API_KEY=your-qdrant-api-key
-
-# Authentication (Clerk)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-CLERK_WEBHOOK_SECRET=whsec_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
-
-# AI Services
-OPENAI_API_KEY=sk-...
-OPENAI_ORG_ID=org-...
-
-# Encryption
-ENCRYPTION_KEY=your-32-char-encryption-key-here
-ENCRYPTION_SALT=your-random-salt
-
-# File Upload
-UPLOAD_MAX_SIZE=52428800  # 50MB
-ALLOWED_FILE_TYPES=pdf,docx,txt,csv,html
-
-# Rate Limiting
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_REQUESTS=100
-RATE_LIMIT_WINDOW=900  # 15 minutes
-
-# Caching (optional)
-REDIS_URL=redis://localhost:6379
-CACHE_TTL=300  # 5 minutes
-
-# Monitoring (optional)
-SENTRY_DSN=https://your-sentry-dsn
-LOGTAIL_SOURCE_TOKEN=your-logtail-token
-
-# Analytics (optional)
-GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX
-MIXPANEL_TOKEN=your-mixpanel-token
-```
-
-### **Environment Variable Validation**
-
-Create `.env.example`:
-```bash
-# Copy this file to .env.local and fill in your values
-
-# Required - Application will not start without these
-NODE_ENV=production
-NEXTAUTH_URL=
-NEXTAUTH_SECRET=
-MONGODB_URI=
-QDRANT_URL=
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-OPENAI_API_KEY=
-
-# Optional - Features will be disabled without these
-QDRANT_API_KEY=
-REDIS_URL=
-SENTRY_DSN=
-```
-
-### **Environment Variable Security**
-
-```bash
-# Generate secure random values
-openssl rand -hex 32  # For NEXTAUTH_SECRET
-openssl rand -hex 32  # For ENCRYPTION_KEY
-openssl rand -base64 32  # For ENCRYPTION_SALT
-
-# Validate environment variables script
-cat > scripts/validate-env.js << 'EOF'
-const required = [
-  'NODE_ENV',
-  'NEXTAUTH_URL', 
-  'NEXTAUTH_SECRET',
-  'MONGODB_URI',
-  'QDRANT_URL',
-  'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY',
-  'CLERK_SECRET_KEY',
-  'OPENAI_API_KEY'
-];
-
-const missing = required.filter(key => !process.env[key]);
-
-if (missing.length > 0) {
-  console.error('❌ Missing required environment variables:');
-  missing.forEach(key => console.error(`  - ${key}`));
-  process.exit(1);
+```hcl
+resource "aws_ecs_cluster" "plugrag" {
+  name = "plugrag-cluster"
 }
 
-console.log('✅ All required environment variables are set');
-EOF
-
-node scripts/validate-env.js
+resource "aws_ecs_service" "app" {
+  name            = "plugrag-app"
+  cluster         = aws_ecs_cluster.plugrag.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = 2
+  launch_type     = "FARGATE"
+  
+  # ... network configuration
+}
 ```
 
 ---
 
-## ✅ **Production Checklist**
+## ⚙️ Environment Configuration
 
-### **Security Checklist**
-- [ ] All environment variables are properly set
-- [ ] Database has authentication enabled
-- [ ] API keys are properly encrypted
-- [ ] HTTPS is enabled and enforced
-- [ ] CORS is properly configured
-- [ ] Rate limiting is enabled
-- [ ] Input validation is implemented
-- [ ] File upload limits are enforced
-- [ ] Error messages don't leak sensitive info
+### Production Environment Variables
 
-### **Performance Checklist**  
-- [ ] Database indexes are created
-- [ ] Vector database is optimized
-- [ ] Caching is enabled (Redis)
-- [ ] CDN is configured for static assets
-- [ ] Gzip compression is enabled
-- [ ] Bundle size is optimized
-- [ ] Images are optimized
-- [ ] Database connection pooling is configured
+```env
+# Database
+MONGODB_URI=mongodb+srv://prod-cluster.mongodb.net/plugrag?retryWrites=true&w=majority
 
-### **Reliability Checklist**
-- [ ] Health checks are implemented
-- [ ] Error monitoring is set up (Sentry)
-- [ ] Logging is configured
-- [ ] Backup strategy is implemented
-- [ ] Graceful shutdown is implemented
-- [ ] Auto-scaling is configured
-- [ ] Load balancing is set up
-- [ ] Failover procedures are documented
+# Authentication
+CLERK_SECRET_KEY=sk_live_...
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
+CLERK_WEBHOOK_SECRET=whsec_...
 
-### **Monitoring Checklist**
-- [ ] Application metrics are tracked
-- [ ] Database performance is monitored
-- [ ] API response times are tracked
-- [ ] Error rates are monitored
-- [ ] User analytics are implemented
-- [ ] Alerts are configured
-- [ ] Uptime monitoring is set up
+# Encryption (CRITICAL: Use strong 32-char key)
+ENCRYPTION_SECRET_KEY=USE-STRONG-32-CHARACTER-KEY!!
+
+# OpenAI
+OPENAI_API_KEY=sk-...
+
+# AWS S3
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=plugrag-production-files
+
+# Redis
+REDIS_HOST=prod-redis.example.com
+REDIS_PORT=6379
+REDIS_PASSWORD=...  # If using password auth
+
+# Qdrant
+QDRANT_URL=https://prod-qdrant.example.com:6333
+QDRANT_API_KEY=...  # If using API key
+
+# Application
+NEXT_PUBLIC_APP_URL=https://plugrag.com
+NODE_ENV=production
+```
+
+### Secrets Management
+
+#### Option A: AWS Secrets Manager
+
+```bash
+# Store secret
+aws secretsmanager create-secret \
+  --name plugrag/production/mongodb \
+  --secret-string "mongodb+srv://..."
+
+# Retrieve in application
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+```
+
+#### Option B: Vercel Environment Variables
+
+Encrypted and injected at build/runtime.
+
+#### Option C: Docker Secrets
+
+```yaml
+secrets:
+  mongodb_uri:
+    external: true
+
+services:
+  app:
+    secrets:
+      - mongodb_uri
+```
 
 ---
 
-## 📊 **Monitoring & Logging**
+## 🗄️ Database Setup
 
-### **Application Monitoring**
+### MongoDB Atlas Production Setup
+
+1. **Create Production Cluster**
+   - Tier: M10+ (dedicated cluster)
+   - Region: Choose closest to your users
+   - Enable backups
+
+2. **Configure Network Access**
+   ```
+   Add IP: 0.0.0.0/0 (for Vercel/Serverless)
+   Or specific IPs for VPS/Docker
+   ```
+
+3. **Create Database User**
+   ```
+   Username: plugrag-prod
+   Password: <strong-password>
+   Role: readWrite on plugrag database
+   ```
+
+4. **Get Connection String**
+   ```
+   mongodb+srv://plugrag-prod:<password>@cluster.mongodb.net/plugrag?retryWrites=true&w=majority
+   ```
+
+### Qdrant Production Setup
+
+#### Option A: Qdrant Cloud
+
+1. Create cluster at [cloud.qdrant.io](https://cloud.qdrant.io)
+2. Note cluster URL and API key
+3. Add to environment variables
+
+#### Option B: Self-Hosted
+
+```yaml
+# docker-compose.yml
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__API_KEY=your-api-key
+```
+
+### Redis Production Setup
+
+#### Option A: Upstash (Serverless Redis)
+
+1. Create database at [upstash.com](https://upstash.com)
+2. Copy connection details
+3. Works perfectly with Vercel
+
+#### Option B: Redis Cloud
+
+1. Create database at [redis.com](https://redis.com)
+2. Note connection string
+3. Enable persistence
+
+#### Option C: Self-Hosted
+
+```yaml
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass yourpassword
+    volumes:
+      - redis_data:/data
+```
+
+---
+
+## 🔒 Security Checklist
+
+### Pre-Deployment
+
+- [ ] All secrets in environment variables (not committed to git)
+- [ ] Strong `ENCRYPTION_SECRET_KEY` (32 characters)
+- [ ] HTTPS enabled with valid SSL certificate
+- [ ] Database connections use TLS/SSL
+- [ ] Clerk webhook secret configured
+- [ ] S3 bucket policies restrict access
+- [ ] MongoDB IP whitelist configured
+- [ ] Rate limiting enabled
+- [ ] Input sanitization active
+- [ ] Error messages don't expose sensitive info
+
+### Post-Deployment
+
+- [ ] Test authentication flow
+- [ ] Verify file upload works
+- [ ] Check Clerk webhooks receiving events
+- [ ] Monitor error logs
+- [ ] Test chat widget on multiple domains
+- [ ] Verify domain whitelist enforcement
+- [ ] Check rate limits working
+- [ ] Test API endpoints
+- [ ] Backup strategy in place
+- [ ] Monitoring/alerting configured
+
+---
+
+## 📊 Monitoring & Maintenance
+
+### Application Monitoring
+
+#### Vercel Analytics
+- Automatically enabled
+- View in Vercel Dashboard
+
+#### Custom Logging
 
 ```javascript
-// lib/monitoring.js
-import { init } from '@sentry/nextjs';
+// src/lib/utils/logger.js
+import winston from 'winston';
 
-// Initialize Sentry for error tracking
-init({
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+  ],
+});
+```
+
+### Database Monitoring
+
+#### MongoDB Atlas
+- Enable Performance Advisor
+- Set up alerts for CPU/memory
+- Monitor slow queries
+
+#### Qdrant
+- Check collection sizes
+- Monitor query performance
+- Track memory usage
+
+### Error Tracking
+
+#### Sentry Integration
+
+```bash
+npm install @sentry/nextjs
+```
+
+```javascript
+// sentry.config.js
+Sentry.init({
   dsn: process.env.SENTRY_DSN,
   environment: process.env.NODE_ENV,
-  tracesSampleRate: 0.1,
-  beforeSend(event) {
-    // Filter out sensitive information
-    if (event.user) {
-      delete event.user.email;
-      delete event.user.ip_address;
-    }
-    return event;
-  }
 });
-
-// Custom performance monitoring
-export class PerformanceMonitor {
-  static startTimer(operation) {
-    return {
-      operation,
-      start: Date.now()
-    };
-  }
-  
-  static endTimer(timer) {
-    const duration = Date.now() - timer.start;
-    
-    // Log performance metrics
-    console.log(`[PERF] ${timer.operation}: ${duration}ms`);
-    
-    // Send to monitoring service
-    if (process.env.NODE_ENV === 'production') {
-      // Send to your monitoring service
-    }
-    
-    return duration;
-  }
-  
-  static trackAPICall(endpoint, method, statusCode, responseTime) {
-    const metrics = {
-      endpoint,
-      method,
-      statusCode,
-      responseTime,
-      timestamp: new Date().toISOString()
-    };
-    
-    // Log API metrics
-    console.log('[API]', JSON.stringify(metrics));
-  }
-}
 ```
 
-### **Health Check Endpoint**
+### Health Checks
 
-```javascript
-// app/api/health/route.js
-import { connectToMongoDB } from '@/lib/mongo';
-import { qdrantClient } from '@/lib/vectorStore';
+Set up monitoring for `/api/health`:
 
-export async function GET() {
-  const health = {
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || 'unknown',
-    environment: process.env.NODE_ENV,
-    checks: {}
-  };
-
-  try {
-    // Check MongoDB connection
-    const mongoTimer = Date.now();
-    await connectToMongoDB();
-    health.checks.mongodb = {
-      status: 'healthy',
-      responseTime: Date.now() - mongoTimer
-    };
-  } catch (error) {
-    health.checks.mongodb = {
-      status: 'unhealthy',
-      error: error.message
-    };
-    health.status = 'unhealthy';
-  }
-
-  try {
-    // Check Qdrant connection
-    const qdrantTimer = Date.now();
-    await qdrantClient.getCollections();
-    health.checks.qdrant = {
-      status: 'healthy',
-      responseTime: Date.now() - qdrantTimer
-    };
-  } catch (error) {
-    health.checks.qdrant = {
-      status: 'unhealthy', 
-      error: error.message
-    };
-    health.status = 'unhealthy';
-  }
-
-  // Check OpenAI API (optional)
-  if (process.env.OPENAI_API_KEY) {
-    try {
-      const openaiTimer = Date.now();
-      // Simple API test
-      health.checks.openai = {
-        status: 'healthy',
-        responseTime: Date.now() - openaiTimer
-      };
-    } catch (error) {
-      health.checks.openai = {
-        status: 'unhealthy',
-        error: error.message
-      };
-    }
-  }
-
-  const statusCode = health.status === 'healthy' ? 200 : 503;
-  
-  return new Response(JSON.stringify(health), {
-    status: statusCode,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache'
-    }
-  });
-}
+```bash
+# UptimeRobot, Pingdom, or custom
+curl https://your-domain.com/api/health
 ```
+
+### Backup Strategy
+
+1. **MongoDB:**
+   - Atlas: Continuous Cloud Backup
+   - Export: `mongodump` weekly
+
+2. **Qdrant:**
+   - Snapshot collections regularly
+   - Volume backups for Docker
+
+3. **S3:**
+   - Enable versioning
+   - Lifecycle policies for old files
+
+4. **Redis:**
+   - AOF persistence enabled
+   - Snapshot backups
+
+### Log Aggregation
+
+- CloudWatch (AWS)
+- Papertrail
+- Datadog
+- LogDNA
 
 ---
 
-## 📈 **Scaling & Performance**
+## 🔄 CI/CD Pipeline
 
-### **Auto-scaling Configuration**
+### GitHub Actions Example
 
 ```yaml
-# k8s/hpa.yaml - Horizontal Pod Autoscaler
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: plugrag-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: plugrag-app
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
-  behavior:
-    scaleDown:
-      stabilizationWindowSeconds: 300
-      policies:
-      - type: Percent
-        value: 50
-        periodSeconds: 60
-    scaleUp:
-      stabilizationWindowSeconds: 60
-      policies:
-      - type: Percent
-        value: 100
-        periodSeconds: 60
-```
+# .github/workflows/deploy.yml
+name: Deploy to Production
 
-### **Load Balancer Configuration**
+on:
+  push:
+    branches: [main]
 
-```nginx
-# nginx.conf
-upstream plugrag_backend {
-    least_conn;
-    server app1:3000 max_fails=3 fail_timeout=30s;
-    server app2:3000 max_fails=3 fail_timeout=30s;
-    server app3:3000 max_fails=3 fail_timeout=30s;
-}
-
-server {
-    listen 80;
-    listen 443 ssl http2;
-    server_name your-domain.com;
-    
-    # SSL configuration
-    ssl_certificate /etc/nginx/ssl/fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
-    
-    # Security headers
-    add_header Strict-Transport-Security "max-age=63072000" always;
-    add_header X-Content-Type-Options nosniff;
-    add_header X-Frame-Options DENY;
-    add_header X-XSS-Protection "1; mode=block";
-    
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_types text/plain application/json application/javascript text/css;
-    
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
-    limit_req_zone $binary_remote_addr zone=chat:10m rate=5r/s;
-    
-    # API routes
-    location /api/chat {
-        limit_req zone=chat burst=10 nodelay;
-        proxy_pass http://plugrag_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Websocket support (if needed)
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        
-        # Timeouts
-        proxy_connect_timeout 5s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-    
-    location /api {
-        limit_req zone=api burst=20 nodelay;
-        proxy_pass http://plugrag_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-    
-    # Static files
-    location /_next/static {
-        proxy_pass http://plugrag_backend;
-        proxy_cache_valid 200 1y;
-        add_header Cache-Control "public, immutable";
-    }
-    
-    # Everything else
-    location / {
-        proxy_pass http://plugrag_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-    
-    # Health check
-    location /health {
-        access_log off;
-        proxy_pass http://plugrag_backend/api/health;
-    }
-}
-```
-
-### **Database Scaling**
-
-```javascript
-// MongoDB connection with replica set
-const mongoOptions = {
-  // Connection pooling
-  maxPoolSize: 50,
-  minPoolSize: 5,
-  maxIdleTimeMS: 30000,
-  
-  // Replica set configuration
-  readPreference: 'secondaryPreferred',
-  readConcern: { level: 'majority' },
-  writeConcern: { w: 'majority', j: true },
-  
-  // Connection timeouts
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-  
-  // Retry configuration
-  retryWrites: true,
-  retryReads: true
-};
-
-// Qdrant cluster configuration
-const qdrantCluster = {
-  nodes: [
-    'https://node1.qdrant.cluster.com',
-    'https://node2.qdrant.cluster.com', 
-    'https://node3.qdrant.cluster.com'
-  ],
-  loadBalancing: 'round_robin',
-  healthCheck: {
-    interval: 30000,
-    timeout: 5000
-  }
-};
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Build
+        run: npm run build
+      
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.ORG_ID }}
+          vercel-project-id: ${{ secrets.PROJECT_ID }}
+          vercel-args: '--prod'
 ```
 
 ---
 
-<div align="center">
+## 🚨 Troubleshooting
 
-**🚀 Your PlugRAG application is now ready for production!**  
-[Security Guide](./security.md) • [Performance Optimization](./performance.md) • [Troubleshooting](./troubleshooting.md)
+### Common Issues
 
-</div>
+#### Build Failures
+
+```bash
+# Clear cache
+npm cache clean --force
+rm -rf .next node_modules
+npm install
+npm run build
+```
+
+#### Database Connection Errors
+
+- Check IP whitelist
+- Verify connection string
+- Test with MongoDB Compass
+
+#### File Upload Failures
+
+- Check S3 credentials
+- Verify bucket permissions
+- Test presigned URL generation
+
+#### Worker Not Processing
+
+- Check Redis connection
+- Verify worker is running
+- Check environment variables
+
+---
+
+## 📚 Additional Resources
+
+- [Docker Deployment Guide](../DOCKER.md)
+- [Architecture Documentation](ARCHITECTURE.md)
+- [API Reference](API-REFERENCE.md)
+- [Getting Started](GETTING-STARTED.md)
+
+---
+
+## 🆘 Support
+
+For deployment support:
+- Documentation: This guide
+- Issues: GitHub Issues
+- Community: Discussions

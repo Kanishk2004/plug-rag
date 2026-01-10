@@ -1,5 +1,9 @@
 import dotenv from 'dotenv';
-dotenv.config();
+
+// Only load .env file in development (not in Docker production)
+if (process.env.NODE_ENV !== 'production') {
+	dotenv.config();
+}
 
 // clerk Configuration
 export const NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY =

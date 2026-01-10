@@ -1,12 +1,14 @@
 # 🚀 Getting Started with PlugRAG
 
-> **Create your first AI-powered chatbot in under 5 minutes**
+**Create your first AI-powered chatbot in under 10 minutes!**
 
-## 📋 **Table of Contents**
+This guide will walk you through setting up PlugRAG, creating your first bot, uploading documents, and embedding the chat widget on your website.
+
+## 📖 Table of Contents
+
 - [What You'll Build](#what-youll-build)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Configuration](#configuration)
 - [Your First Bot](#your-first-bot)
 - [Upload Documents](#upload-documents)
 - [Test Your Chatbot](#test-your-chatbot)
@@ -15,540 +17,648 @@
 
 ---
 
-## 🎯 **What You'll Build**
+## 🎯 What You'll Build
 
 By the end of this guide, you'll have:
+
 - ✅ A fully functional RAG-powered chatbot
 - ✅ Document knowledge base with semantic search
 - ✅ Embeddable chat widget for your website
-- ✅ Analytics dashboard to monitor performance
-- ✅ Understanding of the core concepts
+- ✅ Analytics dashboard to monitor usage
+- ✅ Understanding of core concepts
 
 ---
 
-## 🔧 **Prerequisites**
+## 🔧 Prerequisites
 
-### **System Requirements**
-- **Node.js** 20.11+ ([Download](https://nodejs.org/))
+### System Requirements
+
+- **Node.js** 20.11 or higher ([Download](https://nodejs.org/))
 - **Docker Desktop** ([Download](https://www.docker.com/products/docker-desktop/))
 - **Git** for version control
+- **Modern web browser** (Chrome, Firefox, Safari, Edge)
 
-### **Required Accounts** (Free Tiers Available)
-- **MongoDB Atlas** - [Sign Up](https://www.mongodb.com/cloud/atlas)
-- **OpenAI API** - [Get API Key](https://platform.openai.com/api-keys)
-- **Clerk Authentication** - [Create Account](https://clerk.com/)
+### Required Accounts (Free Tiers Available)
 
-### **Recommended Tools**
+| Service | Purpose | Sign Up Link |
+|---------|---------|--------------|
+| **MongoDB Atlas** | Database | [Sign Up](https://www.mongodb.com/cloud/atlas) |
+| **OpenAI** | AI/ML | [Get API Key](https://platform.openai.com/api-keys) |
+| **Clerk** | Authentication | [Create Account](https://clerk.com/) |
+| **AWS** | File Storage (S3) | [Sign Up](https://aws.amazon.com/) |
+
+### Recommended Tools
+
 - **VS Code** with extensions:
-  - ES6+ snippets
-  - Prettier - Code formatter
   - ESLint
+  - Prettier - Code formatter
   - Tailwind CSS IntelliSense
+  - ES6+ snippets
 
 ---
 
-## ⚙️ **Installation**
+## ⚙️ Installation
 
-### **Step 1: Clone Repository**
+### Step 1: Clone the Repository
+
 ```bash
-# Clone the repository
-git clone https://github.com/Kanishk2004/chat-bot.git
-cd chat-bot
+git clone https://github.com/yourusername/plugrag.git
+cd plugrag
+```
 
-# Install dependencies
+### Step 2: Install Dependencies
+
+```bash
 npm install
 ```
 
-### **Step 2: Start Vector Database**
-```bash
-# Start Qdrant using Docker Compose
-docker-compose up -d
+This will install all required packages including Next.js, React, MongoDB drivers, and AI libraries.
 
-# Verify Qdrant is running
-curl http://localhost:6333/health
-```
+### Step 3: Set Up MongoDB Atlas
 
-Expected response:
-```json
-{"title":"qdrant - vector search engine","version":"1.8.1"}
-```
+1. **Create a free cluster:**
+   - Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+   - Click "Build a Database"
+   - Choose "M0" (Free tier)
+   - Select your region
+   - Click "Create"
 
----
+2. **Create database user:**
+   - Go to "Database Access"
+   - Click "Add New Database User"
+   - Username: `plugrag-user`
+   - Password: (generate strong password)
+   - Role: "Atlas Admin" or "Read/Write to any database"
+   - Click "Add User"
 
-## 🔐 **Configuration**
+3. **Allow network access:**
+   - Go to "Network Access"
+   - Click "Add IP Address"
+   - Click "Allow Access from Anywhere" (for development)
+   - Click "Confirm"
 
-### **Step 1: Create Environment File**
-Create `.env.local` in your project root:
+4. **Get connection string:**
+   - Go to "Database" → "Connect"
+   - Choose "Connect your application"
+   - Copy the connection string
+   - Replace `<password>` with your actual password
 
-```bash
-# Copy the example environment file
-cp .env.example .env.local
-```
+### Step 4: Set Up Clerk Authentication
 
-### **Step 2: Configure Authentication (Clerk)**
+1. **Create application:**
+   - Go to [Clerk](https://clerk.com/)
+   - Click "Add Application"
+   - Name: "PlugRAG"
+   - Enable "Email" and "Google" (optional)
 
-1. **Create Clerk Application**:
-   - Go to [Clerk Dashboard](https://dashboard.clerk.com/)
-   - Click "Create Application"
-   - Choose "Next.js" as framework
-   - Select authentication methods (Email, Google, GitHub)
+2. **Get API keys:**
+   - Go to "API Keys"
+   - Copy "Publishable key" (starts with `pk_`)
+   - Copy "Secret key" (starts with `sk_`)
 
-2. **Get Clerk Keys**:
-   ```bash
-   # Add to .env.local
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-   CLERK_SECRET_KEY=sk_test_...
-   ```
+3. **Configure webhooks:**
+   - Go to "Webhooks"
+   - Click "Add Endpoint"
+   - URL: `http://localhost:3000/api/webhooks/clerk` (for now)
+   - Events: Select `user.created`, `user.updated`, `user.deleted`
+   - Copy "Signing Secret" (starts with `whsec_`)
 
-3. **Configure Webhooks**:
-   - In Clerk Dashboard, go to "Webhooks"
-   - Add endpoint: `http://localhost:3000/api/webhooks/clerk`
-   - Select events: `user.created`, `user.updated`, `user.deleted`
-   - Copy webhook secret:
-   ```bash
-   CLERK_WEBHOOK_SECRET=whsec_...
-   ```
+### Step 5: Set Up OpenAI
 
-### **Step 3: Configure Database (MongoDB)**
-
-1. **Create MongoDB Cluster**:
-   - Go to [MongoDB Atlas](https://cloud.mongodb.com/)
-   - Create free cluster (M0 Sandbox)
-   - Create database user and password
-   - Whitelist IP address (0.0.0.0/0 for development)
-
-2. **Get Connection String**:
-   ```bash
-   # Add to .env.local
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/plugrag?retryWrites=true&w=majority
-   ```
-
-### **Step 4: Configure AI Services (OpenAI)**
-
-1. **Get OpenAI API Key**:
+1. **Get API key:**
    - Go to [OpenAI Platform](https://platform.openai.com/api-keys)
-   - Create new API key
-   - Add billing information (required for API access)
+   - Click "Create new secret key"
+   - Name: "PlugRAG"
+   - Copy the key (starts with `sk-`)
+   - **⚠️ Save it now - you won't see it again!**
 
-2. **Add to Environment**:
-   ```bash
-   # Add to .env.local
-   OPENAI_API_KEY=sk-proj-...
+2. **Add credits (if needed):**
+   - Go to "Billing"
+   - Add payment method
+   - Set usage limits
+
+### Step 6: Set Up AWS S3
+
+1. **Create IAM user:**
+   - Go to AWS Console → IAM
+   - Click "Users" → "Add user"
+   - User name: `plugrag-s3`
+   - Enable "Access key - Programmatic access"
+   - Attach policy: "AmazonS3FullAccess"
+   - Save Access Key ID and Secret Access Key
+
+2. **Create S3 bucket:**
+   - Go to S3 console
+   - Click "Create bucket"
+   - Bucket name: `plugrag-files-yourname` (must be unique)
+   - Region: Choose closest to you
+   - Uncheck "Block all public access" (we'll use presigned URLs)
+   - Click "Create bucket"
+
+3. **Configure CORS:**
+   - Select your bucket → Permissions → CORS
+   - Add:
+   ```json
+   [
+     {
+       "AllowedHeaders": ["*"],
+       "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+       "AllowedOrigins": ["*"],
+       "ExposeHeaders": ["ETag"]
+     }
+   ]
    ```
 
-### **Step 5: Configure Vector Database**
-```bash
-# Add to .env.local
-QDRANT_URL=http://localhost:6333
+### Step 7: Configure Environment Variables
 
-# Application URL (for webhooks and callbacks)
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+1. **Create environment file:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. **Edit `.env.local`:**
+   ```env
+   # MongoDB
+   MONGODB_URI=mongodb+srv://plugrag-user:YOUR_PASSWORD@cluster.mongodb.net/plugrag?retryWrites=true&w=majority
+   
+   # Clerk Authentication
+   CLERK_SECRET_KEY=sk_test_...
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+   CLERK_WEBHOOK_SECRET=whsec_...
+   
+   # Encryption (MUST be exactly 32 characters)
+   ENCRYPTION_SECRET_KEY=abcdefghijklmnopqrstuvwxyz123456
+   
+   # OpenAI
+   OPENAI_API_KEY=sk-...
+   
+   # AWS S3
+   AWS_ACCESS_KEY_ID=AKIA...
+   AWS_SECRET_ACCESS_KEY=...
+   AWS_REGION=us-east-1
+   AWS_S3_BUCKET=plugrag-files-yourname
+   
+   # Redis (Docker - don't change)
+   REDIS_HOST=localhost
+   REDIS_PORT=6379
+   
+   # Qdrant (Docker - don't change)
+   QDRANT_URL=http://localhost:6333
+   
+   # Application
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   ```
+
+   **⚠️ Important:**
+   - `ENCRYPTION_SECRET_KEY` must be exactly 32 characters
+   - Never commit `.env.local` to git
+   - Keep your keys secure
+
+### Step 8: Start Local Services
+
+Start Redis and Qdrant using Docker:
+
+```bash
+docker-compose up redis qdrant -d
 ```
 
-### **Complete .env.local File**
+Verify they're running:
 ```bash
-# Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-CLERK_WEBHOOK_SECRET=whsec_...
-
-# Database
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/plugrag
-
-# Vector Database
-QDRANT_URL=http://localhost:6333
-
-# AI Services
-OPENAI_API_KEY=sk-proj-...
-
-# Application
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+docker-compose ps
 ```
 
----
+You should see:
+```
+NAME      STATUS    PORTS
+redis     running   0.0.0.0:6379->6379/tcp
+qdrant    running   0.0.0.0:6333->6333/tcp
+```
 
-## 🚀 **Start Development Server**
+### Step 9: Start the Application
 
+**Terminal 1 - Main Application:**
 ```bash
-# Start the Next.js development server
 npm run dev
 ```
 
-**Verify Installation**:
-- Open [http://localhost:3000](http://localhost:3000)
-- You should see the PlugRAG landing page
-- Click "Sign In" to test authentication
-
-**Run Health Checks**:
+**Terminal 2 - Worker Process:**
 ```bash
-# Test vector integration
-npm run test:vectors
+npm run worker
+```
 
-# Check API endpoints
-curl http://localhost:3000/api/vectors/health
+### Step 10: Verify Installation
+
+1. **Check application:**
+   - Open http://localhost:3000
+   - You should see the landing page
+
+2. **Sign up:**
+   - Click "Sign Up"
+   - Create an account
+   - You should be redirected to the dashboard
+
+3. **Check health:**
+   - Visit http://localhost:3000/api/health
+   - You should see: `{"status":"ok"}`
+
+---
+
+## 🤖 Your First Bot
+
+### Step 1: Create Bot
+
+1. **Go to dashboard:**
+   - Navigate to http://localhost:3000/dashboard
+   - Click "Create Bot" or "New Bot"
+
+2. **Fill in details:**
+   ```
+   Bot Name: Customer Support Bot
+   Description: Answers customer questions about our products
+   System Prompt: You are a helpful customer support assistant. 
+                  Always be polite and professional.
+   Welcome Message: Hi! How can I help you today?
+   ```
+
+3. **Configure OpenAI (optional):**
+   - Scroll to "OpenAI Configuration"
+   - To use your own key: Enter OpenAI API key
+   - To use fallback: Leave empty and check "Enable Fallback"
+   - Model: `gpt-4` (or `gpt-4-turbo` for faster responses)
+   - Temperature: `0.7` (0.0 = deterministic, 1.0 = creative)
+   - Max Tokens: `500`
+
+4. **Add FAQs (optional):**
+   ```
+   Question: What are your hours?
+   Answer: We're open Monday-Friday, 9 AM to 5 PM EST.
+   
+   Question: How do I contact support?
+   Answer: Email us at support@example.com or call 1-800-SUPPORT.
+   ```
+
+5. **Click "Create Bot"**
+
+### Step 2: Verify Bot Creation
+
+You should see:
+- Success message
+- Redirect to bot detail page
+- Bot status: "Active"
+- Qdrant collection created
+
+---
+
+## 📄 Upload Documents
+
+### Step 1: Prepare Documents
+
+Supported formats:
+- PDF (`.pdf`) - Product manuals, guides
+- Word (`.docx`) - Policies, procedures
+- Text (`.txt`, `.md`) - Documentation
+- CSV (`.csv`) - FAQs, data
+- HTML (`.html`) - Web content
+
+**Tips:**
+- Keep files under 50 MB
+- Use clear, well-formatted documents
+- Remove sensitive information
+- Include relevant context
+
+### Step 2: Upload Files
+
+1. **Navigate to Files tab:**
+   - Go to your bot detail page
+   - Click "Files" tab
+   - Click "Upload Files"
+
+2. **Select files:**
+   - Drag and drop or click to browse
+   - Select one or multiple files
+   - Supported types will be shown
+
+3. **Upload:**
+   - Click "Upload"
+   - Files will upload to S3
+   - Processing will start automatically
+
+### Step 3: Monitor Processing
+
+You'll see processing status for each file:
+
+```
+Processing → Extracting Text → Chunking → Generating Embeddings → Completed
+```
+
+**Processing times:**
+- Small files (< 1 MB): 10-30 seconds
+- Medium files (1-10 MB): 30-60 seconds
+- Large files (10-50 MB): 1-3 minutes
+
+**Check worker logs:**
+```bash
+# In worker terminal, you'll see:
+✅ Environment variables loaded
+🚀 Worker started successfully
+📄 Processing file: product-manual.pdf
+✨ Extracted 5000 characters
+📦 Created 12 chunks
+🧠 Generated embeddings
+✅ File processing completed
+```
+
+### Step 4: Verify Upload
+
+In the Files tab, you should see:
+- ✅ Status: "Completed"
+- 📊 Chunk count
+- 📄 Page count (for PDFs)
+- 🕐 Upload timestamp
+
+---
+
+## 💬 Test Your Chatbot
+
+### Method 1: Test Widget
+
+1. **Go to bot detail page**
+2. **Click "Test Chat" tab**
+3. **Try some questions:**
+   ```
+   You: Hello!
+   Bot: Hi! How can I help you today?
+   
+   You: What information do you have?
+   Bot: [Responses based on uploaded documents]
+   
+   You: What are your hours?
+   Bot: We're open Monday-Friday, 9 AM to 5 PM EST.
+   ```
+
+### Method 2: Test Embed Page
+
+1. **Open:** http://localhost:3000/embed-test.html
+2. **Replace `BOT_ID`** in the script with your bot ID
+3. **Test the chat widget**
+
+### Method 3: API Testing
+
+```bash
+curl -X POST http://localhost:3000/api/chat/YOUR_BOT_ID \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Hello!",
+    "sessionId": "test-session-123",
+    "domain": "localhost",
+    "userFingerprint": "test-fp-123"
+  }'
 ```
 
 ---
 
-## 🤖 **Your First Bot**
+## 🌐 Embed on Website
 
-### **Step 1: Sign Up & Login**
-1. Go to [http://localhost:3000](http://localhost:3000)
-2. Click "Get Started" or "Sign In"
-3. Create account with email or social login
-4. Complete profile setup
+### Step 1: Get Embed Code
 
-### **Step 2: Access Dashboard**
-After login, you'll be redirected to the dashboard at `/dashboard` where you can see:
-- Bot statistics overview
-- Recent bots (empty for new accounts)
-- Quick action buttons
-
-### **Step 3: Create Your First Bot**
-
-1. **Click "Create New Bot"** or navigate to `/dashboard/create-bot`
-
-2. **Fill Bot Details**:
-   ```
-   Bot Name: Customer Support Assistant
-   Description: Helps customers with product questions and support issues
-   ```
-
-3. **Customize Appearance**:
-   - **Primary Color**: Choose your brand color (e.g., `#3B82F6`)
-   - **Position**: `bottom-right` (recommended)
-   - **Greeting**: "Hi! How can I help you today?"
-   - **Placeholder**: "Type your question..."
-   - **Title**: "Support Chat"
-
-4. **Click "Create Bot"**
-
-**Expected Result**:
-- Bot created with unique ID (e.g., `bot_abc123`)
-- Vector storage automatically initialized
-- Redirect to bot management page
-
----
-
-## 📄 **Upload Documents**
-
-### **Step 1: Prepare Training Materials**
-
-Create sample documents to train your bot:
-
-**Sample FAQ Document (save as `faq.txt`)**:
-```
-# Frequently Asked Questions
-
-## Account Management
-
-### How do I reset my password?
-To reset your password:
-1. Go to the login page
-2. Click "Forgot Password"
-3. Enter your email address
-4. Check your email for reset link
-5. Follow the instructions in the email
-
-### How do I change my email address?
-To change your email:
-1. Log in to your account
-2. Go to Account Settings
-3. Click "Change Email"
-4. Enter new email and confirm
-5. Verify the new email address
-
-## Billing
-
-### How do I update my payment method?
-To update payment information:
-1. Go to Billing section
-2. Click "Payment Methods"
-3. Add new card or edit existing
-4. Set as default if needed
-
-### When will I be charged?
-Billing occurs:
-- Monthly on the same date you subscribed
-- Immediately for plan upgrades
-- Pro-rated for plan downgrades
-```
-
-### **Step 2: Upload Documents**
-
-1. **Navigate to Bot Page**: `/dashboard/bots/{botId}`
-
-2. **Use File Upload Section**:
-   - Drag and drop files or click "Choose Files"
-   - Select your prepared documents
-   - Supported formats: PDF, DOCX, TXT, CSV, HTML
-
-3. **Configure Processing Options**:
-   ```json
-   {
-     "generateEmbeddings": true,
-     "chunkSize": 700,
-     "overlap": 100
-   }
-   ```
-
-4. **Monitor Processing**:
-   - Watch real-time processing status
-   - Processing typically takes 1-3 minutes per file
-   - Green checkmark indicates completion
-
-**Expected Result**:
-- Files processed and chunked
-- Vector embeddings generated
-- Searchable knowledge base created
-
-### **Step 3: Verify Upload Success**
-
-Check the bot analytics to confirm:
-- **Total Embeddings**: Should show number of text chunks
-- **Files**: Should list uploaded documents
-- **Processing Status**: All files should show "Completed"
-
----
-
-## 💬 **Test Your Chatbot**
-
-### **Step 1: Use Built-in Chat Interface**
-
-1. **Navigate to Bot Page**: `/dashboard/bots/{botId}`
-2. **Find "Test Chat" Section**
-3. **Send Test Messages**:
-   ```
-   Test 1: "How do I reset my password?"
-   Test 2: "Tell me about billing"
-   Test 3: "How do I change my email?"
-   ```
-
-### **Step 2: Verify RAG Responses**
-
-Good responses should:
-- **Answer accurately** based on uploaded documents
-- **Include source references** showing which documents were used
-- **Be contextually relevant** to the question asked
-- **Respond quickly** (typically 1-3 seconds)
-
-**Example Expected Response**:
-```
-User: "How do I reset my password?"
-
-Bot: "To reset your password:
-1. Go to the login page
-2. Click "Forgot Password"
-3. Enter your email address
-4. Check your email for reset link
-5. Follow the instructions in the email
-
-This information comes from your FAQ document."
-
-Sources: [faq.txt - Account Management section]
-```
-
-### **Step 3: Test Edge Cases**
-
-```
-Test 1: "What is your name?" (Should identify as your bot)
-Test 2: "What's the weather?" (Should politely decline non-relevant questions)
-Test 3: "Tell me about advanced features" (Should indicate if no relevant info found)
-```
-
----
-
-## 🌐 **Embed on Website**
-
-### **Step 1: Get Embed Code**
-
-1. **Go to Bot Page**: `/dashboard/bots/{botId}`
-2. **Click "Get Embed Code"** or navigate to `/dashboard/bots/{botId}/embed`
-3. **Copy the provided script**:
+1. **Go to bot detail page**
+2. **Click "Embed" tab**
+3. **Copy the embed code:**
 
 ```html
-<!-- PlugRAG Chat Widget -->
-<div id="plugrag-chat"></div>
-<script 
-  src="http://localhost:3000/embed.js"
-  data-bot-id="your-bot-id"
-  data-position="bottom-right"
-  data-primary-color="#3B82F6"
-  data-api-base="http://localhost:3000">
+<!-- Add before closing </body> tag -->
+<script>
+  (function(w,d,s,o,f,js,fjs){
+    w['PlugRAG']=o;w[o] = w[o] || function () { (w[o].q = w[o].q || []).push(arguments) };
+    js = d.createElement(s), fjs = d.getElementsByTagName(s)[0];
+    js.id = o; js.src = f; js.async = 1; fjs.parentNode.insertBefore(js, fjs);
+  }(window, document, 'script', 'plugrag', 'http://localhost:3000/embed.js'));
+  
+  plugrag('init', {
+    botId: 'YOUR_BOT_ID',
+    primaryColor: '#FF6B35'
+  });
 </script>
 ```
 
-### **Step 2: Create Test Website**
+### Step 2: Customize Widget
 
-Create a simple test page (`test.html`):
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test PlugRAG Chatbot</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 40px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        .content {
-            background: #f5f5f5;
-            padding: 30px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }
-    </style>
-</head>
-<body>
-    <h1>Welcome to Our Help Center</h1>
-    
-    <div class="content">
-        <h2>Need Help?</h2>
-        <p>Our AI assistant can help you with:</p>
-        <ul>
-            <li>Account management questions</li>
-            <li>Billing and payment issues</li>
-            <li>Technical support</li>
-            <li>General inquiries</li>
-        </ul>
-        <p>Click the chat icon in the bottom-right corner to get started!</p>
-    </div>
-
-    <!-- PlugRAG Chat Widget -->
-    <div id="plugrag-chat"></div>
-    <script 
-      src="http://localhost:3000/embed.js"
-      data-bot-id="YOUR_BOT_ID_HERE"
-      data-position="bottom-right"
-      data-primary-color="#3B82F6"
-      data-api-base="http://localhost:3000">
-    </script>
-</body>
-</html>
+```javascript
+plugrag('init', {
+  botId: 'YOUR_BOT_ID',
+  primaryColor: '#FF6B35',      // Main theme color
+  position: 'bottom-right',     // Widget position
+  offset: { x: 20, y: 20 },    // Distance from edges
+  welcomeMessage: 'Custom welcome!',
+  placeholder: 'Type your message...',
+  title: 'Chat with us',
+  subtitle: 'We typically reply instantly'
+});
 ```
 
-### **Step 3: Test Embedded Widget**
+### Step 3: Test on Your Website
 
-1. **Replace `YOUR_BOT_ID_HERE`** with your actual bot ID
-2. **Open `test.html`** in your browser
-3. **Look for chat bubble** in bottom-right corner
-4. **Click and test** the chat functionality
+1. **Create test HTML file:**
+   ```html
+   <!DOCTYPE html>
+   <html>
+   <head>
+     <title>Test Page</title>
+   </head>
+   <body>
+     <h1>My Website</h1>
+     <p>The chat widget should appear in the bottom-right corner.</p>
+     
+     <!-- Paste embed code here -->
+     
+   </body>
+   </html>
+   ```
 
-**Expected Behavior**:
-- Chat bubble appears with your custom color
-- Clicking opens chat interface
-- Messages work identically to dashboard test
-- Conversations persist during session
+2. **Open in browser**
+3. **Verify:**
+   - Widget appears
+   - Opens when clicked
+   - Messages send and receive
+   - Styling matches your theme
+
+### Step 4: Domain Whitelist (Optional)
+
+For production, whitelist your domains:
+
+1. Go to bot settings
+2. Add to "Domain Whitelist":
+   ```
+   example.com
+   *.example.com
+   app.example.com
+   ```
+3. Widget will only work on these domains
 
 ---
 
-## 📊 **Monitor Analytics**
+## 📊 Monitor Analytics
 
-### **Step 1: Check Real-time Stats**
+### View Dashboard
 
-Navigate to your bot dashboard and monitor:
+1. **Go to bot detail page**
+2. **Check Analytics tab:**
+   - Total messages
+   - Total conversations
+   - Average messages per conversation
+   - Last message time
 
-- **Total Messages**: Number of chat interactions
-- **Total Sessions**: Unique conversation sessions
-- **Tokens Used**: OpenAI API consumption
-- **Embeddings**: Number of searchable text chunks
+### View Conversations
 
-### **Step 2: Understand the Data**
+1. **Click "Conversations" tab**
+2. **See all chat sessions:**
+   - Session ID
+   - Message count
+   - Domain
+   - Timestamp
+3. **Click a conversation to view full history**
 
+---
+
+## 🎓 Next Steps
+
+### Improve Your Bot
+
+- ✅ **Add more documents** - Upload additional knowledge base files
+- ✅ **Fine-tune prompts** - Adjust system prompt for better responses
+- ✅ **Add FAQs** - Quick answers for common questions
+- ✅ **Customize widget** - Match your brand colors and style
+- ✅ **Monitor usage** - Check analytics regularly
+
+### Advanced Features
+
+- 📖 **Read [API Reference](API-REFERENCE.md)** - Integrate via REST API
+- 🏗️ **Read [Architecture](ARCHITECTURE.md)** - Understand the system
+- 🚀 **Read [Deployment Guide](DEPLOYMENT.md)** - Deploy to production
+- 🤝 **Read [Contributing](../CONTRIBUTING.md)** - Contribute to the project
+
+### Production Checklist
+
+Before going live:
+- [ ] Use production database (MongoDB Atlas M10+)
+- [ ] Use production Redis (Upstash, Redis Cloud)
+- [ ] Use production Qdrant (Qdrant Cloud or self-hosted)
+- [ ] Set up domain whitelist
+- [ ] Enable rate limiting
+- [ ] Configure monitoring
+- [ ] Set up backups
+- [ ] Use HTTPS
+- [ ] Test thoroughly
+- [ ] Review security checklist
+
+---
+
+## ❓ Troubleshooting
+
+### Application Won't Start
+
+**Error:** `Cannot connect to MongoDB`
+```bash
+# Check connection string
+# Verify IP whitelist in MongoDB Atlas
+# Test connection with MongoDB Compass
 ```
-Example After Testing:
-┌─────────────────┬──────────┐
-│ Metric          │ Value    │
-├─────────────────┼──────────┤
-│ Total Messages  │ 12       │
-│ Total Sessions  │ 3        │
-│ Tokens Used     │ 1,245    │
-│ Embeddings      │ 23       │
-│ Files Uploaded  │ 1        │
-└─────────────────┴──────────┘
+
+**Error:** `Cannot connect to Redis`
+```bash
+# Verify Docker is running
+docker-compose ps
+
+# Restart Redis
+docker-compose restart redis
 ```
 
-**What This Means**:
-- **12 Messages**: 6 user questions + 6 bot responses  
-- **3 Sessions**: 3 separate conversation threads
-- **1,245 Tokens**: OpenAI API usage (text processing)
-- **23 Embeddings**: 23 searchable text chunks from your document
+**Error:** `Cannot connect to Qdrant`
+```bash
+# Verify Docker container
+docker-compose ps
+
+# Check logs
+docker-compose logs qdrant
+```
+
+### File Upload Failures
+
+**Issue:** Upload hangs or fails
+
+1. Check S3 credentials in `.env.local`
+2. Verify bucket exists and permissions are correct
+3. Check CORS configuration
+4. Look at worker logs for errors
+
+### Bot Not Responding
+
+**Issue:** No response or error in chat
+
+1. Check OpenAI API key is valid
+2. Verify bot has uploaded files
+3. Check worker is running
+4. Look at browser console for errors
+5. Check API logs
+
+### Worker Not Processing
+
+**Issue:** Files stuck in "processing"
+
+1. Verify worker is running: `npm run worker`
+2. Check Redis connection
+3. Look at worker terminal for errors
+4. Check file format is supported
 
 ---
 
-## 🎯 **Next Steps**
+## 🆘 Getting Help
 
-### **🚀 Immediate Actions**
+### Resources
 
-1. **Add More Documents**:
-   - Upload additional training materials
-   - Try different file formats (PDF, DOCX)
-   - Organize by categories or topics
+- **Documentation:** [docs/](.)
+- **API Reference:** [API-REFERENCE.md](API-REFERENCE.md)
+- **GitHub Issues:** Report bugs and request features
+- **GitHub Discussions:** Ask questions and share ideas
 
-2. **Customize Further**:
-   - Adjust bot personality and tone
-   - Modify appearance and branding
-   - Set up domain whitelisting
+### Common Questions
 
-3. **Test Thoroughly**:
-   - Try various question types
-   - Test with different user scenarios
-   - Validate response accuracy
+**Q: Can I use my own OpenAI key?**  
+A: Yes! Add it in bot configuration. This gives you direct control over costs.
 
-### **📈 Scale Your Implementation**
+**Q: Is there a file size limit?**  
+A: Yes, 50 MB per file. For larger files, split them into smaller documents.
 
-1. **Production Deployment**:
-   - Set up production environment variables
-   - Deploy to Vercel, Netlify, or your hosting platform
-   - Configure production database and vector storage
+**Q: How much does it cost?**  
+A: PlugRAG is free. You pay only for:
+- MongoDB Atlas (free tier available)
+- OpenAI API usage (~$0.01-0.05 per conversation)
+- AWS S3 storage (~$0.023 per GB/month)
+- Redis/Qdrant (free tiers available)
 
-2. **Advanced Features**:
-   - Set up team collaboration
-   - Implement advanced analytics
-   - Add multiple bots for different purposes
+**Q: Can I self-host everything?**  
+A: Yes! Use Docker deployment for full control. See [DOCKER.md](../DOCKER.md).
 
-3. **Integration & Automation**:
-   - Connect with your existing tools
-   - Set up automated document updates
-   - Implement custom workflows
-
-### **📚 Learn More**
-
-- **[API Reference](./api-reference.md)**: Complete API documentation
-- **[Development Guide](./development.md)**: Advanced development topics
-- **[Architecture Guide](./architecture.md)**: Technical implementation details
-- **[Best Practices](./best-practices.md)**: Optimization and production tips
-
-### **🤝 Get Help**
-
-- **Documentation**: Browse our comprehensive guides
-- **GitHub Issues**: Report bugs or request features
-- **Discord Community**: Join discussions with other developers
-- **Email Support**: Reach out to our technical team
+**Q: How do I upgrade to production?**  
+A: See [Deployment Guide](DEPLOYMENT.md) for Vercel, AWS, or Docker deployment.
 
 ---
 
-## 🎉 **Congratulations!**
+## 🎉 Congratulations!
 
-You've successfully:
-- ✅ Set up a complete PlugRAG development environment
-- ✅ Created your first AI-powered chatbot
-- ✅ Trained it with your own documents
-- ✅ Embedded it on a test website
-- ✅ Monitored its performance with analytics
+You've successfully set up PlugRAG and created your first AI-powered chatbot! 
 
-**Your chatbot is now ready to help users with intelligent, context-aware responses based on your knowledge base!**
+**What you've accomplished:**
+- ✅ Installed and configured PlugRAG
+- ✅ Created a chatbot with document knowledge
+- ✅ Uploaded and processed documents
+- ✅ Embedded chat widget on a website
+- ✅ Monitored analytics
+
+**Next:** Start building amazing chatbot experiences! 🚀
 
 ---
 
-<div align="center">
+**Need help?** Open an issue on GitHub or check our documentation.
 
-**Ready to build something amazing?**  
-[View Advanced Examples](./examples) • [Join Our Community](https://discord.gg/plugrag) • [Star on GitHub](https://github.com/Kanishk2004/chat-bot)
-
-</div>
+**Want to contribute?** See [CONTRIBUTING.md](../CONTRIBUTING.md).

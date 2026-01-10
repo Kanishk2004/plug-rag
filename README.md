@@ -1,574 +1,556 @@
 # 🤖 PlugRAG - Intelligent RAG Chatbot Platform
 
 <div align="center">
-  <h3>🚀 Build, Deploy, and Embed AI-Powered Chatbots with Your Knowledge Base</h3>
-  <p>A comprehensive SaaS platform for creating intelligent chatbots powered by Retrieval-Augmented Generation (RAG)</p>
   
-  <img src="https://img.shields.io/badge/Next.js-15.5.5-black?logo=next.js&logoColor=white" alt="Next.js"/>
-  <img src="https://img.shields.io/badge/React-19.1.0-blue?logo=react&logoColor=white" alt="React"/>
-  <img src="https://img.shields.io/badge/MongoDB-Atlas-green?logo=mongodb&logoColor=white" alt="MongoDB"/>
-  <img src="https://img.shields.io/badge/Qdrant-Vector%20DB-red?logo=vector&logoColor=white" alt="Qdrant"/>
-  <img src="https://img.shields.io/badge/OpenAI-GPT%20%26%20Embeddings-orange?logo=openai&logoColor=white" alt="OpenAI"/>
-  <img src="https://img.shields.io/badge/Clerk-Authentication-purple?logo=clerk&logoColor=white" alt="Clerk"/>
-  <img src="https://img.shields.io/badge/TailwindCSS-4.0-cyan?logo=tailwindcss&logoColor=white" alt="TailwindCSS"/>
+  ![PlugRAG Logo](https://img.shields.io/badge/PlugRAG-AI%20Chatbot%20Platform-orange?style=for-the-badge)
   
-  <br/>
-  <a href="#quick-start">🚀 Quick Start</a> •
-  <a href="#features">✨ Features</a> •
-  <a href="#architecture">🏗️ Architecture</a> •
-  <a href="#documentation">📚 Documentation</a> •
-  <a href="#api-reference">🔌 API</a>
+  ### 🚀 Build, Deploy, and Embed AI-Powered Chatbots with Your Knowledge Base
+  
+  **A production-ready SaaS platform for creating intelligent chatbots powered by Retrieval-Augmented Generation (RAG)**
+  
+  [![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+  [![React](https://img.shields.io/badge/React-19.1.0-blue?logo=react&logoColor=white)](https://react.dev/)
+  [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+  [![Qdrant](https://img.shields.io/badge/Qdrant-Vector%20DB-red)](https://qdrant.tech/)
+  [![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-orange?logo=openai&logoColor=white)](https://openai.com/)
+  [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker&logoColor=white)](https://www.docker.com/)
+  
+  [📚 Documentation](#documentation) • [🚀 Quick Start](#quick-start) • [✨ Features](#features) • [🏗️ Architecture](#architecture) • [🔌 API Reference](docs/API-REFERENCE.md)
+  
 </div>
 
 ---
 
-## 🌟 **What is PlugRAG?**
+## 📖 Table of Contents
 
-PlugRAG is a cutting-edge SaaS platform that empowers developers and businesses to create intelligent chatbots powered by their own documents and knowledge bases. Upload your content, train your AI, and deploy conversational assistants that provide accurate, contextual responses based on your specific information.
-
-### 🎯 **Perfect For**
-- 📞 **Customer Support** - Answer questions using your documentation
-- 🎓 **Educational Platforms** - Create learning assistants from course materials  
-- 🏢 **Internal Help Desks** - Streamline employee support with company docs
-- 💻 **Technical Documentation** - Interactive guides for complex products
-- 🛍️ **E-commerce** - Product support powered by manuals and FAQs
+- [What is PlugRAG?](#what-is-plugrag)
+- [Key Features](#key-features)
+- [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [Architecture](#architecture)
+- [Documentation](#documentation)
+- [Project Structure](#project-structure)
+- [Environment Variables](#environment-variables)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## ✨ **Key Features**
+## 🌟 What is PlugRAG?
 
-### 🔐 **Enterprise-Grade Security**
+**PlugRAG** is a cutting-edge SaaS platform that empowers developers and businesses to create intelligent chatbots powered by their own documents and knowledge bases. Upload your content, train your AI, and deploy conversational assistants that provide accurate, contextual responses based on your specific information.
+
+### 🎯 Perfect For
+
+- 📞 **Customer Support** - Answer customer questions using your product documentation
+- 🎓 **Educational Platforms** - Create learning assistants from course materials and textbooks
+- 🏢 **Internal Help Desks** - Streamline employee support with company policies and procedures
+- 💻 **Technical Documentation** - Interactive guides for complex products and APIs
+- 🛍️ **E-commerce** - Product support powered by manuals, FAQs, and guides
+- 📋 **Knowledge Management** - Make organizational knowledge instantly accessible
+
+### 🔥 Why PlugRAG?
+
+- ✅ **Production-Ready** - Built with enterprise-grade security and scalability
+- ✅ **No AI Expertise Required** - Simple interface for non-technical users
+- ✅ **Full Data Control** - Your data stays in your infrastructure
+- ✅ **Embeddable** - One-line integration for any website
+- ✅ **Cost-Effective** - Pay only for what you use with OpenAI
+- ✅ **Open Source** - Self-host or extend as needed
+
+---
+
+## ✨ Key Features
+
+### 🔐 Enterprise-Grade Security
+
 - **Multi-tenant Architecture** with complete data isolation
-- **Clerk Authentication** with SSO and advanced user management
-- **Secure API Keys** management and encryption
-- **Domain Whitelisting** for controlled access
-- **Role-based Access Control** (planned)
+- **Clerk Authentication** with SSO, MFA, and advanced user management
+- **API Key Encryption** using AES-256-CBC with HMAC-SHA256
+- **Domain Whitelisting** for controlled chatbot access
+- **Rate Limiting** to prevent abuse and control costs
+- **Input Sanitization** to prevent NoSQL injection attacks
 
-### 📄 **Universal Document Processing**
+### 📄 Universal Document Processing
+
 - **PDF Documents** - Technical manuals, reports, research papers
-- **Microsoft Word** - Business documents and policies  
-- **Web Content** - HTML pages and online documentation
-- **Structured Data** - CSV files and spreadsheets
-- **Plain Text** - Markdown, TXT files, and code documentation
-- **URL Processing** - Direct web page ingestion
+- **Microsoft Word (.docx)** - Business documents and policies
+- **Web Content (HTML)** - Online documentation and articles
+- **Text Files (.txt, .md)** - Plain text and Markdown files
+- **CSV Files** - Structured data and spreadsheets
+- **Batch Processing** - Upload multiple files simultaneously
+- **Background Processing** - BullMQ job queue with Redis
 
-### 🧠 **Advanced AI Pipeline**
-- **OpenAI Embeddings** - text-embedding-3-small/large (1536/3072 dimensions)
-- **Semantic Chunking** - Context-aware text segmentation with overlap
-- **Qdrant Vector Database** - High-performance similarity search
-- **RAG Architecture** - Retrieval-Augmented Generation for accurate responses
-- **Custom Model Support** - Configurable OpenAI models per bot
-- **Token Optimization** - Intelligent context window management
+### 🤖 Advanced RAG Capabilities
 
-### 🎨 **Customizable Chat Widgets**
-- **Embeddable Scripts** - One-line integration for any website
-- **Visual Customization** - Colors, positioning, and branding
-- **Responsive Design** - Works on desktop, tablet, and mobile
-- **Session Management** - Persistent conversations with unique tracking
-- **Analytics Integration** - Track performance and user engagement
+- **Semantic Search** - Vector similarity using Qdrant database
+- **Context-Aware Responses** - GPT-4 powered conversations
+- **Intent Classification** - Smart FAQ matching and routing
+- **Conversation Memory** - Multi-turn dialogue support
+- **Custom Embeddings** - OpenAI text-embedding-3-small (1536 dimensions)
+- **Intelligent Chunking** - Optimized text splitting for better retrieval
 
-### 📊 **Comprehensive Analytics**
-- **Usage Metrics** - Messages, sessions, tokens, and embeddings
-- **Performance Tracking** - Response times and accuracy
-- **User Analytics** - Session duration and engagement patterns
-- **Cost Monitoring** - OpenAI API usage and optimization insights
-- **Real-time Dashboard** - Live statistics and trends
+### 💬 Embeddable Chat Widget
 
-### 🔌 **Developer-Friendly APIs**
-- **RESTful Architecture** - Standard HTTP methods and responses
-- **Webhook Support** - Real-time event notifications
-- **Rate Limiting** - Prevent abuse and ensure stability
-- **Comprehensive SDKs** - JavaScript, Python, and cURL examples
-- **OpenAPI Documentation** - Interactive API explorer
+- **One-Line Integration** - Simple JavaScript snippet
+- **Customizable UI** - Match your brand colors and style
+- **Responsive Design** - Works on desktop and mobile
+- **Session Management** - Persistent conversations across page loads
+- **User Fingerprinting** - Privacy-safe user tracking
+- **Domain Analytics** - Track usage by website
 
----
+### 📊 Analytics & Monitoring
 
-## 🏗️ **Architecture Overview**
+- **Real-Time Metrics** - Message counts, active users, response times
+- **Conversation History** - Full audit trail of all interactions
+- **Performance Tracking** - Monitor bot accuracy and user satisfaction
+- **Domain Breakdown** - See which websites generate most traffic
+- **Cost Monitoring** - Track OpenAI API usage per bot
 
-```mermaid
-graph TB
-    subgraph "Frontend Layer"
-        A[Next.js Dashboard] --> B[React Components]
-        B --> C[Tailwind UI]
-    end
-    
-    subgraph "API Layer"
-        D[Next.js API Routes] --> E[Authentication]
-        D --> F[File Processing]
-        D --> G[Vector Operations]
-        D --> H[Chat Endpoints]
-    end
-    
-    subgraph "Data Layer"
-        I[MongoDB Atlas] --> J[User Management]
-        I --> K[Bot Configuration]
-        I --> L[File Metadata]
-        I --> M[Conversations]
-    end
-    
-    subgraph "AI Services"
-        N[OpenAI API] --> O[Text Embeddings]
-        N --> P[GPT Completions]
-    end
-    
-    subgraph "Vector Storage"
-        Q[Qdrant Database] --> R[Vector Collections]
-        R --> S[Semantic Search]
-    end
-    
-    A --> D
-    F --> N
-    G --> Q
-    H --> N
-    H --> Q
-    D --> I
-    E --> T[Clerk Auth]
-    
-    classDef primary fill:#f97316,stroke:#ea580c,stroke-width:2px,color:#fff
-    classDef secondary fill:#111827,stroke:#374151,stroke-width:2px,color:#fff
-    classDef accent fill:#059669,stroke:#047857,stroke-width:2px,color:#fff
-    
-    class A,D,I primary
-    class B,E,F,G,H,N,Q secondary
-    class T accent
-```
+### 🎨 Modern Dashboard
 
-### **Technology Stack**
-
-#### **Frontend & Backend**
-- **Next.js 15.5.5** - App Router with SSR/SSG, API Routes, and Server Components
-- **React 19.1.0** - Latest React features with concurrent rendering
-- **TailwindCSS 4.0** - Utility-first styling with custom design system
-- **TypeScript** - Type-safe development (migration planned)
-
-#### **Authentication & User Management**
-- **Clerk** - Complete authentication solution with webhooks and SSO
-- **Svix** - Webhook infrastructure for user lifecycle management
-- **MongoDB Atlas** - User profiles, sessions, and preferences
-
-#### **Document Processing Pipeline**
-```
-Document Upload → Format Detection → Text Extraction → Chunking → Embedding Generation → Vector Storage
-```
-
-**Supported Formats:**
-- **PDF**: pdf2json for complex layout extraction
-- **DOCX**: mammoth for Word document processing
-- **HTML**: cheerio + jsdom for web content extraction  
-- **CSV**: papaparse for structured data handling
-- **TXT/MD**: Native processing with intelligent chunking
-
-#### **AI & Vector Operations**
-- **OpenAI API** - text-embedding-3-small/large + GPT-4/3.5-turbo
-- **Qdrant** - High-performance vector database with cosine similarity
-- **LangChain** - Document processing and text splitting utilities
-- **Semantic Search** - Context-aware retrieval with configurable thresholds
-
-#### **Infrastructure & Deployment**
-- **Docker Compose** - Containerized Qdrant deployment
-- **MongoDB Atlas** - Managed database with automatic scaling
-- **Vercel/Netlify** - Serverless deployment with edge functions
-- **Environment Configuration** - Secure secrets management
+- **Bot Management** - Create, configure, and monitor bots
+- **File Management** - Upload, view, and delete knowledge base documents
+- **API Key Management** - Bring your own OpenAI key or use fallback
+- **Settings & Configuration** - Customize bot behavior and appearance
+- **User-Friendly Interface** - Built with React 19 and Tailwind CSS 4
 
 ---
 
-## 🚀 **Quick Start**
+## 🛠️ Tech Stack
 
-### **Prerequisites**
-- **Node.js 20.11+** (LTS recommended)
-- **Docker & Docker Compose** (for Qdrant vector database)
-- **MongoDB Atlas Account** (free tier available)
-- **OpenAI API Key** (with billing enabled)
-- **Clerk Account** (for authentication)
+### Frontend
+- **Next.js 16.1.1** - React framework with App Router
+- **React 19.1.0** - UI components with latest features
+- **Tailwind CSS 4** - Utility-first styling
+- **Clerk** - Authentication and user management
 
-### **⚡ One-Minute Setup**
+### Backend
+- **Next.js API Routes** - Serverless API endpoints
+- **Node.js 20+** - JavaScript runtime
+- **Mongoose** - MongoDB ODM
+- **BullMQ** - Job queue for background processing
 
-1. **Clone and Install**
+### Databases
+- **MongoDB Atlas** - Primary database for bots, users, files
+- **Qdrant** - Vector database for embeddings (1536D)
+- **Redis** - Job queue and caching
+
+### AI & ML
+- **OpenAI GPT-4** - Chat completions
+- **OpenAI Embeddings** - text-embedding-3-small
+- **LangChain** - Document processing and RAG pipeline
+- **Tiktoken** - Token counting and optimization
+
+### Storage & Processing
+- **AWS S3** - File storage with presigned URLs
+- **Mammoth** - DOCX text extraction
+- **PDF2JSON** - PDF parsing
+- **PapaParse** - CSV processing
+
+### DevOps
+- **Docker & Docker Compose** - Containerization
+- **ESLint** - Code linting
+- **Git** - Version control
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** 20.11 or higher
+- **Docker Desktop** (for local development)
+- **MongoDB Atlas** account (free tier available)
+- **OpenAI API** key
+- **Clerk** account for authentication
+- **AWS S3** bucket for file storage
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/plugrag.git
+   cd plugrag
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Edit `.env.local` and add your credentials:
+   ```env
+   # MongoDB
+   MONGODB_URI=mongodb+srv://your-cluster.mongodb.net/plugrag
+   
+   # Clerk Authentication
+   CLERK_SECRET_KEY=sk_live_...
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
+   CLERK_WEBHOOK_SECRET=whsec_...
+   
+   # Encryption (32 characters)
+   ENCRYPTION_SECRET_KEY=your-32-character-secret-key!!
+   
+   # OpenAI
+   OPENAI_API_KEY=sk-...
+   
+   # AWS S3
+   AWS_ACCESS_KEY_ID=AKIA...
+   AWS_SECRET_ACCESS_KEY=...
+   AWS_REGION=us-east-1
+   AWS_S3_BUCKET=your-bucket-name
+   
+   # Redis (for Docker)
+   REDIS_HOST=localhost
+   REDIS_PORT=6379
+   
+   # Qdrant (for Docker)
+   QDRANT_URL=http://localhost:6333
+   ```
+
+4. **Start local services (Redis & Qdrant)**
+   ```bash
+   docker-compose up redis qdrant -d
+   ```
+
+5. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Start the worker process (in another terminal)**
+   ```bash
+   npm run worker
+   ```
+
+7. **Open your browser**
+   ```
+   http://localhost:3000
+   ```
+
+### Docker Deployment
+
+For full Docker deployment (all services):
+
 ```bash
-git clone https://github.com/Kanishk2004/chat-bot.git
-cd chat-bot
-npm install
+# Build and start all services
+docker-compose up --build -d
+
+# View logs
+docker-compose logs -f
 ```
 
-2. **Environment Configuration**
-Create `.env.local`:
-```bash
-# Authentication (Get from Clerk Dashboard)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-CLERK_WEBHOOK_SECRET=whsec_...
-
-# Database (MongoDB Atlas Connection String)
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/plugrag
-
-# Vector Database (Local Qdrant Instance)
-QDRANT_URL=http://localhost:6333
-
-# AI Services (OpenAI API Key)
-OPENAI_API_KEY=sk-proj-...
-
-# Application URLs
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-3. **Start Services**
-```bash
-# Start Qdrant vector database
-docker-compose up -d
-
-# Start development server
-npm run dev
-```
-
-4. **Verify Installation**
-```bash
-# Test vector integration
-npm run test:vectors
-
-# Check API health
-curl http://localhost:3000/api/vectors/health
-```
-
-5. **Access Application**
-- **Dashboard**: http://localhost:3000 
-- **Sign Up**: Create your first account
-- **Create Bot**: Upload documents and start chatting!
-
-### **🎯 First Bot in 3 Minutes**
-
-1. **Sign Up** and complete onboarding
-2. **Click "Create Bot"** in the dashboard
-3. **Upload Documents** (PDF, DOCX, or TXT files)
-4. **Customize Settings** (name, colors, greeting message)
-5. **Test Chat** with the built-in interface
-6. **Get Embed Code** for your website
+See [DOCKER.md](DOCKER.md) for comprehensive Docker documentation.
 
 ---
 
-## 📚 **Documentation**
+## 🏗️ Architecture
 
-### **📖 Complete Guides**
-| Document | Description | Audience |
-|----------|-------------|----------|
-| [🚀 Getting Started](./docs/getting-started.md) | Complete setup and first bot creation | New Users |
-| [🔧 Development Guide](./docs/development.md) | Local development and contribution | Developers |
-| [🏗️ Architecture Deep Dive](./docs/architecture.md) | Technical implementation details | Technical Leads |
-| [🔌 API Reference](./docs/api-reference.md) | Complete API documentation | Integrators |
-| [📊 Analytics Guide](./docs/analytics.md) | Understanding metrics and optimization | Product Teams |
-| [🚀 Deployment Guide](./docs/deployment.md) | Production deployment strategies | DevOps |
+PlugRAG follows a modern serverless architecture with clear separation of concerns:
 
-### **🛠️ Technical Documentation**
-- [📁 File Processing Pipeline](./docs/file-processing.md) - Document extraction and chunking
-- [🔍 Vector Search System](./docs/vector-search.md) - Embedding generation and similarity search  
-- [🤖 RAG Implementation](./docs/rag-system.md) - Retrieval-Augmented Generation details
-- [🔐 Security & Authentication](./docs/security.md) - Security measures and best practices
-- [⚡ Performance Optimization](./docs/performance.md) - Scaling and optimization strategies
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      CLIENT LAYER                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   Web App    │  │ Chat Widget  │  │   REST API   │      │
+│  │  (Next.js)   │  │  (embed.js)  │  │   Clients    │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+└─────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   AUTHENTICATION LAYER                       │
+│                     ┌──────────────┐                         │
+│                     │    Clerk     │                         │
+│                     │ (Auth & User)│                         │
+│                     └──────────────┘                         │
+└─────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      API LAYER (Next.js)                     │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │   Bots   │  │  Files   │  │   Chat   │  │ Webhooks │   │
+│  │   API    │  │   API    │  │   API    │  │   API    │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     SERVICE LAYER                            │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │ Chat Service │  │ File Service │  │  RAG Service │      │
+│  ├──────────────┤  ├──────────────┤  ├──────────────┤      │
+│  │   API Key    │  │   Text       │  │    Intent    │      │
+│  │   Service    │  │  Extractor   │  │  Classifier  │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+└─────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   BACKGROUND PROCESSING                      │
+│            ┌─────────────────────────────┐                  │
+│            │   BullMQ Worker (Redis)     │                  │
+│            │  • File Processing Queue    │                  │
+│            │  • Vector Embedding         │                  │
+│            │  • Chunking & Indexing      │                  │
+│            └─────────────────────────────┘                  │
+└─────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     DATA LAYER                               │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │ MongoDB  │  │  Qdrant  │  │  Redis   │  │  AWS S3  │   │
+│  │ (Bots,   │  │ (Vectors)│  │ (Queue)  │  │ (Files)  │   │
+│  │  Files)  │  │          │  │          │  │          │   │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   EXTERNAL SERVICES                          │
+│            ┌──────────────┐  ┌──────────────┐              │
+│            │   OpenAI     │  │    Clerk     │              │
+│            │  (GPT-4 &    │  │ (Webhooks)   │              │
+│            │  Embeddings) │  │              │              │
+│            └──────────────┘  └──────────────┘              │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### **🎯 User Guides**
-- [👤 User Management](./docs/user-guide.md) - Dashboard features and workflows
-- [🤖 Bot Configuration](./docs/bot-management.md) - Creating and customizing bots
-- [📄 File Management](./docs/file-management.md) - Uploading and organizing documents
-- [💬 Chat Integration](./docs/chat-integration.md) - Embedding chat widgets
-- [📊 Analytics Dashboard](./docs/analytics-dashboard.md) - Understanding your data
+### Key Components
+
+1. **Frontend (Next.js App Router)**
+   - Server-side rendering for SEO
+   - Client components for interactivity
+   - Tailwind CSS for styling
+
+2. **API Routes (Serverless)**
+   - RESTful endpoints
+   - Clerk authentication middleware
+   - Rate limiting and sanitization
+
+3. **Service Layer**
+   - Business logic separation
+   - Reusable services
+   - Error handling
+
+4. **Background Workers**
+   - Asynchronous file processing
+   - Vector embedding generation
+   - Queue-based architecture
+
+5. **Data Persistence**
+   - MongoDB for structured data
+   - Qdrant for vector search
+   - S3 for file storage
+   - Redis for job queues
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
 
 ---
 
-## 🔌 **API Reference**
+## 📚 Documentation
 
-### **Authentication**
-All API endpoints require authentication via Clerk tokens (except public chat endpoints):
-```javascript
-// Client-side requests automatically include auth headers
-const response = await fetch('/api/bots', {
-  method: 'GET',
-  headers: {
-    'Authorization': `Bearer ${await getToken()}`
-  }
-});
+- **[Getting Started Guide](docs/GETTING-STARTED.md)** - Step-by-step tutorial for beginners
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - System design and data flow
+- **[API Reference](docs/API-REFERENCE.md)** - Complete API documentation
+- **[Docker Deployment](DOCKER.md)** - Container deployment guide
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+
+---
+
+## 📁 Project Structure
+
 ```
-
-### **Core Endpoints**
-
-#### **🤖 Bot Management**
-```http
-GET    /api/bots              # List user's bots
-POST   /api/bots              # Create new bot  
-GET    /api/bots/[id]         # Get bot details with analytics
-PATCH  /api/bots/[id]         # Update bot configuration
-DELETE /api/bots/[id]         # Delete bot and cleanup resources
-```
-
-#### **📁 File Management**
-```http
-GET    /api/files?botId=xxx   # List bot's files with processing status
-POST   /api/files             # Upload file with options
-GET    /api/files/[id]        # Get file details and chunks
-DELETE /api/files/[id]        # Delete file and vectors
-POST   /api/files/url         # Process content from URL
-GET    /api/files/info        # Get supported formats and limits
-```
-
-#### **🔍 Vector Operations**
-```http
-GET    /api/vectors           # System health and statistics  
-POST   /api/vectors/search    # Semantic search across collections
-GET    /api/vectors/[botId]   # Bot-specific vector statistics
-POST   /api/vectors/[botId]   # Initialize bot vector storage
-DELETE /api/vectors/[botId]   # Clean up bot vectors
-POST   /api/vectors/process/[fileId]  # Process file to vectors
-```
-
-#### **💬 Chat (Public API)**
-```http
-POST   /api/chat/[botId]      # Send message and get AI response
-GET    /api/chat/[botId]      # Get conversation history  
-DELETE /api/chat/[botId]      # Clear conversation history
-```
-
-### **Example Usage**
-
-#### **Create Bot with File Upload**
-```javascript
-// 1. Create bot
-const bot = await fetch('/api/bots', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    name: 'Customer Support Assistant',
-    description: 'Helps customers with product questions',
-    customization: {
-      bubbleColor: '#3B82F6',
-      position: 'bottom-right',
-      greeting: 'How can I help you today?'
-    }
-  })
-});
-
-// 2. Initialize vector storage
-await fetch(`/api/vectors/${bot.data.id}`, { method: 'POST' });
-
-// 3. Upload training documents
-const formData = new FormData();
-formData.append('file', documentFile);
-formData.append('botId', bot.data.id);
-formData.append('options', JSON.stringify({
-  generateEmbeddings: true,
-  chunkSize: 700,
-  overlap: 100
-}));
-
-const fileUpload = await fetch('/api/files', {
-  method: 'POST',
-  body: formData
-});
-```
-
-#### **Embed Chat Widget**
-```html
-<!-- Add to your website -->
-<div id="plugrag-chat"></div>
-<script src="https://your-domain.com/embed.js" 
-        data-bot-id="bot_xxxxx"
-        data-position="bottom-right"
-        data-primary-color="#3B82F6">
-</script>
-```
-
-#### **Send Chat Message (Public)**
-```javascript
-// No authentication required for public chat
-const response = await fetch('/api/chat/bot_xxxxx', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    message: 'How do I reset my password?',
-    sessionId: 'session_abc123',
-    userFingerprint: 'fp_xyz789',
-    domain: 'example.com'
-  })
-});
-
-const data = await response.json();
-// Returns: { success: true, data: { message: "AI response...", sources: [...] } }
+plugRag/
+├── src/
+│   ├── app/                          # Next.js App Router
+│   │   ├── api/                      # API routes
+│   │   │   ├── bots/                 # Bot management endpoints
+│   │   │   ├── files/                # File management endpoints
+│   │   │   ├── chat/                 # Chat endpoints
+│   │   │   ├── health/               # Health check
+│   │   │   └── webhooks/             # Clerk webhooks
+│   │   ├── dashboard/                # Protected dashboard pages
+│   │   └── page.js                   # Landing page
+│   ├── components/                   # React components
+│   │   ├── dashboard/                # Dashboard-specific components
+│   │   ├── conversations/            # Chat UI components
+│   │   ├── files/                    # File management components
+│   │   └── ui/                       # Reusable UI components
+│   ├── lib/                          # Core libraries
+│   │   ├── core/                     # Business logic services
+│   │   │   ├── chatService.js        # Chat and conversation logic
+│   │   │   ├── ragService.js         # RAG pipeline
+│   │   │   ├── fileService.js        # File operations
+│   │   │   ├── apiKeyService.js      # API key management
+│   │   │   ├── faqService.js         # FAQ matching
+│   │   │   └── intentClassifier.js   # Intent classification
+│   │   ├── integrations/             # External service integrations
+│   │   │   ├── openai.js             # OpenAI client
+│   │   │   ├── qdrant.js             # Qdrant vector DB
+│   │   │   ├── mongo.js              # MongoDB connection
+│   │   │   ├── s3.js                 # AWS S3 client
+│   │   │   └── clerk.js              # Clerk auth
+│   │   ├── processors/               # Data processing
+│   │   │   ├── textExtractor.js      # File text extraction
+│   │   │   ├── chunker.js            # Text chunking
+│   │   │   └── validator.js          # Input validation
+│   │   ├── queues/                   # Background job processing
+│   │   │   ├── config.js             # Queue configuration
+│   │   │   ├── fileProcessingQueue.js# File processing queue
+│   │   │   ├── worker.js             # Worker process
+│   │   │   └── processors/           # Job processors
+│   │   └── utils/                    # Utility functions
+│   │       ├── apiResponse.js        # Standard API responses
+│   │       ├── encryption.js         # AES-256 encryption
+│   │       ├── rateLimit.js          # Rate limiting
+│   │       ├── sanitization.js       # Input sanitization
+│   │       ├── logger.js             # Logging utility
+│   │       └── envConfig.js          # Environment validation
+│   ├── models/                       # MongoDB schemas
+│   │   ├── Bot.js                    # Bot model
+│   │   ├── User.js                   # User model
+│   │   ├── File.js                   # File model
+│   │   └── Conversation.js           # Conversation model
+│   └── hooks/                        # Custom React hooks
+│       ├── useBots.js                # Bot management hook
+│       ├── useBot.js                 # Single bot hook
+│       ├── useBotFiles.js            # Bot files hook
+│       └── useConversations.js       # Conversations hook
+├── public/                           # Static assets
+│   ├── embed.js                      # Chat widget embed script
+│   └── embed-test.html               # Widget test page
+├── docs/                             # Documentation
+│   ├── GETTING-STARTED.md            # Beginner guide
+│   ├── ARCHITECTURE.md               # System architecture
+│   ├── API-REFERENCE.md              # API documentation
+│   └── DEPLOYMENT.md                 # Deployment guide
+├── docker-compose.yaml               # Docker Compose configuration
+├── Dockerfile                        # Main app Dockerfile
+├── Dockerfile.worker                 # Worker Dockerfile
+├── .dockerignore                     # Docker ignore file
+├── start-worker.js                   # Worker entry point
+├── package.json                      # Dependencies
+├── next.config.mjs                   # Next.js configuration
+├── tailwind.config.js                # Tailwind configuration
+├── .env.example                      # Environment template
+└── README.md                         # This file
 ```
 
 ---
 
-## 📊 **Current Status**
+## 🔑 Environment Variables
 
-### ✅ **Completed Features** 
-- [x] **User Authentication & Management** (Clerk integration)
-- [x] **Multi-format File Processing** (PDF, DOCX, CSV, TXT, HTML, URLs)
-- [x] **Vector Embedding System** (OpenAI + Qdrant)
-- [x] **Bot Management Dashboard** (CRUD operations with analytics)
-- [x] **File Upload & Processing** (Drag-and-drop with progress tracking)
-- [x] **Semantic Search** (Vector similarity with configurable thresholds)
-- [x] **Session Management** (Unique session tracking with analytics)
-- [x] **Chat API Foundation** (Public endpoints with CORS support)
-- [x] **Real-time Analytics** (Token usage, file processing, session tracking)
-- [x] **Responsive UI** (Mobile-first design with dark theme)
-- [x] **Error Handling** (Comprehensive validation and user feedback)
-- [x] **Performance Optimization** (Database indexing, connection pooling)
+### Required Variables
 
-### 🚧 **In Active Development**
-- [ ] **Complete RAG Pipeline** - AI response generation with context
-- [ ] **Real-time Chat Interface** - WebSocket connections for instant messaging
-- [ ] **Chat History Management** - Persistent conversation storage and retrieval
-- [ ] **Advanced Bot Customization** - Personality, instructions, and behavior settings
-- [ ] **Embed Widget Generator** - Visual customization and code generation
-- [ ] **Analytics Dashboard** - Charts, insights, and performance metrics
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `MONGODB_URI` | MongoDB connection string | `mongodb+srv://...` |
+| `CLERK_SECRET_KEY` | Clerk authentication secret | `sk_live_...` |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key | `pk_live_...` |
+| `ENCRYPTION_SECRET_KEY` | 32-character encryption key (AES-256) | `abcd1234...` (32 chars) |
+| `OPENAI_API_KEY` | OpenAI API key (fallback) | `sk-...` |
+| `AWS_ACCESS_KEY_ID` | AWS access key for S3 | `AKIA...` |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key | `...` |
+| `AWS_REGION` | AWS region | `us-east-1` |
+| `AWS_S3_BUCKET` | S3 bucket name | `my-bucket` |
 
-### 🔮 **Planned Features**
-- [ ] **Team Collaboration** - Multi-user workspaces with permissions
-- [ ] **Advanced Analytics** - Conversion tracking, A/B testing, user journeys
-- [ ] **API Rate Limiting** - Tiered usage plans and quota management  
-- [ ] **Custom Model Support** - Fine-tuned models and alternative providers
-- [ ] **Integration Marketplace** - Zapier, Slack, Discord connectors
-- [ ] **Mobile Application** - Native iOS and Android apps
-- [ ] **Enterprise Features** - SSO, audit logs, custom deployment
+### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REDIS_HOST` | Redis hostname | `localhost` |
+| `REDIS_PORT` | Redis port | `6379` |
+| `QDRANT_URL` | Qdrant vector DB URL | `http://localhost:6333` |
+| `NEXT_PUBLIC_APP_URL` | Public application URL | `http://localhost:3000` |
+| `CLERK_WEBHOOK_SECRET` | Clerk webhook signature secret | _(optional)_ |
+| `NODE_ENV` | Environment mode | `development` |
+
+See [.env.example](.env.example) for a complete template.
 
 ---
 
-## 🧪 **Testing & Quality**
+## 🤝 Contributing
 
-### **Automated Testing**
-```bash
-# Run all tests
-npm test
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-# Test vector integration
-npm run test:vectors
+### Development Workflow
 
-# Test API endpoints
-npm run test:api
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run linting (`npm run lint`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
-# Performance tests
-npm run test:performance
-```
+### Code Style
 
-### **Manual Testing Checklist**
-- [ ] User registration and authentication
-- [ ] Bot creation and configuration
-- [ ] File upload for all supported formats  
-- [ ] Vector search and similarity scoring
-- [ ] Chat functionality and responses
-- [ ] Analytics accuracy and real-time updates
-- [ ] Mobile responsiveness and accessibility
-- [ ] Error handling and edge cases
-
-### **Quality Metrics**
-- **Code Coverage**: 85%+ target
-- **Performance**: <200ms API response time
-- **Uptime**: 99.9% availability target
-- **Security**: OWASP Top 10 compliance
+- Use ESLint configuration provided
+- Follow Next.js best practices
+- Write meaningful commit messages
+- Add comments for complex logic
+- Update documentation as needed
 
 ---
 
-## 🚀 **Deployment**
-
-### **Vercel (Recommended)**
-```bash
-# 1. Connect GitHub repository to Vercel
-# 2. Configure environment variables in Vercel dashboard
-# 3. Deploy automatically on git push
-
-# Environment Variables for Production:
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
-CLERK_SECRET_KEY=sk_live_...
-MONGODB_URI=mongodb+srv://prod-cluster...
-QDRANT_URL=https://your-qdrant-cluster.com
-OPENAI_API_KEY=sk-proj-production...
-```
-
-### **Docker Deployment**
-```dockerfile
-FROM node:20-alpine
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-RUN npm run build
-
-EXPOSE 3000
-CMD ["npm", "start"]
-```
-
-### **Self-Hosted Setup**
-- **Minimum Requirements**: 2 CPU cores, 4GB RAM, 50GB storage
-- **Recommended**: 4 CPU cores, 8GB RAM, 100GB SSD
-- **Database**: MongoDB 6.0+ or MongoDB Atlas
-- **Vector Database**: Qdrant 1.8+ with persistent storage
-
----
-
-## 🤝 **Contributing**
-
-We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
-
-### **Development Setup**
-1. **Fork** the repository on GitHub
-2. **Clone** your fork locally
-3. **Create** a feature branch: `git checkout -b feature/amazing-feature`
-4. **Install** dependencies: `npm install`
-5. **Start** development server: `npm run dev`
-6. **Make** your changes with tests
-7. **Commit**: `git commit -m 'Add amazing feature'`
-8. **Push**: `git push origin feature/amazing-feature`  
-9. **Create** a Pull Request
-
-### **Contribution Guidelines**
-- Follow existing code style and conventions
-- Add tests for new features and bug fixes
-- Update documentation for API changes
-- Ensure all tests pass before submitting
-- Keep PRs focused and reasonably sized
-
----
-
-## 📄 **License**
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 **Support & Community**
+---
 
-- 📖 **Documentation**: [/docs](/docs) directory
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/Kanishk2004/chat-bot/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/Kanishk2004/chat-bot/discussions)
-- 📧 **Email Support**: support@plugrag.com
-- 💬 **Discord Community**: [Join our Discord](https://discord.gg/plugrag)
+## 🙏 Acknowledgments
 
-## 📈 **Roadmap**
+- **OpenAI** for GPT-4 and embeddings API
+- **Qdrant** for the excellent vector database
+- **Clerk** for authentication infrastructure
+- **Vercel** for Next.js framework
+- **MongoDB** for the database platform
+- All open-source contributors
 
-### **Q1 2025**
-- ✅ Core RAG functionality completion
-- ✅ Production-ready chat widgets
-- ✅ Advanced analytics dashboard
-- ✅ Team collaboration features
+---
 
-### **Q2 2025** 
-- 🔄 Mobile applications (iOS & Android)
-- 🔄 Enterprise authentication (SAML/OIDC)
-- 🔄 Advanced customization tools
-- 🔄 Integration marketplace launch
+## 📞 Support
 
-### **Q3 2025**
-- 🔄 Multi-language support
-- 🔄 Voice chat capabilities
-- 🔄 Custom model training
-- 🔄 Advanced analytics & insights
+- **Documentation**: [docs/](docs/)
+- **Issues**: [GitHub Issues](https://github.com/yourusername/plugrag/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/plugrag/discussions)
+
+---
+
+## 🗺️ Roadmap
+
+### v1.1 (Q1 2026)
+- [ ] Multi-language support
+- [ ] Advanced analytics dashboard
+- [ ] Conversation export (CSV/JSON)
+- [ ] Custom bot personas
+- [ ] Webhook integrations
+
+### v1.2 (Q2 2026)
+- [ ] Voice input/output
+- [ ] Mobile apps (iOS/Android)
+- [ ] Team collaboration features
+- [ ] Advanced RAG techniques (HyDE, reranking)
+- [ ] Integration marketplace
+
+### v2.0 (Q3 2026)
+- [ ] Multi-modal support (images, audio)
+- [ ] Fine-tuning capabilities
+- [ ] White-label solutions
+- [ ] Enterprise SSO
+- [ ] On-premise deployment option
 
 ---
 
 <div align="center">
   
-  **Built with ❤️ by the PlugRAG team**
+  **Made with ❤️ by the PlugRAG Team**
   
-  ⭐ **Star this repo** if you find it helpful!
+  [⭐ Star us on GitHub](https://github.com/yourusername/plugrag) • [🐛 Report Bug](https://github.com/yourusername/plugrag/issues) • [💡 Request Feature](https://github.com/yourusername/plugrag/issues)
   
-  [🌟 Star on GitHub](https://github.com/Kanishk2004/chat-bot) • 
-  [🐦 Follow on Twitter](https://twitter.com/plugrag) • 
-  [💼 LinkedIn](https://linkedin.com/company/plugrag)
-
 </div>
