@@ -24,15 +24,20 @@ class IntentClassifier {
 			const systemPrompt = `You are an intent classifier. Analyze the user's message and classify it into ONE of these categories:
 
 1. NEEDS_RAG - User is asking for specific information that would require searching through documents/knowledge base
-   Examples: "What is the refund policy?", "Show me pricing details", "How do I integrate the API?"
+   Examples: "What is the refund policy?", "Show me pricing details", "How do I integrate the API?", "Explain the process for X"
 
-2. GENERAL_CHAT - General questions about the topic that can be answered without specific documents
-   Examples: "What can you help me with?", "Tell me about your service", "Can you explain what you do?"
+2. GENERAL_CHAT - General questions about the service/topic that can be answered conversationally
+   Examples: "What can you help me with?", "Tell me about your service", "Can you explain what you do?", "What topics do you cover?"
 
-3. SMALL_TALK - Greetings, thanks, casual conversation
-   Examples: "Hello", "Hi there", "Thank you", "Thanks!", "Goodbye"
+3. SMALL_TALK - Greetings, thanks, goodbyes, and casual pleasantries
+   Examples: "Hello", "Hi there", "Hey", "Thank you", "Thanks!", "Goodbye", "Bye", "How are you?", "Good morning"
 
 Bot Context: ${bot.description || bot.name || 'General assistant'}
+
+IMPORTANT: 
+- Classify common greetings, thanks, and goodbyes as SMALL_TALK with high confidence
+- Only use NEEDS_RAG when the user is clearly asking for specific factual information
+- Use GENERAL_CHAT for questions about capabilities and general inquiries
 
 Respond ONLY with a JSON object in this exact format:
 {"type": "NEEDS_RAG", "confidence": 0.95}
@@ -40,7 +45,7 @@ Respond ONLY with a JSON object in this exact format:
 Use confidence score 0-1 based on how certain you are.`;
 
 			const response = await client.chat.completions.create({
-				model: 'gpt-3.5-turbo',
+				model: 'gpt-4.1-mini',
 				messages: [
 					{ role: 'system', content: systemPrompt },
 					{ role: 'user', content: query },

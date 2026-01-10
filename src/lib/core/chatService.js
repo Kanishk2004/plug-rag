@@ -3,10 +3,9 @@ import Bot from '@/models/Bot.js';
 import { apiKeyService } from './apiKeyService.js';
 import { ragService } from './ragService.js';
 import { logInfo, logError } from '../utils/logger.js';
-import { createPerformanceTimer } from '../utils/performance.js';
 import intentClassifier, { INTENT_TYPES } from './intentClassifier.js';
-import faqService from './faqService.js';
 import { createOpenAIClient } from '../integrations/openai.js';
+import faqService from './faqService.js';
 
 /**
  * Custom error class for chat-related operations
@@ -192,54 +191,11 @@ class ChatService {
 			);
 			const conversationHistory = conversation.messages || [];
 
-			// Step 1: Check FAQ first (fastest path - no API calls)
-			const faqAnswer = faqService.checkFAQ(userMessage, bot);
-			if (faqAnswer) {
-				logInfo('FAQ match found', { botId: bot._id });
-
-				// Add user message to conversation
-				const userMessageObj = {
-					role: 'user',
-					content: userMessage,
-					intentType: 'GENERAL_CHAT',
-					intentConfidence: 1,
-					timestamp: new Date(),
-				};
-
-				conversationHistory.push(userMessageObj);
-
-				const faqResponse = {
-					content: faqAnswer,
-					sources: [],
-					tokensUsed: 0,
-					model: 'faq',
-					hasRelevantContext: false,
-					responseType: 'faq',
-				};
-
-				// Create assistant message
-				const assistantMessage = {
-					role: 'assistant',
-					content: faqResponse.content,
-					timestamp: new Date(),
-					sources: [],
-					tokensUsed: 0,
-					model: 'faq',
-					hasRelevantContext: false,
-					responseType: 'faq',
-				};
-
-				conversationHistory.push(assistantMessage);
-				await this.saveConversation(bot._id, sessionId, conversationHistory);
-
-				return { ...assistantMessage };
-			}
-
-			// Step 2: Fetch API key once (with caching)
+			// Step 1: Fetch API key once (with caching)
 			const config = await this.getOpenAIConfig(bot._id, bot.ownerId);
 			const { apiKey } = config;
 
-			// Step 3: Classify intent to determine routing
+			// Step 2: Classify intent to determine routing
 			const intent = await intentClassifier.classify(userMessage, bot, apiKey);
 
 			const userMessageObj = {
@@ -254,7 +210,7 @@ class ChatService {
 
 			let aiResponse;
 
-			// Step 4: Route based on intent
+			// Step 3: Route based on intent
 			if (intent.type === INTENT_TYPES.NEEDS_RAG) {
 				// Full RAG pipeline
 				aiResponse = await this.generateRAGResponse(
@@ -274,11 +230,18 @@ class ChatService {
 					bot,
 					userMessage,
 					conversationHistory,
-					apiKey
+					apiKey,
+					config.models.chat || 'gpt-4.1-mini'
 				);
 			} else if (intent.type === INTENT_TYPES.SMALL_TALK) {
-				// Predefined responses
-				aiResponse = await this.generateSmallTalkResponse(bot, userMessage);
+				// AI-powered small talk
+				aiResponse = await this.generateSmallTalkResponse(
+					bot,
+					userMessage,
+					conversationHistory,
+					apiKey,
+					config.models.chat || 'gpt-4.1-mini'
+				);
 			}
 
 			// Create assistant message
@@ -709,7 +672,8 @@ class ChatService {
 		bot,
 		userMessage,
 		conversationHistory,
-		apiKey
+		apiKey,
+		model = 'gpt-4.1-mini'
 	) {
 		const startTime = Date.now();
 
@@ -719,17 +683,27 @@ class ChatService {
 			// Get last 5 messages for context (not 10 like RAG)
 			const recentMessages = conversationHistory.slice(-5);
 
-			const systemPrompt = `You are a helpful assistant for ${bot.name}.
-You can ONLY discuss topics related to: ${bot.description || bot.name}
+			// Build FAQ context
+			const faqContext = faqService.buildFAQContext(bot);
 
-STRICT RULES:
-- Stay within the allowed topic scope
-- If asked about unrelated topics, politely redirect to what you can help with
-- Keep responses concise and friendly
-- Don't make up specific facts - admit if you don't know details
-- You don't have access to specific documents, so don't claim to have detailed information
+			let systemPrompt = `You are a helpful assistant for ${bot.name}.`;
 
-Be helpful but honest about your limitations.`;
+			if (bot.description) {
+				systemPrompt += `\n\nABOUT THIS ASSISTANT:\n${bot.description}`;
+			}
+
+			if (faqContext) {
+				systemPrompt += `\n${faqContext}`;
+			}
+
+			systemPrompt += `\n\nIMPORTANT GUIDELINES:
+- Answer questions based on the information provided above
+- If a question matches a FAQ, use that guidance but respond naturally (don't just copy the FAQ answer)
+- If asked about topics outside your knowledge, politely explain what you can help with
+- Keep responses clear, concise, and friendly
+- Be honest about limitations - don't make up information
+
+Provide helpful, accurate responses within your knowledge scope.`;
 
 			const messages = [
 				{ role: 'system', content: systemPrompt },
@@ -740,10 +714,10 @@ Be helpful but honest about your limitations.`;
 			];
 
 			const response = await client.chat.completions.create({
-				model: 'gpt-4.1-mini',
+				model,
 				messages,
 				temperature: 0.7,
-				max_tokens: 300,
+				max_tokens: 200,
 			});
 
 			const content = response.choices[0].message.content;
@@ -754,6 +728,7 @@ Be helpful but honest about your limitations.`;
 				botId: bot._id,
 				tokensUsed,
 				responseTime,
+				model,
 			});
 
 			return {
@@ -761,7 +736,7 @@ Be helpful but honest about your limitations.`;
 				sources: [],
 				responseTime,
 				tokensUsed,
-				model: 'gpt-4.1-mini',
+				model,
 				hasRelevantContext: false,
 				responseType: 'simple_llm',
 			};
@@ -772,28 +747,84 @@ Be helpful but honest about your limitations.`;
 	}
 
 	/**
-	 * Generate small talk response (predefined or simple)
+	 * Generate small talk response using AI
+	 * Used for greetings, thanks, goodbyes, and casual conversation
 	 */
-	async generateSmallTalkResponse(bot, userMessage) {
-		// For now, we'll use simple predefined responses
-		// Could be enhanced with simple LLM call if needed
-		const responses = [
-			"I'm here to help! What would you like to know?",
-			'Feel free to ask me anything related to what I can assist with.',
-			'How can I help you today?',
-		];
+	async generateSmallTalkResponse(
+		bot,
+		userMessage,
+		conversationHistory,
+		apiKey,
+		model = 'gpt-4.1-mini'
+	) {
+		const startTime = Date.now();
 
-		const content = responses[Math.floor(Math.random() * responses.length)];
+		try {
+			const client = createOpenAIClient(apiKey);
 
-		return {
-			content,
-			sources: [],
-			responseTime: 10,
-			tokensUsed: 0,
-			model: 'predefined',
-			hasRelevantContext: false,
-			responseType: 'small_talk',
-		};
+			// Get last 3 messages for minimal context
+			const recentMessages = conversationHistory.slice(-3);
+
+			// Build FAQ context
+			const faqContext = faqService.buildFAQContext(bot);
+
+			let systemPrompt = `You are a friendly assistant for ${bot.name}.`;
+
+			if (bot.description) {
+				systemPrompt += `\n\nABOUT THIS ASSISTANT:\n${bot.description}`;
+			}
+
+			if (faqContext) {
+				systemPrompt += `\n${faqContext}`;
+			}
+
+			systemPrompt += `\n\nYOUR ROLE:
+- Respond warmly to greetings, thanks, and casual conversation
+- Keep responses brief and friendly (1-2 sentences max)
+- If appropriate, gently guide users toward what you can help with
+- Use FAQs as guidance when relevant to the conversation
+
+Be personable and welcoming while staying concise.`;
+
+			const messages = [
+				{ role: 'system', content: systemPrompt },
+				...recentMessages.map((msg) => ({
+					role: msg.role,
+					content: msg.content,
+				})),
+			];
+
+			const response = await client.chat.completions.create({
+				model,
+				messages,
+				temperature: 0.8,
+				max_tokens: 100,
+			});
+
+			const content = response.choices[0].message.content;
+			const tokensUsed = response.usage?.total_tokens || 0;
+			const responseTime = Date.now() - startTime;
+
+			logInfo('Small talk response generated', {
+				botId: bot._id,
+				tokensUsed,
+				responseTime,
+				model,
+			});
+
+			return {
+				content,
+				sources: [],
+				responseTime,
+				tokensUsed,
+				model,
+				hasRelevantContext: false,
+				responseType: 'small_talk',
+			};
+		} catch (error) {
+			logError('Error generating small talk response', error);
+			throw error;
+		}
 	}
 }
 

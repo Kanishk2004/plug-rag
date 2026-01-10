@@ -220,6 +220,7 @@
         height: 50px;
         border-radius: 50%;
         border: none;
+		padding: 10px;
         background-color: ${finalConfig.color};
         color: white;
         cursor: pointer;
@@ -227,7 +228,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
+        font-size: 20px;
         transition: transform 0.2s ease;
       `;
 			chatButton.innerHTML = `

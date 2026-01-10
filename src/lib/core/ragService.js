@@ -60,6 +60,8 @@ You are an AI assistant, and your name is {bot_name}.
 You are very polite and helpful.
 You help the user by answering questions based strictly on the provided context from documents.
 
+{bot_description}
+
 IMPORTANT RULES:
 1. ONLY answer questions using information from the provided context
 2. If the context doesn't contain relevant information, politely decline and suggest topics you can help with
@@ -303,9 +305,9 @@ ASSISTANT RESPONSE:`);
 			const ragChain = RunnableSequence.from([
 				{
 					bot_name: () => bot.name || 'AI Assistant',
-					context: () => context,
-					chat_history: () => chatHistory,
-					question: (input) => input.question,
+					bot_description: () => {
+						bot.description ? `ABOUT THIS ASSISTANT:\\n${bot.description}` : '';
+					},
 				},
 				this.systemPromptTemplate,
 				llm,
