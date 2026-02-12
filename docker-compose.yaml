@@ -46,35 +46,12 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_cGVhY2VmdWwtZWVsLTE1LmNsZXJrLmFjY291bnRzLmRldiQ"
-        NEXT_PUBLIC_APP_URL: "http://localhost:3000"
-        CLERK_SECRET_KEY: "sk_test_Vl3ujZLgkThntPYFKQimryEUIwEF0Wsvyw1X1YHorc"
-        MONGODB_URI: "mongodb+srv://kanishkchandna29_db_user:DyiFZdbdoamIv2WG@cluster0.xzqolt9.mongodb.net/plugRag?retryWrites=true&w=majority&appName=Cluster0"
-        ENCRYPTION_SECRET_KEY: "b4e5c2f8a1d9e3f6c7b8a2d5e1f9c4b7"
-        OPENAI_API_KEY: "sk-proj-OJmdInCYOuRXZZ_-M1s45cKkff1wFdR1kZMzphWtVx9f4hVy5VhrCkYw9oFb7tvAnfTEgoCTmiT3BlbkFJNWIkxXJQ7BwRwHzYwveULzpb7ZX5AqKOlqld0VD32xrom-N_7Db1sEycGQxK0AYjQlChOMDFsA"
-        AWS_ACCESS_KEY_ID: "AKIAYQR4UY7JIHX7QLWV"
-        AWS_SECRET_ACCESS_KEY: "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"
-        AWS_REGION: "ap-south-1"
-        AWS_S3_BUCKET: "plugrag"
+      
     container_name: plugrag-app
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: production
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      QDRANT_URL: http://qdrant:6333
-      MONGODB_URI: "mongodb+srv://kanishkchandna29_db_user:DyiFZdbdoamIv2WG@cluster0.xzqolt9.mongodb.net/plugRag?retryWrites=true&w=majority&appName=Cluster0"
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_cGVhY2VmdWwtZWVsLTE1LmNsZXJrLmFjY291bnRzLmRldiQ"
-      CLERK_SECRET_KEY: "sk_test_Vl3ujZLgkThntPYFKQimryEUIwEF0Wsvyw1X1YHorc"
-      CLERK_WEBHOOK_SECRET: "whsec_S9V/ai/U3jLxkT7eqYhTbJWhESyr5B+x"
-      ENCRYPTION_SECRET_KEY: "b4e5c2f8a1d9e3f6c7b8a2d5e1f9c4b7"
-      AWS_ACCESS_KEY_ID: "AKIAYQR4UY7JIHX7QLWV"
-      AWS_SECRET_ACCESS_KEY: "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"
-      S3_REGION: "ap-south-1"
-      S3_BUCKET: "plugrag"
-      OPENAI_API_KEY: "sk-proj-OJmdInCYOuRXZZ_-M1s45cKkff1wFdR1kZMzphWtVx9f4hVy5VhrCkYw9oFb7tvAnfTEgoCTmiT3BlbkFJNWIkxXJQ7BwRwHzYwveULzpb7ZX5AqKOlqld0VD32xrom-N_7Db1sEycGQxK0AYjQlChOMDFsA"
-      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      
     depends_on:
       redis:
         condition: service_healthy
@@ -91,21 +68,7 @@ services:
       dockerfile: Dockerfile.worker
     container_name: plugrag-worker
     environment:
-      NODE_ENV: production
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      QDRANT_URL: http://qdrant:6333
-      MONGODB_URI: "mongodb+srv://kanishkchandna29_db_user:DyiFZdbdoamIv2WG@cluster0.xzqolt9.mongodb.net/plugRag?retryWrites=true&w=majority&appName=Cluster0"
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_cGVhY2VmdWwtZWVsLTE1LmNsZXJrLmFjY291bnRzLmRldiQ"
-      CLERK_SECRET_KEY: "sk_test_Vl3ujZLgkThntPYFKQimryEUIwEF0Wsvyw1X1YHorc"
-      CLERK_WEBHOOK_SECRET: "whsec_S9V/ai/U3jLxkT7eqYhTbJWhESyr5B+x"
-      ENCRYPTION_SECRET_KEY: "b4e5c2f8a1d9e3f6c7b8a2d5e1f9c4b7"
-      AWS_ACCESS_KEY_ID: "AKIAYQR4UY7JIHX7QLWV"
-      AWS_SECRET_ACCESS_KEY: "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"
-      S3_REGION: "ap-south-1"
-      S3_BUCKET: "plugrag"
-      OPENAI_API_KEY: "${OPENAI_API_KEY}"
-      NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+      
     depends_on:
       redis:
         condition: service_healthy
